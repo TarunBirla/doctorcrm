@@ -24,6 +24,7 @@ use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClinicController;
 use App\Http\Controllers\SlotManagementController;
+use App\Http\Controllers\LandingPageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,8 +51,11 @@ Route::withoutMiddleware([
 // Role Switching
 Route::get('/switch-role/{role}', [RoleController::class, 'switchRole'])->name('role.switch');
 
-// Dashboard & Global Search
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+// Public Landing Page (https://crm.physiopii.in/)
+Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+
+// Dashboard & Global Search (CRM Portal)
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/search', [DashboardController::class, 'search'])->name('global.search');
 
 // Patient Management
