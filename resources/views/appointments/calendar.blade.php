@@ -15,11 +15,11 @@
                     Dr
                 </div>
                 <div>
-                    <h3 class="font-bold text-base flex items-center gap-2">
+                    <h3 class="font-bold text-base  text-black flex items-center gap-2">
                         Dr. {{ $loggedInDoctor->name }}'s Personal Schedule
-                        <span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-semibold">Active Doctor</span>
+                        <span class="text-[11px] bg-emerald-500/20 text-emerald-600 border border-emerald-400/30 px-2 py-0.5 rounded-full font-semibold">Active Doctor</span>
                     </h3>
-                    <p class="text-xs text-blue-100/80">Showing only your booked patient consultations, queue tokens, and schedule availability.</p>
+                    <p class="text-xs text-blue-400">Showing only your booked patient consultations, queue tokens, and schedule availability.</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 text-xs">
