@@ -79,7 +79,7 @@
                 <button type="submit" class="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition shadow-sm text-center">
                     Filter
                 </button>
-                <a href="{{ route('appointments.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-medium text-center">
+                <a href="{{ route('appointments.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold text-center">
                     Reset
                 </a>
             </div>

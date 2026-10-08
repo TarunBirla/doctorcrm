@@ -20,7 +20,7 @@
                     @endforeach
                 </select>
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('medical-reports.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('medical-reports.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </div>
 
             <button type="button" onclick="openModal('uploadReportModal')" class="flex items-center gap-1.5 px-4 py-2 bg-navy-900 text-white rounded-xl font-bold hover:bg-navy-800 transition shadow-sm">
@@ -58,7 +58,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Date:</span>
-                        <span class="font-medium text-slate-700">{{ $rep->report_date->format('d M Y') }}</span>
+                        <span class="font-semibold text-slate-700">{{ $rep->report_date->format('d M Y') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Laboratory:</span>

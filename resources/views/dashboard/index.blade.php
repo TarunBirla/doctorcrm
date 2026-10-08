@@ -17,7 +17,7 @@
         <!-- Filter Selector Form -->
         <form action="{{ route('dashboard') }}" method="GET" class="flex flex-wrap items-center gap-2 text-xs">
             <select name="date_filter" onchange="this.form.submit()" 
-                    class="px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-700 hover:bg-white focus:bg-white focus:border-blue-500 outline-none">
+                    class="px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-500 outline-none">
                 <option value="today" {{ $dateFilter === 'today' ? 'selected' : '' }}>Today</option>
                 <option value="yesterday" {{ $dateFilter === 'yesterday' ? 'selected' : '' }}>Yesterday</option>
                 <option value="tomorrow" {{ $dateFilter === 'tomorrow' ? 'selected' : '' }}>Tomorrow</option>
@@ -36,7 +36,7 @@
                 <button type="submit" class="px-3 py-1.5 bg-navy-900 text-white rounded-xl font-bold">Apply</button>
             @endif
 
-            <a href="{{ route('dashboard', ['date_filter' => 'today']) }}" class="px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-medium">
+            <a href="{{ route('dashboard', ['date_filter' => 'today']) }}" class="px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold">
                 Reset
             </a>
         </form>
@@ -240,7 +240,7 @@
                                         <div class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->mobile }}</div>
                                     </td>
                                     <td class="p-3">
-                                        <div class="font-medium text-slate-700">{{ $apt->appointment_time }}</div>
+                                        <div class="font-semibold text-slate-700">{{ $apt->appointment_time }}</div>
                                         <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-slate-100 text-slate-600">
                                             {{ $apt->appointment_type }}
                                         </span>

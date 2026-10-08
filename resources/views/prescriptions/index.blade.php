@@ -16,7 +16,7 @@
                 <input type="date" name="date" value="{{ $date }}" 
                        class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-500">
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('prescriptions.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('prescriptions.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </div>
 
             <a href="{{ route('prescriptions.create') }}" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition flex items-center gap-1.5 shadow-sm">

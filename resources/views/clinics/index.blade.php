@@ -122,7 +122,7 @@
                         <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-600"></i>
                         {{ $clinic->working_days ?? 'Mon - Sat' }}
                     </span>
-                    <span class="text-slate-600 font-medium">
+                    <span class="text-slate-600 font-semibold">
                         {{ $clinic->working_hours ?? '09:00 AM - 05:00 PM' }}
                     </span>
                 </div>

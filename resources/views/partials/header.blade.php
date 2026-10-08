@@ -30,7 +30,7 @@
 <header class="bg-white border-b border-slate-200/90 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)] no-print">
     <!-- LEFT: BREADCRUMBS & PAGE TITLE -->
     <div>
-        <div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+        <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
             <a href="{{ route('dashboard') }}" class="hover:text-slate-600 transition">Dashboard</a>
             <span>/</span>
             <span class="text-slate-600 font-semibold">@yield('breadcrumb', 'Overview')</span>
@@ -151,7 +151,7 @@
                     <span class="font-bold text-slate-900 block">{{ $userName }}</span>
                     <span class="text-[11px] text-slate-400 block truncate">{{ auth()->user()->email ?? ($currentRole . '@carepoint.com') }}</span>
                 </div>
-                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition font-medium">
+                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition font-semibold">
                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
                     <span>My Profile</span>
                 </a>

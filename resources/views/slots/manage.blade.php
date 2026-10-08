@@ -138,14 +138,14 @@
         <!-- Tabs Nav -->
         <div class="flex border-b border-slate-200 bg-slate-50/75 px-4 pt-3 gap-2">
             <button @click="activeTab = 'slots'" 
-                    :class="activeTab === 'slots' ? 'bg-white text-blue-700 border-slate-200 border-b-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 border-transparent font-medium'"
+                    :class="activeTab === 'slots' ? 'bg-white text-blue-700 border-slate-200 border-b-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 border-transparent font-semibold'"
                     class="px-5 py-2.5 rounded-t-xl border border-b-0 text-sm transition flex items-center gap-2">
                 <i data-lucide="calendar-check-2" class="w-4 h-4"></i>
                 Daily Live Slots Grid ({{ $carbonDate->format('d M') }})
             </button>
 
             <button @click="activeTab = 'schedule'" 
-                    :class="activeTab === 'schedule' ? 'bg-white text-blue-700 border-slate-200 border-b-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 border-transparent font-medium'"
+                    :class="activeTab === 'schedule' ? 'bg-white text-blue-700 border-slate-200 border-b-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 border-transparent font-semibold'"
                     class="px-5 py-2.5 rounded-t-xl border border-b-0 text-sm transition flex items-center gap-2">
                 <i data-lucide="sliders" class="w-4 h-4"></i>
                 Clinic Working Hours & Weekly Schedule

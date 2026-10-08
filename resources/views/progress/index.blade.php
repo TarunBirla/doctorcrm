@@ -96,7 +96,7 @@
                                 <td class="p-3 text-slate-700">{{ $pr->pulse ? $pr->pulse . ' bpm' : '-' }}</td>
                                 <td class="p-3 text-slate-700">{{ $pr->temperature ? $pr->temperature . ' °F' : '-' }}</td>
                                 <td class="p-3 font-semibold text-emerald-700">{{ $pr->spo2 ? $pr->spo2 . '%' : '-' }}</td>
-                                <td class="p-3 font-medium text-slate-800">{{ $pr->bmi ?? '-' }}</td>
+                                <td class="p-3 font-semibold text-slate-800">{{ $pr->bmi ?? '-' }}</td>
                                 <td class="p-3 font-bold text-amber-700">{{ $pr->pain_level }}/10</td>
                                 <td class="p-3 pr-5 text-slate-600">
                                     {{ $pr->treatment_response ?? $pr->symptoms_assessment ?? $pr->doctor_notes ?? 'Routine follow-up' }}

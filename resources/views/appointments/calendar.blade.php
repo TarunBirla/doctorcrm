@@ -116,7 +116,7 @@
                                     @elseif($a->status === 'confirmed') bg-indigo-50 text-indigo-800 border border-indigo-200
                                     @else bg-slate-100 text-slate-700 border border-slate-200 @endif">
                                     <span class="font-bold text-slate-900">{{ date('h:i A', strtotime($a->appointment_time)) }}</span>
-                                    <span class="ml-1 text-slate-800 font-medium">{{ $a->patient?->full_name ?? 'Patient' }}</span>
+                                    <span class="ml-1 text-slate-800 font-semibold">{{ $a->patient?->full_name ?? 'Patient' }}</span>
                                 </a>
                             @endforeach
                             @if($dayAppts->count() > 3)

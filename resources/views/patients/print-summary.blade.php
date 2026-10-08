@@ -52,7 +52,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-black text-slate-900 tracking-tight">CAREPOINT CLINIC & HEALTHCARE</h1>
-                        <p class="text-xs text-slate-500 font-medium">Multi-Specialty Outpatient & Family Medicine Care</p>
+                        <p class="text-xs text-slate-500 font-semibold">Multi-Specialty Outpatient & Family Medicine Care</p>
                     </div>
                 </div>
                 <div class="text-xs text-slate-500 mt-3 space-y-0.5">
@@ -73,31 +73,31 @@
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Patient Profile & Identification</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <div>
-                    <span class="text-slate-400 block font-medium">Patient Name</span>
+                    <span class="text-slate-400 block font-semibold">Patient Name</span>
                     <strong class="text-sm font-bold text-slate-900">{{ $patient->full_name }}</strong>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Patient ID</span>
+                    <span class="text-slate-400 block font-semibold">Patient ID</span>
                     <span class="font-mono font-bold text-slate-800">{{ $patient->patient_id }}</span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Age / Gender</span>
+                    <span class="text-slate-400 block font-semibold">Age / Gender</span>
                     <strong class="text-slate-800">{{ $patient->age }} Years / {{ $patient->gender }}</strong>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Blood Group</span>
+                    <span class="text-slate-400 block font-semibold">Blood Group</span>
                     <strong class="text-rose-600 font-bold">{{ $patient->blood_group ?? 'Unknown' }}</strong>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Mobile Contact</span>
+                    <span class="text-slate-400 block font-semibold">Mobile Contact</span>
                     <span class="text-slate-800">{{ $patient->mobile }}</span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Emergency Contact</span>
+                    <span class="text-slate-400 block font-semibold">Emergency Contact</span>
                     <span class="text-slate-800">{{ $patient->emergency_contact ?? 'N/A' }} ({{ $patient->emergency_contact_phone ?? 'N/A' }})</span>
                 </div>
                 <div class="md:col-span-2">
-                    <span class="text-slate-400 block font-medium">Residential Address</span>
+                    <span class="text-slate-400 block font-semibold">Residential Address</span>
                     <span class="text-slate-800">{{ $patient->address ?? 'N/A' }}{{ $patient->city ? ', ' . $patient->city : '' }}</span>
                 </div>
             </div>
@@ -155,17 +155,17 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <span class="text-slate-400 block font-medium">Chief Complaint:</span>
+                                    <span class="text-slate-400 block font-semibold">Chief Complaint:</span>
                                     <p class="font-semibold text-slate-800">{{ $v->chief_complaint }}</p>
                                 </div>
                                 <div>
-                                    <span class="text-slate-400 block font-medium">Doctor Diagnosis:</span>
+                                    <span class="text-slate-400 block font-semibold">Doctor Diagnosis:</span>
                                     <p class="font-semibold text-slate-800">{{ $v->diagnosis_summary ?: 'Clinical evaluation' }}</p>
                                 </div>
                             </div>
                             @if($v->treatment_plan)
                                 <div>
-                                    <span class="text-slate-400 block font-medium">Treatment & Directions:</span>
+                                    <span class="text-slate-400 block font-semibold">Treatment & Directions:</span>
                                     <p class="text-slate-700">{{ $v->treatment_plan }}</p>
                                 </div>
                             @endif

@@ -73,7 +73,7 @@
                             <td class="p-3.5 font-mono font-bold text-blue-700">
                                 {{ $inv->invoice_no }}
                             </td>
-                            <td class="p-3.5 text-slate-600 font-medium">
+                            <td class="p-3.5 text-slate-600 font-semibold">
                                 {{ $inv->invoice_date->format('d M Y') }}
                             </td>
                             <td class="p-3.5">

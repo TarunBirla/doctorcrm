@@ -45,7 +45,7 @@
                 </select>
                 <input type="date" name="date" value="{{ $date }}" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('invoices.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('invoices.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </div>
 
             <a href="{{ route('invoices.create') }}" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition flex items-center gap-1.5 shadow-sm">
@@ -95,7 +95,7 @@
                             <td class="p-3 font-bold {{ $inv->due_amount > 0 ? 'text-rose-600' : 'text-slate-400' }}">
                                 ₹{{ number_format($inv->due_amount, 2) }}
                             </td>
-                            <td class="p-3 text-slate-600 font-medium">
+                            <td class="p-3 text-slate-600 font-semibold">
                                 {{ $inv->payment_method ?? 'Not Paid' }}
                             </td>
                             <td class="p-3">

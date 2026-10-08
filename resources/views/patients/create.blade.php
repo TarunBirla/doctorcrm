@@ -235,7 +235,7 @@
                             <label class="block font-bold text-slate-700">
                                 3. Choose Available Time Slot *
                             </label>
-                            <span id="slotStatusMsg" class="text-[11px] text-slate-500 font-medium">Loading slots...</span>
+                            <span id="slotStatusMsg" class="text-[11px] text-slate-500 font-semibold">Loading slots...</span>
                         </div>
 
                         <!-- Hidden input storing selected slot time -->
@@ -329,7 +329,7 @@
 
                 if (!slot.is_available) {
                     btn.disabled = true;
-                    btn.className = 'py-2 px-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed line-through opacity-75';
+                    btn.className = 'py-2 px-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed line-through opacity-75';
                     btn.title = slot.is_booked ? 'Already Booked' : (slot.reason || 'Blocked');
                 } else {
                     const isSelected = selectedTimeInput.value === slot.time;

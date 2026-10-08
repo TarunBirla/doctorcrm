@@ -44,7 +44,7 @@
 
             <div class="text-right">
                 <h3 class="text-base font-extrabold text-slate-900">{{ $prescription->doctor->name ?? $clinic->doctor_name }}</h3>
-                <p class="text-xs text-slate-600 font-medium">{{ $prescription->doctor->qualification ?? 'MBBS, MD' }}</p>
+                <p class="text-xs text-slate-600 font-semibold">{{ $prescription->doctor->qualification ?? 'MBBS, MD' }}</p>
                 <p class="text-xs text-slate-600">{{ $prescription->doctor->specialization ?? 'Senior Consultant Physician' }}</p>
                 <span class="inline-block mt-1 text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                     Reg No: {{ $prescription->doctor->registration_no ?? $clinic->doctor_reg_no }}

@@ -12,6 +12,9 @@
         tailwind.config = {
             theme: {
                 extend: {
+                    fontWeight: {
+                        medium: '600',
+                    },
                     colors: {
                         navy: {
                             800: '#0f2744',
@@ -48,6 +51,10 @@
             background-color: #ffffff;
             color: #0f172a;
         }
+        /* Enforce font-weight: 600 globally */
+        .font-medium, [style*="font-weight: 500"], [style*="font-weight:500"] {
+            font-weight: 600 !important;
+        }
         .hero-pattern {
             background-color: #ffffff;
             background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
@@ -80,7 +87,7 @@
                             <span class="text-xl font-extrabold tracking-tight text-navy-900">Physio<span class="text-blue-600">Pii</span></span>
                             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 tracking-wide">CRM</span>
                         </div>
-                        <p class="text-[10px] text-slate-500 font-medium tracking-wide">Multi-Clinic Healthcare Platform</p>
+                        <p class="text-[10px] text-slate-500 font-semibold tracking-wide">Multi-Clinic Healthcare Platform</p>
                     </div>
                 </a>
 
@@ -220,7 +227,7 @@
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-navy-900 text-sm">Dr. Tarun Birla</h4>
-                                    <p class="text-[11px] text-slate-500 font-medium">Birla Physiotherapy & Rehab Clinic</p>
+                                    <p class="text-[11px] text-slate-500 font-semibold">Birla Physiotherapy & Rehab Clinic</p>
                                 </div>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
@@ -366,7 +373,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         A single doctor can practice across multiple branch clinics. Configure separate operating days, custom consultation fees, independent durations, and address details.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-600"></i> Primary & secondary clinic tagging</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-600"></i> Clinic-specific consultation pricing</li>
                     </ul>
@@ -381,7 +388,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         Visual slot grid with Day, Week, and Month views. Automatic lunch exclusions, slot block overrides for surgeries or meetings, and zero double bookings.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Auto slot generation (10-60 min)</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Emergency extra slot injection</li>
                     </ul>
@@ -396,7 +403,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         Data privacy by architectural design. Doctor A cannot see, search, or access Doctor B's patients, appointments, progress notes, or prescriptions.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600"></i> Strict Doctor-level query scoping</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600"></i> 403 Forbidden cross-doctor shield</li>
                     </ul>
@@ -411,7 +418,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         Automatic token numbering, patient waiting times counter, and one-click consultation lifecycle: Waiting $\rightarrow$ In Consultation $\rightarrow$ Completed.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-amber-600"></i> Live queue waiting time monitor</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-amber-600"></i> Front-desk receptionist dispatch</li>
                     </ul>
@@ -426,7 +433,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         Prescribe medications with dosage, frequency, and treatment advice. Instant PDF/printable prescription summaries with clinic branding.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-rose-600"></i> One-click print consultation summaries</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-rose-600"></i> Diagnosis & clinical notes archive</li>
                     </ul>
@@ -441,7 +448,7 @@
                     <p class="text-xs text-slate-600 leading-relaxed">
                         Automatic invoice generation on appointment booking. Supports multi-service billing, payment status (Paid, Partial, Unpaid), and clinic financial logs.
                     </p>
-                    <ul class="text-xs space-y-1.5 text-slate-500 font-medium">
+                    <ul class="text-xs space-y-1.5 text-slate-500 font-semibold">
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-purple-600"></i> Automated appointment invoice links</li>
                         <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-purple-600"></i> Full financial audit trail & logs</li>
                     </ul>
@@ -757,7 +764,7 @@
                     </div>
                     <div class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl">
                         10:00 AM
-                        <span class="block text-[10px] font-medium text-amber-600">Doctor Meeting</span>
+                        <span class="block text-[10px] font-semibold text-amber-600">Doctor Meeting</span>
                     </div>
                     <div class="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition cursor-pointer">
                         10:15 AM

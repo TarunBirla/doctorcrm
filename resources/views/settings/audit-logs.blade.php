@@ -20,7 +20,7 @@
                     <option value="receptionist" {{ $role === 'receptionist' ? 'selected' : '' }}>Receptionist</option>
                 </select>
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('audit-logs.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('audit-logs.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </div>
             <span class="text-xs text-slate-400">Total {{ $logs->total() }} recorded audit events</span>
         </form>

@@ -193,7 +193,7 @@
                         </div>
                         <div class="pt-2">
                             <span class="text-slate-400 block mb-1">Residential Address:</span>
-                            <p class="font-medium text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <p class="font-semibold text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                                 {{ $patient->address ?? 'No address provided' }}, {{ $patient->city }}, {{ $patient->state }}
                             </p>
                         </div>
@@ -221,13 +221,13 @@
                         </div>
                         <div>
                             <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">Current Regular Medications</span>
-                            <p class="font-medium text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-1">
+                            <p class="font-semibold text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-1">
                                 {{ $patient->medicalHistory->current_medications ?? 'None' }}
                             </p>
                         </div>
                         <div>
                             <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">Past Surgeries / Family History</span>
-                            <p class="font-medium text-slate-600 text-[11px] mt-1">
+                            <p class="font-semibold text-slate-600 text-[11px] mt-1">
                                 Surgeries: {{ $patient->medicalHistory->surgeries ?? 'None' }} • Family: {{ $patient->medicalHistory->family_history ?? 'None' }}
                             </p>
                         </div>
@@ -737,7 +737,7 @@
                                     <td class="p-3 pl-5 font-bold text-slate-900">{{ $fu->follow_up_date->format('d M Y') }}</td>
                                     <td class="p-3 text-slate-600">{{ $fu->follow_up_time ?? '10:00 AM' }}</td>
                                     <td class="p-3 text-slate-700">{{ $fu->doctor->name ?? 'Doctor' }}</td>
-                                    <td class="p-3 font-medium text-slate-800">{{ $fu->reason }}</td>
+                                    <td class="p-3 font-semibold text-slate-800">{{ $fu->reason }}</td>
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize 
                                             {{ $fu->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($fu->status === 'missed' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') }}">

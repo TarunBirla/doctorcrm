@@ -157,7 +157,7 @@
                                 <option value="Revisit" {{ $appointment && $appointment->appointment_type === 'revisit' ? 'selected' : '' }}>Revisit</option>
                                 <option value="Emergency" {{ $appointment && $appointment->appointment_type === 'emergency' ? 'selected' : '' }}>Emergency</option>
                             </select>
-                            <input type="date" name="visit_date" value="{{ now()->toDateString() }}" class="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-medium">
+                            <input type="date" name="visit_date" value="{{ now()->toDateString() }}" class="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-semibold">
                         </div>
                     </div>
 

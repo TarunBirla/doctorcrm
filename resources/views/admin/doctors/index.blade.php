@@ -76,14 +76,14 @@
                                 <span class="text-[11px] font-mono text-slate-400">Reg: {{ $doc->registration_no }}</span>
                             </td>
                             <td class="py-3.5 px-4 text-xs">
-                                <div class="font-mono text-slate-700 font-medium">{{ $doc->email }}</div>
+                                <div class="font-mono text-slate-700 font-semibold">{{ $doc->email }}</div>
                                 <div class="text-slate-400 mt-0.5">{{ $doc->phone }}</div>
                             </td>
                             <td class="py-3.5 px-4 font-bold text-slate-900 text-xs">
                                 ₹{{ number_format($doc->consultation_fee, 2) }}
                             </td>
                             <td class="py-3.5 px-4 text-xs">
-                                <div class="text-slate-700 font-medium">{{ $doc->appointments_count }} Appointments</div>
+                                <div class="text-slate-700 font-semibold">{{ $doc->appointments_count }} Appointments</div>
                                 <div class="text-slate-400">{{ $doc->visits_count }} Encounters</div>
                             </td>
                             <td class="py-3.5 px-4">

@@ -11,6 +11,9 @@
         tailwind.config = {
             theme: {
                 extend: {
+                    fontWeight: {
+                        medium: '600',
+                    },
                     colors: {
                         primary: '#0a2540',
                     },
@@ -22,6 +25,11 @@
             }
         }
     </script>
+    <style>
+        .font-medium, [style*="font-weight: 500"], [style*="font-weight:500"] {
+            font-weight: 600 !important;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-800">
 
@@ -32,7 +40,7 @@
                 <i data-lucide="cross" class="w-7 h-7"></i>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">CarePoint Clinic</h1>
-            <p class="text-xs sm:text-sm text-slate-500 font-medium">Doctor & Patient Management System</p>
+            <p class="text-xs sm:text-sm text-slate-500 font-semibold">Doctor & Patient Management System</p>
         </div>
 
         <!-- Login Card -->
@@ -90,7 +98,7 @@
                 <div class="flex items-center justify-between pt-1">
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" name="remember" checked class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20">
-                        <span class="text-xs text-slate-600 font-medium">Remember this session</span>
+                        <span class="text-xs text-slate-600 font-semibold">Remember this session</span>
                     </label>
                 </div>
 

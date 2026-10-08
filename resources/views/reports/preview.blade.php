@@ -46,7 +46,7 @@
                         </div>
                         <div>
                             <h1 class="text-xl font-black text-slate-900 tracking-tight">CAREPOINT CLINIC & HEALTHCARE</h1>
-                            <p class="text-xs text-slate-500 font-medium">Diagnostic Pathology & Clinical Imaging Center</p>
+                            <p class="text-xs text-slate-500 font-semibold">Diagnostic Pathology & Clinical Imaging Center</p>
                         </div>
                     </div>
                     <p class="text-[11px] text-slate-400 mt-2">Laboratory: <strong class="text-slate-700">{{ $report->laboratory ?? 'CarePoint Diagnostic Center' }}</strong></p>
@@ -63,19 +63,19 @@
             <!-- Patient Demographic Strip -->
             <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                    <span class="text-slate-400 block font-medium">Patient Name</span>
+                    <span class="text-slate-400 block font-semibold">Patient Name</span>
                     <strong class="text-slate-900">{{ $report->patient->full_name }}</strong>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Patient ID</span>
+                    <span class="text-slate-400 block font-semibold">Patient ID</span>
                     <span class="font-mono font-bold text-slate-800">{{ $report->patient->patient_id }}</span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Age / Gender</span>
+                    <span class="text-slate-400 block font-semibold">Age / Gender</span>
                     <span class="text-slate-800">{{ $report->patient->age }}y / {{ $report->patient->gender }}</span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block font-medium">Blood Group</span>
+                    <span class="text-slate-400 block font-semibold">Blood Group</span>
                     <strong class="text-rose-600">{{ $report->patient->blood_group ?? 'N/A' }}</strong>
                 </div>
             </div>

@@ -72,7 +72,7 @@
                 <button type="submit" class="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition shadow-sm text-center">
                     Filter
                 </button>
-                <a href="{{ route('patients.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-medium text-center">
+                <a href="{{ route('patients.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold text-center">
                     Reset
                 </a>
             </div>
@@ -135,7 +135,7 @@
                                 <span class="text-slate-400">• {{ $patient->age }} yrs</span>
                             </td>
                             <td class="p-3.5">
-                                <div class="font-medium text-slate-800">{{ $patient->mobile }}</div>
+                                <div class="font-semibold text-slate-800">{{ $patient->mobile }}</div>
                                 <span class="text-[11px] text-slate-400">{{ $patient->city ?? 'Gurugram' }}</span>
                             </td>
                             <td class="p-3.5">
@@ -149,7 +149,7 @@
                             </td>
                             <td class="p-3.5 max-w-xs truncate text-slate-600">
                                 @if($patient->medicalHistory && ($patient->medicalHistory->conditions || $patient->medicalHistory->allergies))
-                                    <span class="font-medium text-slate-800">{{ $patient->medicalHistory->conditions ?? 'None' }}</span>
+                                    <span class="font-semibold text-slate-800">{{ $patient->medicalHistory->conditions ?? 'None' }}</span>
                                     @if($patient->medicalHistory->allergies)
                                         <span class="text-rose-600 block text-[10px] font-semibold">⚠️ Allergy: {{ $patient->medicalHistory->allergies }}</span>
                                     @endif
@@ -170,7 +170,7 @@
                             </td>
                             <td class="p-3.5 text-slate-500">
                                 @if($patient->last_visit)
-                                    <span class="font-medium text-slate-800">{{ $patient->last_visit->visit_date->format('d M Y') }}</span>
+                                    <span class="font-semibold text-slate-800">{{ $patient->last_visit->visit_date->format('d M Y') }}</span>
                                     <span class="text-[10px] text-slate-400 block">{{ $patient->last_visit->visit_type }}</span>
                                 @else
                                     <span class="text-slate-300">No visits yet</span>

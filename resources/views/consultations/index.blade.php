@@ -98,7 +98,7 @@
                                     {{ $v->chief_complaint }}
                                 </p>
                                 <p class="text-xs text-slate-500 truncate mt-0.5" title="{{ $v->diagnosis_summary ?? 'No diagnosis recorded' }}">
-                                    <span class="font-medium text-slate-600">Dx:</span> {{ $v->diagnosis_summary ?? 'Clinical review' }}
+                                    <span class="font-semibold text-slate-600">Dx:</span> {{ $v->diagnosis_summary ?? 'Clinical review' }}
                                 </p>
                             </td>
                             <td class="py-3.5 px-4">
@@ -109,9 +109,9 @@
                                     $wt = $vitals['weight'] ?? null;
                                 @endphp
                                 <div class="text-xs text-slate-600 space-y-0.5">
-                                    @if($bp) <div><span class="text-slate-400 font-medium">BP:</span> {{ $bp }}</div> @endif
-                                    @if($pulse) <div><span class="text-slate-400 font-medium">Pulse:</span> {{ $pulse }} bpm</div> @endif
-                                    @if($wt) <div><span class="text-slate-400 font-medium">Wt:</span> {{ $wt }} kg</div> @endif
+                                    @if($bp) <div><span class="text-slate-400 font-semibold">BP:</span> {{ $bp }}</div> @endif
+                                    @if($pulse) <div><span class="text-slate-400 font-semibold">Pulse:</span> {{ $pulse }} bpm</div> @endif
+                                    @if($wt) <div><span class="text-slate-400 font-semibold">Wt:</span> {{ $wt }} kg</div> @endif
                                     @if(!$bp && !$pulse && !$wt) <span class="text-slate-400 italic">Not recorded</span> @endif
                                 </div>
                             </td>

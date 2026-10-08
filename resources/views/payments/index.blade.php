@@ -42,7 +42,7 @@
                 </select>
                 <input type="date" name="date" value="{{ $date }}" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('payments.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('payments.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </div>
 
             <a href="{{ route('due-payments.index') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">

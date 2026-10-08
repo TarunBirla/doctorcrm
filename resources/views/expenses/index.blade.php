@@ -35,7 +35,7 @@
                 </select>
                 <input type="date" name="date" value="{{ $date }}" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                 <button type="submit" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition">Filter</button>
-                <a href="{{ route('expenses.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-medium">Reset</a>
+                <a href="{{ route('expenses.index') }}" class="px-3 py-2 border rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Reset</a>
             </form>
 
             <button onclick="openModal('addExpenseModal')" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl hover:bg-navy-800 transition flex items-center gap-1.5 shadow-sm">
@@ -78,7 +78,7 @@
                                     {{ $exp->category }}
                                 </span>
                             </td>
-                            <td class="p-3.5 text-slate-800 font-medium max-w-sm">{{ $exp->description }}</td>
+                            <td class="p-3.5 text-slate-800 font-semibold max-w-sm">{{ $exp->description }}</td>
                             <td class="p-3.5 text-slate-600">{{ $exp->vendor ?? 'Commercial' }}</td>
                             <td class="p-3.5 text-slate-600">{{ $exp->payment_method }}</td>
                             <td class="p-3.5 font-bold text-rose-600 text-sm">₹{{ number_format($exp->amount, 2) }}</td>

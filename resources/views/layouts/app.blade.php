@@ -10,6 +10,9 @@
         tailwind.config = {
             theme: {
                 extend: {
+                    fontWeight: {
+                        medium: '600',
+                    },
                     colors: {
                         navy: {
                             800: '#0f2744',
@@ -44,6 +47,10 @@
             font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #0f172a;
+        }
+        /* Enforce font-weight: 600 globally */
+        .font-medium, [style*="font-weight: 500"], [style*="font-weight:500"] {
+            font-weight: 600 !important;
         }
         /* Custom scrollbars */
         ::-webkit-scrollbar {
@@ -93,7 +100,7 @@
                 <div class="flex items-center justify-between p-4 mb-4 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm animate-fade-in">
                     <div class="flex items-center gap-3">
                         <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                        <span class="text-sm font-medium">{{ session('success') }}</span>
+                        <span class="text-sm font-semibold">{{ session('success') }}</span>
                     </div>
                     <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">
                         <i data-lucide="x" class="w-4 h-4"></i>
@@ -105,7 +112,7 @@
                 <div class="flex items-center justify-between p-4 mb-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-xl shadow-sm">
                     <div class="flex items-center gap-3">
                         <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i>
-                        <span class="text-sm font-medium">{{ session('error') }}</span>
+                        <span class="text-sm font-semibold">{{ session('error') }}</span>
                     </div>
                     <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">
                         <i data-lucide="x" class="w-4 h-4"></i>
