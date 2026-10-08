@@ -231,11 +231,98 @@
         // Global Modal Controls
         function openModal(id) {
             const m = document.getElementById(id);
-            if (m) m.classList.remove('hidden');
+            if (m) {
+                m.classList.remove('hidden');
+                if (id === 'quickAppointmentModal') {
+                    fetchModalDoctorSlots();
+                }
+            }
         }
         function closeModal(id) {
             const m = document.getElementById(id);
             if (m) m.classList.add('hidden');
+        }
+
+        // Live Doctor Slot Engine for Quick Appointment Modal
+        function fetchModalDoctorSlots() {
+            const docSelect = document.getElementById('modalDoctorSelect');
+            const dateInput = document.getElementById('modalDateSelect');
+            const slotsGrid = document.getElementById('modalSlotsGrid');
+            const statusText = document.getElementById('modalSlotStatusText');
+            const timeInput = document.getElementById('modalTimeInput');
+            const badge = document.getElementById('modalSelectedSlotBadge');
+
+            if (!docSelect || !dateInput || !slotsGrid) return;
+
+            const docId = docSelect.value;
+            const apptDate = dateInput.value;
+
+            if (!docId || !apptDate) {
+                slotsGrid.innerHTML = '<span class="text-[11px] text-slate-400 italic">Select doctor & date above to load live availability.</span>';
+                if (statusText) statusText.innerText = 'Select doctor to check slots';
+                return;
+            }
+
+            slotsGrid.innerHTML = '<span class="text-[11px] text-blue-600 animate-pulse font-semibold">Checking available slots...</span>';
+            if (statusText) statusText.innerText = 'Loading...';
+
+            fetch(`/api/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(apptDate)}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (!res.success) {
+                        slotsGrid.innerHTML = `<span class="text-[11px] text-rose-500">${res.message || 'Error loading slots'}</span>`;
+                        if (statusText) statusText.innerText = 'Unavailable';
+                        return;
+                    }
+
+                    if (statusText) {
+                        statusText.innerHTML = `<span class="text-emerald-700 font-bold">${res.available_count} Available</span> • <span class="text-rose-600 font-bold">${res.booked_count} Booked</span>`;
+                    }
+
+                    if (!res.slots || res.slots.length === 0) {
+                        slotsGrid.innerHTML = '<span class="text-[11px] text-slate-400 italic">No schedule configured for this day.</span>';
+                        return;
+                    }
+
+                    let html = '';
+                    res.slots.forEach(slot => {
+                        if (slot.is_booked) {
+                            html += `<button type="button" disabled title="Slot already booked for another patient" 
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-50 border border-rose-200 text-rose-400 cursor-not-allowed line-through opacity-70">
+                                ${slot.time} (Booked)
+                            </button>`;
+                        } else {
+                            const isSelected = (timeInput && timeInput.value === slot.time);
+                            html += `<button type="button" onclick="selectModalSlot('${slot.time}')" 
+                                id="slot_btn_${slot.time.replace(':', '_')}"
+                                class="slot-pill px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${isSelected ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-500'}">
+                                ${slot.time}
+                            </button>`;
+                        }
+                    });
+
+                    slotsGrid.innerHTML = html;
+                })
+                .catch(err => {
+                    slotsGrid.innerHTML = '<span class="text-[11px] text-rose-500">Failed to load doctor slots</span>';
+                    console.error(err);
+                });
+        }
+
+        function selectModalSlot(slotTime) {
+            const timeInput = document.getElementById('modalTimeInput');
+            const badge = document.getElementById('modalSelectedSlotBadge');
+            if (timeInput) timeInput.value = slotTime;
+            if (badge) badge.innerText = `Selected: ${slotTime}`;
+
+            // Update UI styles of slot buttons
+            document.querySelectorAll('#modalSlotsGrid .slot-pill').forEach(btn => {
+                btn.className = 'slot-pill px-2.5 py-1 text-[11px] font-bold rounded-lg border transition bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-500';
+            });
+            const selectedBtn = document.getElementById(`slot_btn_${slotTime.replace(':', '_')}`);
+            if (selectedBtn) {
+                selectedBtn.className = 'slot-pill px-2.5 py-1 text-[11px] font-bold rounded-lg border transition bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-300';
+            }
         }
     </script>
     @stack('scripts')

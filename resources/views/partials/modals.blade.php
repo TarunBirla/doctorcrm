@@ -55,7 +55,8 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Doctor *</label>
-                    <select name="doctor_id" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <select name="doctor_id" id="modalDoctorSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                        <option value="">-- Choose Doctor --</option>
                         @foreach($modalDoctors as $doc)
                             <option value="{{ $doc->id }}">{{ $doc->name }} ({{ $doc->specialization }})</option>
                         @endforeach
@@ -75,13 +76,26 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Date *</label>
-                    <input type="date" name="appointment_date" value="{{ now()->toDateString() }}" required
+                    <input type="date" name="appointment_date" id="modalDateSelect" value="{{ now()->toDateString() }}" required onchange="fetchModalDoctorSlots()"
                            class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Time Slot *</label>
-                    <input type="time" name="appointment_time" value="10:00" required
+                    <label class="block font-semibold text-slate-700 mb-1">Time Slot * <span id="modalSelectedSlotBadge" class="text-blue-600 font-bold ml-1"></span></label>
+                    <input type="time" name="appointment_time" id="modalTimeInput" value="10:00" required
                            class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                </div>
+            </div>
+
+            <!-- DYNAMIC AVAILABLE TIME SLOTS CONTAINER -->
+            <div id="modalSlotContainer" class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-600"></i> Doctor Available Time Slots:
+                    </span>
+                    <span id="modalSlotStatusText" class="text-[10px] text-slate-500">Select doctor to check slots</span>
+                </div>
+                <div id="modalSlotsGrid" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    <span class="text-[11px] text-slate-400 italic">Select a doctor & date above to load live availability.</span>
                 </div>
             </div>
 

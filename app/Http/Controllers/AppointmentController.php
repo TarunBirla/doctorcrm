@@ -10,6 +10,7 @@ use App\Models\Doctor;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\AuditLog;
+use App\Models\DoctorAvailability;
 
 class AppointmentController extends Controller
 {
@@ -22,6 +23,14 @@ class AppointmentController extends Controller
         $search = $request->get('search');
 
         $query = Appointment::with(['patient', 'doctor', 'invoice']);
+
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first() ?? Doctor::first();
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            }
+        }
 
         if (!empty($date)) {
             $query->where('appointment_date', $date);
@@ -96,17 +105,20 @@ class AppointmentController extends Controller
             'consultation_fee' => 'required|numeric|min:0',
         ]);
 
-        // Check if THIS SAME PATIENT already has an active appointment with the doctor at this exact time
-        $duplicatePatient = Appointment::where('doctor_id', $validated['doctor_id'])
-            ->where('patient_id', $validated['patient_id'])
+        // Slot availability check: Check if doctor already has an active appointment at this exact slot
+        $time24 = date('H:i', strtotime($validated['appointment_time']));
+        $slotOccupied = Appointment::where('doctor_id', $validated['doctor_id'])
             ->where('appointment_date', $validated['appointment_date'])
-            ->where('appointment_time', $validated['appointment_time'])
             ->whereNotIn('status', ['cancelled'])
-            ->first();
+            ->get()
+            ->first(function ($apt) use ($time24) {
+                return date('H:i', strtotime($apt->appointment_time)) === $time24;
+            });
 
-        if ($duplicatePatient) {
+        if ($slotOccupied && $validated['appointment_type'] !== 'emergency') {
+            $doc = Doctor::find($validated['doctor_id']);
             return back()->withInput()->withErrors([
-                'appointment_time' => 'This patient already has an active appointment booked with this doctor at ' . $validated['appointment_time'] . '.'
+                'appointment_time' => "This slot ({$validated['appointment_time']}) is already booked for Dr. {$doc->name}. Please pick another available slot from the availability grid."
             ]);
         }
 
@@ -218,16 +230,28 @@ class AppointmentController extends Controller
         $selectedDate = $request->get('date', now()->toDateString());
         $carbonDate = Carbon::parse($selectedDate);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first() ?? Doctor::first();
+        }
+
+        $query = Appointment::with(['patient', 'doctor']);
+
+        if ($loggedInDoctor) {
+            $query->where('doctor_id', $loggedInDoctor->id);
+        }
+
         // Fetch appointments for month or week
         if ($view === 'day') {
-            $appointments = Appointment::with(['patient', 'doctor'])
+            $appointments = (clone $query)
                 ->where('appointment_date', $carbonDate->toDateString())
                 ->orderBy('appointment_time', 'asc')
                 ->get();
         } elseif ($view === 'week') {
             $startWeek = (clone $carbonDate)->startOfWeek();
             $endWeek = (clone $carbonDate)->endOfWeek();
-            $appointments = Appointment::with(['patient', 'doctor'])
+            $appointments = (clone $query)
                 ->whereBetween('appointment_date', [$startWeek->toDateString(), $endWeek->toDateString()])
                 ->orderBy('appointment_time', 'asc')
                 ->get();
@@ -235,16 +259,106 @@ class AppointmentController extends Controller
             // Month
             $startMonth = (clone $carbonDate)->startOfMonth();
             $endMonth = (clone $carbonDate)->endOfMonth();
-            $appointments = Appointment::with(['patient', 'doctor'])
+            $appointments = (clone $query)
                 ->whereBetween('appointment_date', [$startMonth->toDateString(), $endMonth->toDateString()])
                 ->orderBy('appointment_time', 'asc')
                 ->get();
         }
 
-        $doctors = Doctor::all();
+        $doctors = Doctor::active()->get();
         $patients = Patient::orderBy('first_name')->get();
 
-        return view('appointments.calendar', compact('appointments', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients'));
+        return view('appointments.calendar', compact('appointments', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'loggedInDoctor'));
+    }
+
+    public function getDoctorSlots(Request $request)
+    {
+        $doctorId = $request->get('doctor_id');
+        $date = $request->get('date', now()->toDateString());
+
+        if (!$doctorId) {
+            return response()->json(['error' => 'Doctor ID is required'], 400);
+        }
+
+        $doctor = Doctor::find($doctorId);
+        if (!$doctor) {
+            return response()->json(['error' => 'Doctor not found'], 404);
+        }
+
+        $dayOfWeek = Carbon::parse($date)->format('l');
+
+        $availability = DoctorAvailability::where('doctor_id', $doctorId)
+            ->where('day_of_week', $dayOfWeek)
+            ->first();
+
+        $isAvailable = $availability ? (bool) $availability->is_available : true;
+
+        if (!$isAvailable) {
+            return response()->json([
+                'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
+                'date' => $date,
+                'day' => $dayOfWeek,
+                'is_available' => false,
+                'message' => "Dr. {$doctor->name} is not available on {$dayOfWeek}s.",
+                'slots' => [],
+            ]);
+        }
+
+        $startTimeStr = $availability->start_time ?? '09:00:00';
+        $endTimeStr = $availability->end_time ?? '18:00:00';
+        $duration = $availability->slot_duration ?? 15;
+
+        // Fetch already booked appointments
+        $bookedTimes = Appointment::where('doctor_id', $doctorId)
+            ->where('appointment_date', $date)
+            ->whereNotIn('status', ['cancelled'])
+            ->get()
+            ->map(function ($apt) {
+                return date('H:i', strtotime($apt->appointment_time));
+            })
+            ->toArray();
+
+        $slots = [];
+        $current = Carbon::parse("{$date} {$startTimeStr}");
+        $end = Carbon::parse("{$date} {$endTimeStr}");
+
+        while ($current->lt($end)) {
+            $time24 = $current->format('H:i');
+            $timeLabel = $current->format('h:i A');
+
+            $isBreak = false;
+            if (!empty($availability->break_start) && !empty($availability->break_end)) {
+                $bStart = Carbon::parse("{$date} {$availability->break_start}");
+                $bEnd = Carbon::parse("{$date} {$availability->break_end}");
+                if ($current->gte($bStart) && $current->lt($bEnd)) {
+                    $isBreak = true;
+                }
+            }
+
+            if (!$isBreak) {
+                $isBooked = in_array($time24, $bookedTimes);
+                $slots[] = [
+                    'time' => $time24,
+                    'label' => $timeLabel,
+                    'is_booked' => $isBooked,
+                ];
+            }
+
+            $current->addMinutes($duration);
+        }
+
+        $availableCount = count(array_filter($slots, fn($s) => !$s['is_booked']));
+        $bookedCount = count(array_filter($slots, fn($s) => $s['is_booked']));
+
+        return response()->json([
+            'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
+            'date' => $date,
+            'day' => $dayOfWeek,
+            'is_available' => true,
+            'slots' => $slots,
+            'available_count' => $availableCount,
+            'booked_count' => $bookedCount,
+        ]);
     }
 
     public function destroy($id)

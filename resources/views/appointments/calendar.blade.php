@@ -7,6 +7,29 @@
 @section('content')
 <div class="space-y-6">
 
+    @if(auth()->user()->role === 'doctor' && $loggedInDoctor)
+        <!-- DOCTOR PERSONALIZED CALENDAR BANNER -->
+        <div class="p-4 bg-linear-to-r from-blue-700 to-indigo-800 rounded-2xl text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xs flex items-center justify-center font-bold text-lg text-white border border-white/20">
+                    Dr
+                </div>
+                <div>
+                    <h3 class="font-bold text-base flex items-center gap-2">
+                        Dr. {{ $loggedInDoctor->name }}'s Personal Schedule
+                        <span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-semibold">Active Doctor</span>
+                    </h3>
+                    <p class="text-xs text-blue-100/80">Showing only your booked patient consultations, queue tokens, and schedule availability.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+                <span class="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 font-bold">
+                    {{ $appointments->count() }} Appointments in View
+                </span>
+            </div>
+        </div>
+    @endif
+
     <!-- TOP CONTROLS BAR -->
     <div class="card-custom p-4 bg-white flex flex-wrap items-center justify-between gap-4">
         

@@ -19,6 +19,9 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DatabaseSetupController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DoctorManagementController;
+use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -121,3 +124,22 @@ Route::post('/settings/clinic', [SettingController::class, 'updateClinic'])->nam
 Route::get('/settings/availability', [SettingController::class, 'availability'])->name('settings.availability');
 Route::post('/settings/availability', [SettingController::class, 'updateAvailability'])->name('settings.availability.update');
 Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+
+// User Profile (All Roles)
+Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+Route::post('/profile/change-password', [ProfileController::class, 'changePassword'])->name('profile.password');
+
+// Dynamic Doctor Slots API (For Live Availability Picker)
+Route::get('/api/doctor-slots', [AppointmentController::class, 'getDoctorSlots'])->name('api.doctor-slots');
+
+// Super Admin: Doctor Management (Create, Edit, Suspend, Delete)
+Route::get('/admin/doctors', [DoctorManagementController::class, 'index'])->name('admin.doctors.index');
+Route::post('/admin/doctors', [DoctorManagementController::class, 'store'])->name('admin.doctors.store');
+Route::put('/admin/doctors/{id}', [DoctorManagementController::class, 'update'])->name('admin.doctors.update');
+Route::post('/admin/doctors/{id}/toggle-status', [DoctorManagementController::class, 'toggleStatus'])->name('admin.doctors.toggle-status');
+Route::delete('/admin/doctors/{id}', [DoctorManagementController::class, 'destroy'])->name('admin.doctors.destroy');
+
+// Super Admin: Role & Sidebar Menu Permissions
+Route::get('/settings/roles-permissions', [RolePermissionController::class, 'index'])->name('admin.roles.permissions');
+Route::post('/settings/roles-permissions', [RolePermissionController::class, 'update'])->name('admin.roles.permissions.update');

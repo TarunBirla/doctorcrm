@@ -1,5 +1,5 @@
 @php
-    $currentRole = session('current_role', 'super_admin');
+    $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
     $roleLabels = [
         'super_admin' => 'SUPER ADMIN',
         'doctor' => 'DOCTOR',
@@ -23,7 +23,6 @@
         </div>
         <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-700 uppercase">
             <span>{{ $roleLabels[$currentRole] ?? 'USER' }}</span>
-            <i data-lucide="external-link" class="w-2.5 h-2.5 text-slate-400"></i>
         </div>
     </div>
 
@@ -40,6 +39,7 @@
     <nav class="flex-1 px-3 py-4 space-y-6 overflow-y-auto text-xs">
 
         <!-- OVERVIEW -->
+        @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'dashboard'))
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Overview
@@ -52,13 +52,22 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- PATIENTS & QUEUE -->
+        @php
+            $hasPatientSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'patients') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'queue') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'appointments') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'calendar');
+        @endphp
+        @if($hasPatientSection)
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Patients & Queue
             </div>
             <div class="space-y-1">
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'patients'))
                 <a href="{{ route('patients.index') }}" 
                    class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('patients.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <div class="flex items-center gap-3">
@@ -66,7 +75,9 @@
                         <span>Patients Master</span>
                     </div>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'queue'))
                 <a href="{{ route('queue.index') }}" 
                    class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('queue.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <div class="flex items-center gap-3">
@@ -79,71 +90,106 @@
                         </span>
                     @endif
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'appointments'))
                 <a href="{{ route('appointments.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('appointments.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="calendar" class="w-4 h-4 {{ request()->routeIs('appointments.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Appointments</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'calendar'))
                 <a href="{{ route('calendar.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('calendar.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="calendar-days" class="w-4 h-4 {{ request()->routeIs('calendar.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Appointment Calendar</span>
                 </a>
+                @endif
             </div>
         </div>
+        @endif
 
         <!-- CLINICAL CARE -->
+        @php
+            $hasClinicalSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'medical_reports') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'progress') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'followups');
+        @endphp
+        @if($hasClinicalSection)
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Clinical Care
             </div>
             <div class="space-y-1">
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations'))
                 <a href="{{ route('consultations.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('consultations.*') || request()->routeIs('visits.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="stethoscope" class="w-4 h-4 {{ request()->routeIs('consultations.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Consultations & Visits</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions'))
                 <a href="{{ route('prescriptions.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('prescriptions.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="file-text" class="w-4 h-4 {{ request()->routeIs('prescriptions.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Prescriptions</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'medical_reports'))
                 <a href="{{ route('medical-reports.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('medical-reports.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="clipboard-list" class="w-4 h-4 {{ request()->routeIs('medical-reports.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Medical Reports</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'progress'))
                 <a href="{{ route('progress.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('progress.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="trending-up" class="w-4 h-4 {{ request()->routeIs('progress.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Patient Progress Tracker</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'followups'))
                 <a href="{{ route('followups.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('followups.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="alarm-clock" class="w-4 h-4 {{ request()->routeIs('followups.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Follow-ups</span>
                 </a>
+                @endif
             </div>
         </div>
+        @endif
 
         <!-- BILLING & FINANCE -->
+        @php
+            $hasBillingSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'billing') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'dues') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'payments') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'expenses');
+        @endphp
+        @if($hasBillingSection)
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Billing & Finance
             </div>
             <div class="space-y-1">
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'billing'))
                 <a href="{{ route('invoices.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('invoices.index') || request()->routeIs('invoices.show') || request()->routeIs('invoices.create') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="receipt" class="w-4 h-4 {{ request()->routeIs('invoices.*') && !request()->routeIs('due-payments.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Invoices & Billing</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'dues'))
                 <a href="{{ route('due-payments.index') }}" 
                    class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('due-payments.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <div class="flex items-center gap-3">
@@ -156,22 +202,29 @@
                         </span>
                     @endif
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'payments'))
                 <a href="{{ route('payments.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('payments.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="wallet" class="w-4 h-4 {{ request()->routeIs('payments.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Payment History</span>
                 </a>
+                @endif
 
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'expenses'))
                 <a href="{{ route('expenses.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('expenses.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="pie-chart" class="w-4 h-4 {{ request()->routeIs('expenses.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Clinic Expenses</span>
                 </a>
+                @endif
             </div>
         </div>
+        @endif
 
         <!-- REPORTS & ANALYTICS -->
+        @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'reports'))
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Reports & Analytics
@@ -196,14 +249,27 @@
                 </a>
             </div>
         </div>
+        @endif
 
-        <!-- ADMINISTRATION -->
-        @if($currentRole === 'super_admin' || $currentRole === 'doctor')
+        <!-- CLINIC ADMINISTRATION (SUPER ADMIN ONLY) -->
+        @if($currentRole === 'super_admin')
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Clinic Administration
             </div>
             <div class="space-y-1">
+                <a href="{{ route('admin.doctors.index') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('admin.doctors.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="user-cog" class="w-4 h-4 {{ request()->routeIs('admin.doctors.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>Manage Doctors</span>
+                </a>
+
+                <a href="{{ route('admin.roles.permissions') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('admin.roles.permissions*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="shield-alert" class="w-4 h-4 {{ request()->routeIs('admin.roles.permissions*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>Role Permissions</span>
+                </a>
+
                 <a href="{{ route('settings.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('settings.index') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="settings" class="w-4 h-4 {{ request()->routeIs('settings.index') ? 'text-blue-600' : 'text-slate-400' }}"></i>
@@ -221,28 +287,22 @@
                     <i data-lucide="shield-check" class="w-4 h-4 {{ request()->routeIs('audit-logs.index') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Audit Trail Logs</span>
                 </a>
-
-                <a href="{{ route('database.setup') }}" 
-                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('database.setup*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                    <i data-lucide="database" class="w-4 h-4 {{ request()->routeIs('database.setup*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
-                    <span>Database Setup</span>
-                </a>
             </div>
         </div>
         @endif
 
     </nav>
 
-    <!-- FOOTER PROFILE -->
+    <!-- FOOTER PROFILE & ACTIONS -->
     <div class="p-3 border-t border-slate-100 bg-slate-50/50">
         <div class="flex items-center justify-between px-2 py-1">
-            <div class="flex items-center gap-2">
+            <a href="{{ route('profile.show') }}" class="flex items-center gap-2 hover:opacity-80 transition" title="View Profile">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span class="text-[11px] text-slate-500 font-medium">Clinic Online • 2026</span>
-            </div>
+                <span class="text-[11px] text-slate-700 font-bold">My Profile</span>
+            </a>
             <div class="flex items-center gap-1">
-                <a href="{{ route('settings.index') }}" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="Clinic Settings">
-                    <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                <a href="{{ route('profile.show') }}" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="User Profile">
+                    <i data-lucide="user" class="w-3.5 h-3.5"></i>
                 </a>
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf

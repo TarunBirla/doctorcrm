@@ -51,13 +51,14 @@
         <!-- 2. Doctor & Schedule -->
         <div class="space-y-4 pt-6 border-t border-slate-100">
             <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <i data-lucide="calendar" class="w-4 h-4 text-primary"></i> 2. Doctor & Slot
+                <i data-lucide="calendar" class="w-4 h-4 text-primary"></i> 2. Doctor & Slot Availability
             </h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Doctor <span class="text-rose-500">*</span></label>
-                    <select name="doctor_id" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <select name="doctor_id" id="pageDoctorSelect" required onchange="fetchPageDoctorSlots()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        <option value="">-- Choose Doctor --</option>
                         @foreach($doctors as $doctor)
                             <option value="{{ $doctor->id }}" {{ (old('doctor_id') == $doctor->id) ? 'selected' : '' }}>
                                 {{ $doctor->name }} ({{ $doctor->specialization }})
@@ -68,14 +69,27 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Date <span class="text-rose-500">*</span></label>
-                    <input type="date" name="appointment_date" value="{{ old('appointment_date', request('date', date('Y-m-d'))) }}" required
+                    <input type="date" name="appointment_date" id="pageDateSelect" value="{{ old('appointment_date', request('date', date('Y-m-d'))) }}" required onchange="fetchPageDoctorSlots()"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Time Slot <span class="text-rose-500">*</span></label>
-                    <input type="time" name="appointment_time" value="{{ old('appointment_time', request('time', date('H:i'))) }}" required
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Time Slot <span class="text-rose-500">*</span> <span id="pageSelectedSlotBadge" class="text-blue-600 font-bold ml-1"></span></label>
+                    <input type="time" name="appointment_time" id="pageTimeInput" value="{{ old('appointment_time', request('time', date('H:i'))) }}" required
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+            </div>
+
+            <!-- DYNAMIC SLOTS BOX -->
+            <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <i data-lucide="clock" class="w-4 h-4 text-primary"></i> Doctor OPD Time Slots:
+                    </span>
+                    <span id="pageSlotStatusText" class="text-xs text-slate-500">Pick doctor & date to see available timings</span>
+                </div>
+                <div id="pageSlotsGrid" class="flex flex-wrap gap-2">
+                    <span class="text-xs text-slate-400 italic">Select a doctor and date above to load available time slots.</span>
                 </div>
             </div>
         </div>
@@ -149,3 +163,90 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchPageDoctorSlots();
+    });
+
+    function fetchPageDoctorSlots() {
+        const docSelect = document.getElementById('pageDoctorSelect');
+        const dateInput = document.getElementById('pageDateSelect');
+        const slotsGrid = document.getElementById('pageSlotsGrid');
+        const statusText = document.getElementById('pageSlotStatusText');
+        const timeInput = document.getElementById('pageTimeInput');
+
+        if (!docSelect || !dateInput || !slotsGrid) return;
+
+        const docId = docSelect.value;
+        const apptDate = dateInput.value;
+
+        if (!docId || !apptDate) {
+            slotsGrid.innerHTML = '<span class="text-xs text-slate-400 italic">Select doctor and date above to load available time slots.</span>';
+            if (statusText) statusText.innerText = 'Pick doctor & date to see available timings';
+            return;
+        }
+
+        slotsGrid.innerHTML = '<span class="text-xs text-blue-600 animate-pulse font-semibold">Calculating live schedule slots...</span>';
+        if (statusText) statusText.innerText = 'Loading...';
+
+        fetch(`/api/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(apptDate)}`)
+            .then(res => res.json())
+            .then(res => {
+                if (!res.success) {
+                    slotsGrid.innerHTML = `<span class="text-xs text-rose-500">${res.message || 'Error loading slots'}</span>`;
+                    if (statusText) statusText.innerText = 'Unavailable';
+                    return;
+                }
+
+                if (statusText) {
+                    statusText.innerHTML = `<span class="text-emerald-700 font-bold">${res.available_count} Available</span> • <span class="text-rose-600 font-bold">${res.booked_count} Booked</span>`;
+                }
+
+                if (!res.slots || res.slots.length === 0) {
+                    slotsGrid.innerHTML = '<span class="text-xs text-slate-400 italic">No schedule configured for this day.</span>';
+                    return;
+                }
+
+                let html = '';
+                res.slots.forEach(slot => {
+                    if (slot.is_booked) {
+                        html += `<button type="button" disabled title="Slot already booked by another appointment" 
+                            class="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-50 border border-rose-200 text-rose-400 cursor-not-allowed line-through opacity-70">
+                            ${slot.time} (Booked)
+                        </button>`;
+                    } else {
+                        const isSelected = (timeInput && timeInput.value === slot.time);
+                        html += `<button type="button" onclick="selectPageSlot('${slot.time}')" 
+                            id="page_slot_${slot.time.replace(':', '_')}"
+                            class="page-slot-btn px-3 py-1.5 text-xs font-bold rounded-xl border transition ${isSelected ? 'bg-primary text-white border-primary shadow-sm ring-2 ring-primary/20' : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-500'}">
+                            ${slot.time}
+                        </button>`;
+                    }
+                });
+
+                slotsGrid.innerHTML = html;
+            })
+            .catch(err => {
+                slotsGrid.innerHTML = '<span class="text-xs text-rose-500">Failed to load doctor slots</span>';
+                console.error(err);
+            });
+    }
+
+    function selectPageSlot(slotTime) {
+        const timeInput = document.getElementById('pageTimeInput');
+        const badge = document.getElementById('pageSelectedSlotBadge');
+        if (timeInput) timeInput.value = slotTime;
+        if (badge) badge.innerText = `Selected: ${slotTime}`;
+
+        document.querySelectorAll('#pageSlotsGrid .page-slot-btn').forEach(btn => {
+            btn.className = 'page-slot-btn px-3 py-1.5 text-xs font-bold rounded-xl border transition bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-500';
+        });
+        const selectedBtn = document.getElementById(`page_slot_${slotTime.replace(':', '_')}`);
+        if (selectedBtn) {
+            selectedBtn.className = 'page-slot-btn px-3 py-1.5 text-xs font-bold rounded-xl border transition bg-primary text-white border-primary shadow-sm ring-2 ring-primary/20';
+        }
+    }
+</script>
+@endpush

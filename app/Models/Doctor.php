@@ -17,7 +17,18 @@ class Doctor extends Model
         'consultation_fee',
         'bio',
         'signature_image',
+        'is_active',
     ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'consultation_fee' => 'decimal:2',
+    ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     public function user()
     {
