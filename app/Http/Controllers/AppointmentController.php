@@ -289,7 +289,15 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Doctor not found'], 404);
         }
 
-        $dayOfWeek = Carbon::parse($date)->format('l');
+        try {
+            $parsedDate = Carbon::parse($date);
+            $dayOfWeek = $parsedDate->format('l'); // Monday, Tuesday...
+            $dateFormatted = $parsedDate->toDateString();
+        } catch (\Exception $e) {
+            $parsedDate = Carbon::today();
+            $dayOfWeek = $parsedDate->format('l');
+            $dateFormatted = $parsedDate->toDateString();
+        }
 
         $availability = DoctorAvailability::where('doctor_id', $doctorId)
             ->where('day_of_week', $dayOfWeek)
@@ -299,22 +307,34 @@ class AppointmentController extends Controller
 
         if (!$isAvailable) {
             return response()->json([
+                'success' => true,
                 'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
-                'date' => $date,
+                'date' => $dateFormatted,
                 'day' => $dayOfWeek,
                 'is_available' => false,
-                'message' => "Dr. {$doctor->name} is not available on {$dayOfWeek}s.",
+                'message' => "Dr. {$doctor->name} is marked off / unavailable on {$dayOfWeek}s.",
                 'slots' => [],
+                'available_count' => 0,
+                'booked_count' => 0,
             ]);
         }
 
-        $startTimeStr = $availability->start_time ?? '09:00:00';
-        $endTimeStr = $availability->end_time ?? '18:00:00';
-        $duration = $availability->slot_duration ?? 15;
+        // Clean time strings (handles 09:00:00, 09:00, or AM/PM)
+        $rawStart = $availability ? $availability->start_time : '09:00';
+        $rawEnd = $availability ? $availability->end_time : '18:00';
+        $duration = ($availability && $availability->slot_duration > 0) ? (int) $availability->slot_duration : 15;
+
+        try {
+            $startHour = Carbon::parse("{$dateFormatted} " . trim($rawStart));
+            $endHour = Carbon::parse("{$dateFormatted} " . trim($rawEnd));
+        } catch (\Exception $e) {
+            $startHour = Carbon::parse("{$dateFormatted} 09:00");
+            $endHour = Carbon::parse("{$dateFormatted} 18:00");
+        }
 
         // Fetch already booked appointments
         $bookedTimes = Appointment::where('doctor_id', $doctorId)
-            ->where('appointment_date', $date)
+            ->where('appointment_date', $dateFormatted)
             ->whereNotIn('status', ['cancelled'])
             ->get()
             ->map(function ($apt) {
@@ -323,20 +343,29 @@ class AppointmentController extends Controller
             ->toArray();
 
         $slots = [];
-        $current = Carbon::parse("{$date} {$startTimeStr}");
-        $end = Carbon::parse("{$date} {$endTimeStr}");
+        $current = $startHour->copy();
 
-        while ($current->lt($end)) {
+        // Parse breaks safely
+        $hasBreak = false;
+        $bStart = null;
+        $bEnd = null;
+        if ($availability && !empty($availability->break_start) && !empty($availability->break_end)) {
+            try {
+                $bStart = Carbon::parse("{$dateFormatted} " . trim($availability->break_start));
+                $bEnd = Carbon::parse("{$dateFormatted} " . trim($availability->break_end));
+                $hasBreak = $bStart->lt($bEnd);
+            } catch (\Exception $e) {
+                $hasBreak = false;
+            }
+        }
+
+        while ($current->lt($endHour)) {
             $time24 = $current->format('H:i');
             $timeLabel = $current->format('h:i A');
 
             $isBreak = false;
-            if (!empty($availability->break_start) && !empty($availability->break_end)) {
-                $bStart = Carbon::parse("{$date} {$availability->break_start}");
-                $bEnd = Carbon::parse("{$date} {$availability->break_end}");
-                if ($current->gte($bStart) && $current->lt($bEnd)) {
-                    $isBreak = true;
-                }
+            if ($hasBreak && $current->gte($bStart) && $current->lt($bEnd)) {
+                $isBreak = true;
             }
 
             if (!$isBreak) {
@@ -355,8 +384,9 @@ class AppointmentController extends Controller
         $bookedCount = count(array_filter($slots, fn($s) => $s['is_booked']));
 
         return response()->json([
+            'success' => true,
             'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
-            'date' => $date,
+            'date' => $dateFormatted,
             'day' => $dayOfWeek,
             'is_available' => true,
             'slots' => $slots,

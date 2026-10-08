@@ -269,9 +269,15 @@
             fetch(`/api/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(apptDate)}`)
                 .then(res => res.json())
                 .then(res => {
-                    if (!res.success) {
-                        slotsGrid.innerHTML = `<span class="text-[11px] text-rose-500">${res.message || 'Error loading slots'}</span>`;
+                    if (res.is_available === false) {
+                        slotsGrid.innerHTML = `<span class="text-[11px] text-amber-600 font-semibold">${res.message || 'Doctor is not available on this date.'}</span>`;
                         if (statusText) statusText.innerText = 'Unavailable';
+                        return;
+                    }
+
+                    if (res.error) {
+                        slotsGrid.innerHTML = `<span class="text-[11px] text-rose-500">${res.error}</span>`;
+                        if (statusText) statusText.innerText = 'Error';
                         return;
                     }
 

@@ -58,7 +58,9 @@
                     <select name="doctor_id" id="modalDoctorSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
                         <option value="">-- Choose Doctor --</option>
                         @foreach($modalDoctors as $doc)
-                            <option value="{{ $doc->id }}">{{ $doc->name }} ({{ $doc->specialization }})</option>
+                            <option value="{{ $doc->id }}" {{ (auth()->check() && auth()->user()->role === 'doctor' && $doc->user_id === auth()->id()) ? 'selected' : '' }}>
+                                {{ $doc->name }} ({{ $doc->specialization }})
+                            </option>
                         @endforeach
                     </select>
                 </div>
