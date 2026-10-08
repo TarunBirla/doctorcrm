@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioPii Clinic CRM - Executive Presentation Deck</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            800: '#0f2744',
+                            900: '#0a2540',
+                            950: '#071828',
+                        },
+                        clinic: {
+                            500: '#0284c7',
+                            600: '#0369a1',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #071828;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .slide {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            padding: 4rem 6rem;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+        }
+        @media print {
+            body { overflow: visible; background: white; color: black; }
+            .slide { display: flex !important; page-break-after: always; height: 100vh; padding: 2rem; color: #0f172a; background: white; }
+            .controls, .nav-bar { display: none !important; }
+            .glass-card { background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; }
+            .text-white { color: #0f172a !important; }
+            .text-slate-300, .text-slate-400 { color: #475569 !important; }
+        }
+    </style>
+</head>
+<body class="select-none">
+
+    <!-- TOP PRESENTATION BAR -->
+    <div class="nav-bar fixed top-0 left-0 right-0 z-50 px-8 py-4 flex items-center justify-between border-b border-white/10 bg-navy-950/80 backdrop-blur-md text-xs">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
+                <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <span class="font-extrabold tracking-tight text-sm text-white">PhysioPii <span class="text-blue-400">Clinic CRM</span></span>
+                <span class="text-[10px] text-slate-400 block font-semibold">Executive Product Presentation Deck</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="slideIndicator" class="px-3 py-1 rounded-full bg-white/10 text-slate-300 font-mono font-bold text-xs">
+                Slide 1 / 15
+            </span>
+            <button onclick="toggleFullscreen()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 transition" title="Toggle Fullscreen">
+                <i data-lucide="maximize" class="w-4 h-4"></i>
+            </button>
+            <button onclick="window.print()" class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold text-white transition flex items-center gap-1.5" title="Print as PDF">
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                <span>Export PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 1: TITLE SLIDE -->
+    <!-- ============================================================== -->
+    <section class="slide active" id="slide-1">
+        <div class="my-auto max-w-5xl space-y-8">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-bold uppercase tracking-wider">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                Enterprise Clinical Healthcare ERP
+            </div>
+            <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] text-white">
+                PhysioPii Clinic CRM
+                <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 mt-2">
+                    Next-Gen Multi-Clinic & Patient Care Platform
+                </span>
+            </h1>
+            <p class="text-xl text-slate-300 leading-relaxed max-w-3xl">
+                A unified clinical intelligence system designed for doctors, physical therapists, and multi-specialty practices with strict patient data isolation, live calendar slot management, and zero double-booking.
+            </p>
+            <div class="grid grid-cols-3 gap-6 pt-6 max-w-3xl">
+                <div class="p-4 rounded-xl glass-card">
+                    <span class="text-xs text-blue-400 font-bold uppercase block">Core Focus</span>
+                    <span class="text-sm font-bold text-white mt-1 block">Patient Isolation & Multi-Clinic</span>
+                </div>
+                <div class="p-4 rounded-xl glass-card">
+                    <span class="text-xs text-emerald-400 font-bold uppercase block">Architecture</span>
+                    <span class="text-sm font-bold text-white mt-1 block">Laravel 11 • Real-Time Engine</span>
+                </div>
+                <div class="p-4 rounded-xl glass-card">
+                    <span class="text-xs text-indigo-400 font-bold uppercase block">Deployment</span>
+                    <span class="text-sm font-bold text-white mt-1 block">Production Live at physiopii.in</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>PhysioPii Clinical Systems</span>
+            <span>Use Arrow Keys (← / →) or Spacebar to Navigate</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 2: EXECUTIVE SUMMARY -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-2">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Strategic Overview</span>
+            <h2 class="text-4xl font-extrabold text-white">Executive Summary</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">PhysioPii bridges the gap between chaotic multi-clinic operations and modern digital healthcare delivery.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-l-4 border-l-blue-500">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Multi-Branch Federation</h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Doctors can manage multiple practice branches with custom operating days, varying consultation fees, and independent slot durations from a single dashboard.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-l-4 border-l-emerald-500">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Architectural Data Isolation</h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Zero cross-doctor data exposure. Doctor A can only view, access, and schedule their own patients. Foreign records return HTTP 403 Forbidden shields.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-l-4 border-l-indigo-500">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Live Slot & Token Queue</h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Real-time slot engine evaluates Doctor + Clinic + Date. Instant token allocation (#T-001) eliminates patient crowding and waiting time uncertainty.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 2: Strategic Overview</span>
+            <span>Target Audience: Hospital Directors, Clinic Owners, Chief Medical Officers</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 3: PROBLEM STATEMENT -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-3">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-rose-400 uppercase tracking-wider">Current Industry Challenges</span>
+            <h2 class="text-4xl font-extrabold text-white">The Healthcare & Clinic Operational Pain Points</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Traditional clinic software fails to address modern multi-doctor practice realities.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-6 my-auto">
+            <div class="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-3">
+                <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    <span>Double Bookings & Schedule Clashes</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Multiple front desks booking the same doctor slot across different branches results in patient frustration, doctor burnout, and clinic delays.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-3">
+                <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                    <i data-lucide="eye-off" class="w-5 h-5"></i>
+                    <span>Severe Patient Privacy & Data Leaks</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Standard CRMs show all patients to all doctors. Visiting specialists can view competitors' patients, violating medical ethics and HIPAA/NABH compliance.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-3">
+                <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                    <i data-lucide="file-question" class="w-5 h-5"></i>
+                    <span>Disconnected Clinical & Rehab Tracking</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Physiotherapy requires tracking joint angles (ROM), numerical pain scales (VAS), and posture. Generic billing software lacks these clinical tools.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-3">
+                <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                    <i data-lucide="hourglass" class="w-5 h-5"></i>
+                    <span>Unorganized Waiting Rooms & Token Chaos</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Lack of real-time queue visibility creates front-desk chaos, lost patient files, and inaccurate revenue reconciliation at the end of the day.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 3: Industry Pain Points</span>
+            <span>Why Legacy Systems Fail</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 4: THE PHYSIOPII SOLUTION -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-4">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">The Innovation</span>
+            <h2 class="text-4xl font-extrabold text-white">The PhysioPii Integrated Solution</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">A comprehensive, end-to-end clinical workflow connecting patients, front-desk, and specialists seamlessly.</p>
+        </div>
+        <div class="grid grid-cols-4 gap-5 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="git-branch" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Multi-Clinic Sync</h4>
+                <p class="text-xs text-slate-300">Centralized practice management with branch-specific schedules and tariffs.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Strict Data Privacy</h4>
+                <p class="text-xs text-slate-300">Zero-leakage doctor query scoping with robust permission gates.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Real-Time Slot Engine</h4>
+                <p class="text-xs text-slate-300">Intelligent calendar engine prevents schedule collisions in 0.0 seconds.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="stethoscope" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Clinical EMR & Rehab</h4>
+                <p class="text-xs text-slate-300">Digital Rx, progress biometrics, pain tracking, and medical reports.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 4: Solution Architecture</span>
+            <span>Comprehensive Clinic Ecosystem</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 5: MULTI-CLINIC MANAGEMENT -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-5">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Multi-Branch Operations</span>
+            <h2 class="text-4xl font-extrabold text-white">Multi-Clinic Practice Architecture</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Doctors can expand their clinical reach without operational chaos.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-blue-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-5 h-5"></i>
+                    <span>Multiple Practice Branches</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    A single doctor account connects to multiple independent clinics (e.g. Wellness Square Branch, Super Specialty Center). Primary and secondary tagging enabled.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-emerald-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                    <span>Branch-Specific Working Hours</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Configure different schedules per branch (e.g., Morning 09:00 - 13:00 at Clinic A, Evening 16:00 - 20:00 at Clinic B). Independent duration per branch (15 vs 30 min).
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-purple-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="indian-rupee" class="w-5 h-5"></i>
+                    <span>Autonomous Fee Structures</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Consultation charges automatically adapt based on the selected clinic (e.g. ₹500 at suburban clinic vs ₹800 at hospital OPD), auto-populating into invoices.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 5: Multi-Clinic Architecture</span>
+            <span>Complete Scheduling Autonomy</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 6: DATA ISOLATION & PRIVACY -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-6">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Compliance & Security</span>
+            <h2 class="text-4xl font-extrabold text-white">Strict Patient Data Isolation (Zero Leaks)</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Architectural isolation ensures complete data sovereignty for every medical practitioner.</p>
+        </div>
+        <div class="grid grid-cols-12 gap-8 my-auto items-center">
+            <div class="col-span-7 space-y-4 text-xs text-slate-300">
+                <div class="p-4 rounded-xl glass-card border-l-4 border-l-emerald-500">
+                    <h4 class="font-bold text-white text-sm">Query-Level Doctor Scoping</h4>
+                    <p class="mt-1">Every database transaction is bound to <code class="text-blue-400 font-mono">doctor_id</code>. Doctors only receive results matching their registered profile.</p>
+                </div>
+                <div class="p-4 rounded-xl glass-card border-l-4 border-l-blue-500">
+                    <h4 class="font-bold text-white text-sm">403 Forbidden Shield on Direct URL Access</h4>
+                    <p class="mt-1">If Doctor A attempts to inspect Doctor B's patient ID or diagnostic report via direct URL manipulation, the system immediately returns an unauthorized abort response.</p>
+                </div>
+                <div class="p-4 rounded-xl glass-card border-l-4 border-l-indigo-500">
+                    <h4 class="font-bold text-white text-sm">Isolated Booking Dropdowns</h4>
+                    <p class="mt-1">When creating consultations or appointments, the patient dropdown lists strictly the doctor's registered patients.</p>
+                </div>
+            </div>
+            <div class="col-span-5 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl font-bold">
+                    100%
+                </div>
+                <h4 class="text-lg font-bold text-white">Zero Cross-Doctor Leakage</h4>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Verified through automated regression testing: Doctor Tarun cannot see Doctor Rajiv's patients, medical reports, or appointments.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 6: Data Sovereignty</span>
+            <span>HIPAA-Compliant Isolation Engine</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 7: SLOT ENGINE & COLLISION PREVENTION -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-7">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Engine Intelligence</span>
+            <h2 class="text-4xl font-extrabold text-white">Live Calendar Slot & Conflict Engine</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Automated slot generation, dynamic breaks, and instant double-booking prevention.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-emerald-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="grid" class="w-5 h-5"></i>
+                    <span>Dynamic Slot Generation</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Calculates available slots based on operating hours and duration (10, 15, 20, 30 min). Lunch and tea breaks are automatically excluded from patient booking grids.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-amber-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="ban" class="w-5 h-5"></i>
+                    <span>One-Click Slot Overrides</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Doctors can click any slot to block it for clinical meetings, surgeries, or personal leave with custom reasons. Click again to unblock instantly.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-rose-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    <span>Double-Booking Prevention</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Dual-layer conflict verification: Slots become disabled in real-time on the UI, and server-side validation rejects concurrent bookings with friendly alerts.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 7: Slot Engine</span>
+            <span>Zero Scheduling Conflicts</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 8: QUEUE & TOKEN MANAGEMENT -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-8">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Patient Experience</span>
+            <h2 class="text-4xl font-extrabold text-white">Smart Token Generation & Live Queue</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Transform chaotic waiting rooms into streamlined digital queues.</p>
+        </div>
+        <div class="grid grid-cols-4 gap-5 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 font-extrabold flex items-center justify-center mx-auto text-lg">
+                    #T
+                </div>
+                <h4 class="font-bold text-white text-sm">Instant Token Numbering</h4>
+                <p class="text-xs text-slate-300">Sequential, daily-resetting token numbers (e.g. #T-001) generated automatically upon appointment confirmation.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Waiting Time Counter</h4>
+                <p class="text-xs text-slate-300">Live stopwatch tracks patient arrival and waiting duration, ensuring prompt clinical attention.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">3-Stage Status Flow</h4>
+                <p class="text-xs text-slate-300">One-click transitions: <span class="text-amber-400">Waiting</span> → <span class="text-blue-400">In Consultation</span> → <span class="text-emerald-400">Completed</span>.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3 text-center">
+                <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
+                    <i data-lucide="tv" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">Front-Desk Display Ready</h4>
+                <p class="text-xs text-slate-300">Clean queue layout suitable for OPD waiting area display screens.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 8: Patient Experience</span>
+            <span>Live OPD Queue System</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 9: PHYSIOTHERAPY & BIOMETRICS -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-9">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">Clinical Specialization</span>
+            <h2 class="text-4xl font-extrabold text-white">Specialized Physiotherapy & Biometrics Tracking</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Purpose-built clinical tools that generic hospital ERPs overlook.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-rose-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="gauge" class="w-5 h-5"></i>
+                    <span>Numerical Pain Scale (0-10)</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Monitors Visual Analog Scale (VAS) pain levels per session. Generates longitudinal recovery charts displaying pain reduction over time.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-blue-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="move" class="w-5 h-5"></i>
+                    <span>Range of Motion (ROM) Logs</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Documents joint mobility in degrees (Flexion, Extension, Abduction). Critical for orthopedic rehabilitation and sports medicine documentation.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-emerald-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                    <span>Comprehensive Vitals & BMI</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Tracks blood pressure (Systolic/Diastolic), pulse rate, SpO2, body temperature, weight, height, and automated BMI calculations.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 9: Specialized Modules</span>
+            <span>Biomechanical & Physical Medicine EMR</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 10: E-PRESCRIPTIONS & DIAGNOSTICS -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-10">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Clinical Documentation</span>
+            <h2 class="text-4xl font-extrabold text-white">Digital Prescriptions & Diagnostic Lab Reports</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Professional medical dossiers with inline preview and secure downloads.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-8 my-auto">
+            <div class="p-7 rounded-2xl glass-card space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">E-Prescription & Treatment Protocol</h3>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Doctors can prescribe medications with exact dosages, frequency (e.g. 1-0-1), duration, and physical exercise routines. Generates formatted, printable prescription sheets with clinic branding and doctor registration details.
+                </p>
+                <div class="text-xs text-blue-300 font-semibold flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> One-click print & PDF generation
+                </div>
+            </div>
+            <div class="p-7 rounded-2xl glass-card space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                        <i data-lucide="file-check-2" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Diagnostic Reports & Imaging</h3>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Attach and catalog medical investigations (Blood Tests, MRI, X-Rays, ECG, Ultrasound). Doctors can preview PDFs/images inline or download structured dossiers. All reports strictly isolated to the patient's doctor.
+                </p>
+                <div class="text-xs text-purple-300 font-semibold flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Inline preview sheet + text dossier export
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 10: Medical Records</span>
+            <span>Paperless Clinical Office</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 11: BILLING & INVOICING -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-11">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Financial Transparency</span>
+            <h2 class="text-4xl font-extrabold text-white">Automated Billing, Invoicing & Audits</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Seamless billing workflows linked directly to appointment bookings.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-emerald-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                    <span>Automatic Invoice Generation</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    When an appointment is confirmed, an invoice is automatically created with the doctor's clinic consultation tariff. Eliminates manual billing delays.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-blue-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    <span>Multi-Item & Payment Modes</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Add custom line items (e.g. Physiotherapy Session, Heat Therapy, Exercise Band). Track payment status (Paid, Partial, Unpaid) across Cash, UPI, and Card.
+                </p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <div class="text-purple-400 font-bold text-base flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    <span>Audit Logs & Financial Ledger</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Immutable audit logging tracks who collected payments, canceled appointments, or modified records. Provides end-of-day revenue reconciliation.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 11: Revenue Operations</span>
+            <span>Zero Revenue Leakage</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 12: ROLE-BASED ACCESS CONTROL -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-12">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Access Governance</span>
+            <h2 class="text-4xl font-extrabold text-white">Granular Role-Based Access Control (RBAC)</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Tailored user interfaces and permissions according to staff responsibilities.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-6 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-t-4 border-t-purple-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-purple-400 uppercase">Governance</span>
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-purple-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Super Administrator</h3>
+                <ul class="text-xs text-slate-300 space-y-2">
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-purple-400"></i> Create & manage doctor credentials</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-purple-400"></i> Configure sidebar menu permissions</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-purple-400"></i> Full clinic-wide audit trails & logs</li>
+                </ul>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-t-4 border-t-blue-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-blue-400 uppercase">Clinician</span>
+                    <i data-lucide="stethoscope" class="w-5 h-5 text-blue-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Doctor Role</h3>
+                <ul class="text-xs text-slate-300 space-y-2">
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-400"></i> Strictly isolated patient dossiers</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-400"></i> Clinic schedule & slot block overrides</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-blue-400"></i> Digital consultations & prescriptions</li>
+                </ul>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-4 border-t-4 border-t-emerald-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-400 uppercase">Front Desk</span>
+                    <i data-lucide="user-check" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Receptionist / Staff</h3>
+                <ul class="text-xs text-slate-300 space-y-2">
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Patient registration & token dispatch</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> OPD waiting queue monitor</li>
+                    <li class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Invoice receipts & payment handling</li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 12: Security & Permissions</span>
+            <span>Role-Based Operational Matrix</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 13: TECHNOLOGY & SECURITY ARCHITECTURE -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-13">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Engineering Excellence</span>
+            <h2 class="text-4xl font-extrabold text-white">Technology Stack & Cloud Infrastructure</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Built on modern, robust enterprise technologies for high speed, reliability, and security.</p>
+        </div>
+        <div class="grid grid-cols-4 gap-5 my-auto">
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <span class="text-xs text-blue-400 font-bold uppercase">Backend Framework</span>
+                <h4 class="text-lg font-bold text-white">Laravel 11 (PHP 8.2+)</h4>
+                <p class="text-xs text-slate-300">Robust MVC architecture, Eloquent ORM, secure authentication, and optimized query routing.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <span class="text-xs text-emerald-400 font-bold uppercase">Database Layer</span>
+                <h4 class="text-lg font-bold text-white">MySQL / SQLite Hybrid</h4>
+                <p class="text-xs text-slate-300">Dual compatibility: standalone zero-config SQLite or high-throughput MySQL for hospital servers.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <span class="text-xs text-purple-400 font-bold uppercase">Frontend Design</span>
+                <h4 class="text-lg font-bold text-white">Tailwind CSS & Blade</h4>
+                <p class="text-xs text-slate-300">Fast, responsive, clean medical theme with Plus Jakarta Sans and Lucide icon ecosystem.</p>
+            </div>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <span class="text-xs text-amber-400 font-bold uppercase">Security Standards</span>
+                <h4 class="text-lg font-bold text-white">TLS / HTTPS & RBAC</h4>
+                <p class="text-xs text-slate-300">CSRF protection, SQL injection prevention, bcrypt password hashing, and granular session guards.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 13: Technology Infrastructure</span>
+            <span>Enterprise-Grade Engineering</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 14: IMPACT & ROI METRICS -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-14">
+        <div class="space-y-4">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Business & Clinical ROI</span>
+            <h2 class="text-4xl font-extrabold text-white">Measurable Impact & Return on Investment</h2>
+            <p class="text-slate-300 text-sm max-w-3xl">Proven operational efficiencies achieved after deploying PhysioPii Clinic CRM.</p>
+        </div>
+        <div class="grid grid-cols-4 gap-6 my-auto text-center">
+            <div class="p-7 rounded-2xl glass-card space-y-2 border-b-4 border-b-blue-500">
+                <div class="text-4xl font-extrabold text-blue-400">75%</div>
+                <div class="text-sm font-bold text-white">Faster Registration</div>
+                <p class="text-xs text-slate-300">Single-form patient profile with instant live appointment booking.</p>
+            </div>
+            <div class="p-7 rounded-2xl glass-card space-y-2 border-b-4 border-b-emerald-500">
+                <div class="text-4xl font-extrabold text-emerald-400">0%</div>
+                <div class="text-sm font-bold text-white">Double-Booking Clashes</div>
+                <p class="text-xs text-slate-300">Completely eliminated scheduling overlaps across all branches.</p>
+            </div>
+            <div class="p-7 rounded-2xl glass-card space-y-2 border-b-4 border-b-amber-500">
+                <div class="text-4xl font-extrabold text-amber-400">40%</div>
+                <div class="text-sm font-bold text-white">Reduced Waiting Time</div>
+                <p class="text-xs text-slate-300">Dynamic slot pacing and automated queue token numbers.</p>
+            </div>
+            <div class="p-7 rounded-2xl glass-card space-y-2 border-b-4 border-b-purple-500">
+                <div class="text-4xl font-extrabold text-purple-400">100%</div>
+                <div class="text-sm font-bold text-white">Audit & Revenue Capture</div>
+                <p class="text-xs text-slate-300">Automatic invoice links ensure zero unpaid clinical visits.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Slide 14: Clinical ROI</span>
+            <span>Measurable Value Delivered</span>
+        </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SLIDE 15: CONCLUSION & NEXT STEPS -->
+    <!-- ============================================================== -->
+    <section class="slide" id="slide-15">
+        <div class="my-auto max-w-4xl space-y-8">
+            <span class="px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-bold uppercase tracking-wider">
+                Summary & Deployment
+            </span>
+            <h2 class="text-5xl font-extrabold text-white tracking-tight leading-tight">
+                Transform Your Clinic Operations with PhysioPii Today
+            </h2>
+            <p class="text-slate-300 text-base leading-relaxed">
+                Experience the peace of mind that comes with zero scheduling collisions, absolute patient privacy, and optimized clinical workflow across every branch.
+            </p>
+            <div class="p-6 rounded-2xl glass-card space-y-3">
+                <h4 class="font-bold text-white text-sm">Live System Endpoints:</h4>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-400 block">Public Platform & Landing:</span>
+                        <a href="https://crm.physiopii.in" target="_blank" class="text-blue-400 font-bold hover:underline">https://crm.physiopii.in</a>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Doctor & Staff Login Portal:</span>
+                        <a href="https://crm.physiopii.in/login" target="_blank" class="text-emerald-400 font-bold hover:underline">https://crm.physiopii.in/login</a>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 pt-2">
+                <a href="https://crm.physiopii.in/login" target="_blank" class="px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white text-sm shadow-xl transition">
+                    Open Live Portal
+                </a>
+                <button onclick="goToSlide(1)" class="px-6 py-3.5 rounded-xl border border-white/20 hover:bg-white/10 font-bold text-white text-sm transition">
+                    Restart Presentation
+                </button>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
+            <span>Thank You! Questions & Discussion</span>
+            <span>PhysioPii Healthcare Systems • crm.physiopii.in</span>
+        </div>
+    </section>
+
+    <!-- FLOATING CONTROLS -->
+    <div class="controls fixed bottom-6 right-8 z-50 flex items-center gap-2 bg-navy-950/90 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl">
+        <button onclick="prevSlide()" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition disabled:opacity-30" id="prevBtn" title="Previous Slide (Left Arrow)">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <button onclick="nextSlide()" class="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition disabled:opacity-30" id="nextBtn" title="Next Slide (Right Arrow or Space)">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- Presentation Script -->
+    <script>
+        lucide.createIcons();
+
+        let currentSlide = 1;
+        const totalSlides = 15;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById('slide-' + n);
+            if (target) {
+                target.classList.add('active');
+            }
+
+            currentSlide = n;
+            document.getElementById('slideIndicator').innerText = `Slide ${currentSlide} / ${totalSlides}`;
+            
+            document.getElementById('prevBtn').disabled = (currentSlide === 1);
+            document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        function goToSlide(n) {
+            showSlide(n);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            } else if (e.key.toLowerCase() === 'f') {
+                toggleFullscreen();
+            }
+        });
+
+        // Initialize state
+        showSlide(1);
+    </script>
+</body>
+</html>
