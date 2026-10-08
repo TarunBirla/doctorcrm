@@ -11,7 +11,7 @@
         <!-- DOCTOR PERSONALIZED CALENDAR BANNER -->
         <div class="p-4 bg-linear-to-r from-blue-700 to-indigo-800 rounded-2xl text-white shadow-md flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xs flex items-center justify-center font-bold text-lg text-white border border-white/20">
+                <div class="w-12 h-12 rounded-xl bg-white/10  text-black backdrop-blur-xs flex items-center justify-center font-bold text-lg text-white border border-white/20">
                     Dr
                 </div>
                 <div>
@@ -23,7 +23,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-2 text-xs">
-                <span class="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 font-bold">
+                <span class="px-3 py-1.5 rounded-xl bg-white/10 border text-black border-white/20 font-bold">
                     {{ $appointments->count() }} Appointments in View
                 </span>
             </div>
