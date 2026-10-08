@@ -81,6 +81,57 @@ class MedicalReportController extends Controller
         return back()->with('success', "Medical report #{$reportNo} uploaded and attached successfully.");
     }
 
+    public function preview($id)
+    {
+        $report = MedicalReport::with(['patient', 'visit'])->findOrFail($id);
+
+        if ($report->file_path && Storage::disk('public')->exists($report->file_path)) {
+            $path = Storage::disk('public')->path($report->file_path);
+            $mimeType = mime_content_type($path) ?: 'application/octet-stream';
+            return response()->file($path, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . basename($report->file_path) . '"',
+            ]);
+        }
+
+        // Digital interactive report preview sheet
+        return view('reports.preview', compact('report'));
+    }
+
+    public function download($id)
+    {
+        $report = MedicalReport::with(['patient', 'visit'])->findOrFail($id);
+
+        if ($report->file_path && Storage::disk('public')->exists($report->file_path)) {
+            $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
+            $safeFileName = \Illuminate\Support\Str::slug($report->report_name . '-' . $report->report_no) . '.' . $ext;
+            return Storage::disk('public')->download($report->file_path, $safeFileName);
+        }
+
+        // If no file uploaded physically, download a formatted text summary dossier
+        $content = "CAREPOINT CLINIC & HEALTHCARE\n";
+        $content .= "DIAGNOSTIC & LABORATORY REPORT SUMMARY\n";
+        $content .= "=================================================\n\n";
+        $content .= "Report No:       " . $report->report_no . "\n";
+        $content .= "Report Title:    " . $report->report_name . "\n";
+        $content .= "Category:        " . $report->report_type . "\n";
+        $content .= "Date:            " . $report->report_date->format('d M Y') . "\n";
+        $content .= "Patient:         " . $report->patient->full_name . " (" . $report->patient->patient_id . ")\n";
+        $content .= "Laboratory:      " . ($report->laboratory ?? 'CarePoint Diagnostic') . "\n\n";
+        $content .= "FINDINGS & INTERPRETATION:\n";
+        $content .= ($report->description ?? 'Clinical laboratory examination record.') . "\n\n";
+        $content .= "DOCTOR CLINICAL NOTES:\n";
+        $content .= ($report->doctor_notes ?? 'No additional remarks.') . "\n\n";
+        $content .= "=================================================\n";
+        $content .= "Generated from CarePoint Clinic Management System\n";
+
+        $fileName = \Illuminate\Support\Str::slug($report->report_name . '-' . $report->report_no) . '.txt';
+
+        return response($content)
+            ->header('Content-Type', 'text/plain')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+
     public function destroy($id)
     {
         $report = MedicalReport::findOrFail($id);

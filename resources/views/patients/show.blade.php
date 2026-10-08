@@ -540,13 +540,25 @@
                                 </div>
                             @endif
 
-                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                                <span>Lab: {{ $rep->laboratory ?? 'CarePoint Diagnostic' }}</span>
-                                <form action="{{ route('medical-reports.destroy', $rep->id) }}" method="POST" onsubmit="return confirm('Delete this report?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-rose-600 hover:underline text-[11px] font-semibold">Delete</button>
-                                </form>
+                            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="text-slate-400 text-[11px] truncate max-w-[150px]">Lab: {{ $rep->laboratory ?? 'CarePoint Diagnostic' }}</span>
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('medical-reports.preview', $rep->id) }}" target="_blank"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-bold transition">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> Preview
+                                    </a>
+                                    <a href="{{ route('medical-reports.download', $rep->id) }}"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-[11px] font-bold transition">
+                                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
+                                    </a>
+                                    <form action="{{ route('medical-reports.destroy', $rep->id) }}" method="POST" onsubmit="return confirm('Delete this report?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 transition" title="Delete Report">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     @empty

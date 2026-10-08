@@ -81,6 +81,8 @@ Route::get('/prescriptions/{id}/print', [PrescriptionController::class, 'print']
 // Medical Reports
 Route::get('/reports/medical', [MedicalReportController::class, 'index'])->name('medical-reports.index');
 Route::post('/reports/medical', [MedicalReportController::class, 'store'])->name('medical-reports.store');
+Route::get('/reports/medical/{id}/preview', [MedicalReportController::class, 'preview'])->name('medical-reports.preview');
+Route::get('/reports/medical/{id}/download', [MedicalReportController::class, 'download'])->name('medical-reports.download');
 Route::delete('/reports/medical/{id}', [MedicalReportController::class, 'destroy'])->name('medical-reports.destroy');
 
 // Patient Progress
