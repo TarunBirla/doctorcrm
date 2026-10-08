@@ -42,7 +42,9 @@ class QueueController extends Controller
         $cancelledList = $allToday->whereIn('status', ['cancelled', 'no_show']);
 
         $doctors = Doctor::all();
-        $patients = Patient::orderBy('first_name')->get();
+        $patients = $loggedInDoctor 
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            : Patient::orderBy('first_name')->get();
 
         return view('queue.index', compact(
             'allToday', 'inConsultation', 'waitingList', 'nextPatient',

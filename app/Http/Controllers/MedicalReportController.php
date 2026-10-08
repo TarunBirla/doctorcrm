@@ -18,6 +18,19 @@ class MedicalReportController extends Controller
 
         $query = MedicalReport::with(['patient', 'visit']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->whereHas('patient', function ($q) use ($loggedInDoctor) {
+                    $q->where('doctor_id', $loggedInDoctor->id);
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if (!empty($search)) {
             $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -32,7 +45,9 @@ class MedicalReportController extends Controller
         }
 
         $reports = $query->orderBy('report_date', 'desc')->paginate(12)->withQueryString();
-        $patients = Patient::orderBy('first_name')->get();
+        $patients = $loggedInDoctor 
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            : Patient::orderBy('first_name')->get();
 
         return view('reports.medical', compact('reports', 'patients', 'search', 'type'));
     }

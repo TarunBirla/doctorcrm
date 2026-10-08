@@ -59,12 +59,14 @@
             $hasPatientSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'patients') ||
                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'queue') ||
                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'appointments') ||
-                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'calendar');
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'calendar') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'clinics') ||
+                                 \App\Models\RoleMenuPermission::canAccess($currentRole, 'slots');
         @endphp
         @if($hasPatientSection)
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                Patients & Queue
+                Patients & Appointments
             </div>
             <div class="space-y-1">
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'patients'))
@@ -105,6 +107,22 @@
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('calendar.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="calendar-days" class="w-4 h-4 {{ request()->routeIs('calendar.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Appointment Calendar</span>
+                </a>
+                @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'clinics'))
+                <a href="{{ route('clinics.index') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('clinics.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="building-2" class="w-4 h-4 {{ request()->routeIs('clinics.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>{{ $currentRole === 'doctor' ? 'My Practice Clinics' : 'Clinics & Branches' }}</span>
+                </a>
+                @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))
+                <a href="{{ route('slots.manage') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('slots.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="calendar-clock" class="w-4 h-4 {{ request()->routeIs('slots.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>Slot & Schedule Manager</span>
                 </a>
                 @endif
             </div>

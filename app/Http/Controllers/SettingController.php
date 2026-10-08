@@ -85,15 +85,29 @@ class SettingController extends Controller
             }
         }
 
-        $availabilities = $doctor ? $doctor->availabilities : collect();
+        $clinics = $doctor ? $doctor->clinics()->where('is_active', true)->get() : collect();
+        if ($clinics->isEmpty() && $doctor) {
+            $clinics = Clinic::where('doctor_id', $doctor->id)->where('is_active', true)->get();
+        }
+        if ($clinics->isEmpty()) {
+            $clinics = Clinic::where('is_active', true)->get();
+        }
 
-        return view('settings.availability', compact('doctor', 'availabilities', 'allDoctors', 'currentRole'));
+        $selectedClinicId = $request->get('clinic_id');
+        $selectedClinic = $clinics->firstWhere('id', $selectedClinicId) ?? $clinics->first();
+
+        $availabilities = ($doctor && $selectedClinic) 
+            ? DoctorAvailability::where('doctor_id', $doctor->id)->where('clinic_id', $selectedClinic->id)->get()
+            : ($doctor ? $doctor->availabilities : collect());
+
+        return view('settings.availability', compact('doctor', 'availabilities', 'allDoctors', 'currentRole', 'clinics', 'selectedClinic'));
     }
 
     public function updateAvailability(Request $request)
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $doctorId = $request->input('doctor_id');
+        $clinicId = $request->input('clinic_id') ?? Clinic::first()?->id;
 
         if ($currentRole === 'doctor' && auth()->check()) {
             $doctor = Doctor::where('user_id', auth()->id())->first();
@@ -111,11 +125,12 @@ class SettingController extends Controller
             DoctorAvailability::updateOrCreate(
                 [
                     'doctor_id' => $doctor->id,
+                    'clinic_id' => $clinicId,
                     'day_of_week' => $dayName,
                 ],
                 [
                     'start_time' => $data['start_time'] ?? '09:00',
-                    'end_time' => $data['end_time'] ?? '20:00',
+                    'end_time' => $data['end_time'] ?? '17:00',
                     'break_start' => $data['break_start'] ?? null,
                     'break_end' => $data['break_end'] ?? null,
                     'slot_duration' => $data['slot_duration'] ?? 15,

@@ -26,11 +26,9 @@ class PatientController extends Controller
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
             if ($loggedInDoctor) {
                 $query->where(function ($q) use ($loggedInDoctor) {
-                    $q->whereHas('appointments', function ($aq) use ($loggedInDoctor) {
-                        $aq->where('doctor_id', $loggedInDoctor->id);
-                    })->orWhereHas('visits', function ($vq) use ($loggedInDoctor) {
-                        $vq->where('doctor_id', $loggedInDoctor->id);
-                    });
+                    $q->where('doctor_id', $loggedInDoctor->id)
+                      ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                      ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
                 });
             } else {
                 $query->whereRaw('1 = 0'); // No patients if doctor record missing
@@ -66,7 +64,8 @@ class PatientController extends Controller
         $countQuery = Patient::query();
         if ($loggedInDoctor) {
             $countQuery->where(function ($q) use ($loggedInDoctor) {
-                $q->whereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                $q->where('doctor_id', $loggedInDoctor->id)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
                   ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
             });
         } elseif ($currentRole === 'doctor') {
@@ -91,7 +90,25 @@ class PatientController extends Controller
     public function create()
     {
         $nextId = Patient::generatePatientId();
-        return view('patients.create', compact('nextId'));
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
+            if ($clinics->isEmpty() && $loggedInDoctor) {
+                $clinics = \App\Models\Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+            }
+            if ($clinics->isEmpty()) {
+                $clinics = \App\Models\Clinic::where('is_active', true)->get();
+            }
+            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+        } else {
+            $clinics = \App\Models\Clinic::where('is_active', true)->get();
+            $doctors = Doctor::active()->orderBy('name')->get();
+        }
+
+        return view('patients.create', compact('nextId', 'clinics', 'doctors', 'loggedInDoctor', 'currentRole'));
     }
 
     public function store(Request $request)
@@ -121,12 +138,32 @@ class PatientController extends Controller
             'surgeries' => 'nullable|string',
             'family_history' => 'nullable|string',
             'current_medications' => 'nullable|string',
+            // Optional instant booking validation
+            'book_appointment' => 'nullable|boolean',
+            'clinic_id' => 'required_if:book_appointment,1|nullable|exists:clinics,id',
+            'appointment_date' => 'required_if:book_appointment,1|nullable|date',
+            'appointment_time' => 'required_if:book_appointment,1|nullable|string',
+            'appointment_type' => 'nullable|in:new,follow_up,revisit,emergency',
+            'consultation_fee' => 'nullable|numeric|min:0',
+            'appointment_reason' => 'nullable|string|max:255',
+            'doctor_id' => 'nullable|exists:doctors,id',
         ]);
+
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $assignedDoctorId = $loggedInDoctor ? $loggedInDoctor->id : null;
+        } else {
+            $assignedDoctorId = $request->input('doctor_id') ?? Doctor::active()->first()?->id;
+        }
 
         $patientId = Patient::generatePatientId();
 
         $patient = Patient::create([
             'patient_id' => $patientId,
+            'doctor_id' => $assignedDoctorId,
+            'created_by_user_id' => auth()->id(),
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'gender' => $validated['gender'],
@@ -157,10 +194,105 @@ class PatientController extends Controller
             'notes' => 'Initial medical history recorded during registration.',
         ]);
 
-        AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id})");
+        AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id}) under Doctor #{$assignedDoctorId}");
+
+        // OPTIONAL: Instant Appointment Booking Flow
+        if ($request->boolean('book_appointment') && $request->filled('clinic_id') && $request->filled('appointment_date') && $request->filled('appointment_time')) {
+            $clinicId = $validated['clinic_id'];
+            $appDate = $validated['appointment_date'];
+            $appTime = $validated['appointment_time'];
+            $appType = $validated['appointment_type'] ?? 'new';
+            $reason = $validated['appointment_reason'] ?? 'First Consultation';
+
+            // Resolve Fee
+            $clinicObj = \App\Models\Clinic::find($clinicId);
+            $fee = $validated['consultation_fee'] ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00);
+
+            // Double Booking Verification
+            $time24 = date('H:i', strtotime($appTime));
+            $slotOccupied = \App\Models\Appointment::where('doctor_id', $assignedDoctorId)
+                ->where('clinic_id', $clinicId)
+                ->whereDate('appointment_date', $appDate)
+                ->whereNotIn('status', ['cancelled'])
+                ->get()
+                ->first(function ($apt) use ($time24) {
+                    return date('H:i', strtotime($apt->appointment_time)) === $time24;
+                });
+
+            if ($slotOccupied && $appType !== 'emergency') {
+                return redirect()->route('patients.show', $patient->id)
+                    ->with('warning', "Patient {$patient->full_name} registered, but the appointment slot {$appTime} was already booked. Please book appointment from the patient profile.");
+            }
+
+            $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
+            $tokenNumber = \App\Models\Appointment::nextTokenForDate($appDate, $assignedDoctorId);
+
+            $appointment = \App\Models\Appointment::create([
+                'appointment_no' => $appointmentNo,
+                'patient_id' => $patient->id,
+                'doctor_id' => $assignedDoctorId,
+                'clinic_id' => $clinicId,
+                'appointment_date' => $appDate,
+                'appointment_time' => $appTime,
+                'appointment_type' => $appType,
+                'token_number' => $tokenNumber,
+                'reason' => $reason,
+                'consultation_fee' => $fee,
+                'payment_status' => 'unpaid',
+                'status' => 'scheduled',
+            ]);
+
+            // Auto-generate invoice
+            $invoiceNo = \App\Models\Invoice::generateInvoiceNo();
+            $invoice = \App\Models\Invoice::create([
+                'invoice_no' => $invoiceNo,
+                'patient_id' => $patient->id,
+                'appointment_id' => $appointment->id,
+                'doctor_id' => $assignedDoctorId,
+                'invoice_date' => $appDate,
+                'subtotal' => $fee,
+                'discount' => 0.00,
+                'additional_charges' => 0.00,
+                'total_amount' => $fee,
+                'paid_amount' => 0.00,
+                'due_amount' => $fee,
+                'payment_status' => 'unpaid',
+                'notes' => 'Generated automatically for appointment ' . $appointment->appointment_no,
+            ]);
+
+            \App\Models\InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'item_description' => ucfirst($appType) . ' Consultation Fee',
+                'quantity' => 1,
+                'unit_price' => $fee,
+                'total' => $fee,
+            ]);
+
+            AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Auto-created appointment #{$appointmentNo} during patient registration for {$patient->full_name}");
+
+            return redirect()->route('patients.show', $patient->id)
+                ->with('success', "Patient {$patient->full_name} registered & Appointment #{$appointment->appointment_no} (Token #{$tokenNumber}) booked at {$clinicObj->name} successfully!");
+        }
 
         return redirect()->route('patients.show', $patient->id)
             ->with('success', "Patient {$patient->full_name} ({$patient->patient_id}) registered successfully!");
+    }
+
+    protected function authorizePatientAccess(Patient $patient): void
+    {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $hasAccess = ($patient->doctor_id == $loggedInDoctor->id)
+                    || $patient->appointments()->where('doctor_id', $loggedInDoctor->id)->exists()
+                    || $patient->visits()->where('doctor_id', $loggedInDoctor->id)->exists();
+
+                if (!$hasAccess) {
+                    abort(403, 'Unauthorized: You only have access to patients registered under your practice.');
+                }
+            }
+        }
     }
 
     public function show(Request $request, $id)
@@ -181,6 +313,8 @@ class PatientController extends Controller
             'paymentTransactions.invoice',
             'communications',
         ])->findOrFail($id);
+
+        $this->authorizePatientAccess($patient);
 
         $activeTab = $request->get('tab', 'overview');
         $doctors = Doctor::all();
@@ -285,12 +419,14 @@ class PatientController extends Controller
     public function edit($id)
     {
         $patient = Patient::findOrFail($id);
+        $this->authorizePatientAccess($patient);
         return view('patients.edit', compact('patient'));
     }
 
     public function update(Request $request, $id)
     {
         $patient = Patient::findOrFail($id);
+        $this->authorizePatientAccess($patient);
 
         $validated = $request->validate([
             'first_name' => 'required|string|max:100',
@@ -324,6 +460,7 @@ class PatientController extends Controller
     public function updateMedicalHistory(Request $request, $id)
     {
         $patient = Patient::findOrFail($id);
+        $this->authorizePatientAccess($patient);
 
         $history = $patient->medicalHistory ?: new PatientMedicalHistory(['patient_id' => $patient->id]);
         $history->conditions = $request->input('conditions');
@@ -342,6 +479,7 @@ class PatientController extends Controller
     public function destroy($id)
     {
         $patient = Patient::findOrFail($id);
+        $this->authorizePatientAccess($patient);
         $name = $patient->full_name;
         $pid = $patient->patient_id;
         $patient->delete();
@@ -364,19 +502,32 @@ class PatientController extends Controller
             'invoices',
         ])->findOrFail($id);
 
+        $this->authorizePatientAccess($patient);
+
         return view('patients.print-summary', compact('patient'));
     }
 
     public function export()
     {
-        $response = new StreamedResponse(function () {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+        }
+
+        $response = new StreamedResponse(function () use ($loggedInDoctor) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, [
                 'Patient ID', 'First Name', 'Last Name', 'Gender', 'Age', 'Mobile',
                 'Email', 'City', 'Blood Group', 'Conditions', 'Allergies', 'Outstanding Due (INR)', 'Created At'
             ]);
 
-            Patient::with('medicalHistory')->chunk(100, function ($patients) use ($handle) {
+            $query = Patient::with('medicalHistory');
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            }
+
+            $query->chunk(100, function ($patients) use ($handle) {
                 foreach ($patients as $p) {
                     fputcsv($handle, [
                         $p->patient_id,

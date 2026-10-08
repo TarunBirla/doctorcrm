@@ -7,6 +7,16 @@
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
 
+    @if($errors->any())
+    <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+        <ul class="list-disc list-inside space-y-1">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <div class="card-custom p-8 bg-white space-y-6">
         <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
@@ -18,7 +28,7 @@
             </div>
         </div>
 
-        <form action="{{ route('patients.store') }}" method="POST" class="space-y-6 text-xs">
+        <form action="{{ route('patients.store') }}" method="POST" id="patientForm" class="space-y-6 text-xs">
             @csrf
 
             <!-- SECTION 1: PERSONAL INFORMATION -->
@@ -40,9 +50,9 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Gender *</label>
                         <select name="gender" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
+                            <option value="Male" {{ old('gender') === 'Male' ? 'selected' : '' }}>Male</option>
+                            <option value="Female" {{ old('gender') === 'Female' ? 'selected' : '' }}>Female</option>
+                            <option value="Other" {{ old('gender') === 'Other' ? 'selected' : '' }}>Other</option>
                         </select>
                     </div>
                     <div>
@@ -58,7 +68,7 @@
                         <select name="blood_group" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
                             <option value="">Unknown</option>
                             @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bg)
-                                <option value="{{ $bg }}">{{ $bg }}</option>
+                                <option value="{{ $bg }}" {{ old('blood_group') === $bg ? 'selected' : '' }}>{{ $bg }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -68,10 +78,10 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Marital Status</label>
                         <select name="marital_status" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                            <option value="Single">Single</option>
-                            <option value="Married" selected>Married</option>
-                            <option value="Divorced">Divorced</option>
-                            <option value="Widowed">Widowed</option>
+                            <option value="Single" {{ old('marital_status') === 'Single' ? 'selected' : '' }}>Single</option>
+                            <option value="Married" {{ old('marital_status', 'Married') === 'Married' ? 'selected' : '' }}>Married</option>
+                            <option value="Divorced" {{ old('marital_status') === 'Divorced' ? 'selected' : '' }}>Divorced</option>
+                            <option value="Widowed" {{ old('marital_status') === 'Widowed' ? 'selected' : '' }}>Widowed</option>
                         </select>
                     </div>
                     <div>
@@ -166,16 +176,194 @@
                 </div>
             </div>
 
+            <!-- SECTION 5: OPTIONAL IMMEDIATE APPOINTMENT BOOKING -->
+            <div class="pt-4 border-t-2 border-indigo-100 bg-indigo-50/30 -mx-8 px-8 py-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="book_appointment" name="book_appointment" value="1" 
+                               {{ old('book_appointment') ? 'checked' : '' }}
+                               onchange="toggleAppointmentBooking(this.checked)"
+                               class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+                        <label for="book_appointment" class="font-bold text-slate-900 text-sm cursor-pointer select-none">
+                            Book First Appointment Immediately (Optional)
+                        </label>
+                    </div>
+                    <span class="text-[11px] text-blue-600 font-semibold bg-blue-100/70 px-2 py-0.5 rounded-full">
+                        Instant OPD Token
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mb-4 pl-7">
+                    Check this option to instantly assign a clinic, date, and live available slot. If unchecked, only the patient profile will be saved.
+                </p>
+
+                <div id="appointmentSection" class="{{ old('book_appointment') ? '' : 'hidden' }} pl-7 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- 1. Select Clinic -->
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">1. Select Clinic *</label>
+                            <select name="clinic_id" id="intake_clinic_id" onchange="fetchAvailableSlots()" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none focus:ring-2 focus:ring-blue-500/20">
+                                @foreach($clinics as $cl)
+                                    <option value="{{ $cl->id }}" data-fee="{{ $cl->consultation_fee }}" {{ old('clinic_id') == $cl->id ? 'selected' : '' }}>
+                                        {{ $cl->name }} ({{ $cl->city }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- 2. Select Date -->
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">2. Appointment Date *</label>
+                            <input type="date" name="appointment_date" id="intake_appointment_date" 
+                                   value="{{ old('appointment_date', date('Y-m-d')) }}" 
+                                   min="{{ date('Y-m-d') }}" 
+                                   onchange="fetchAvailableSlots()" 
+                                   class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none focus:ring-2 focus:ring-blue-500/20">
+                        </div>
+
+                        <!-- 3. Consultation Fee -->
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Consultation Fee (₹)</label>
+                            <input type="number" step="0.01" name="consultation_fee" id="intake_consultation_fee" 
+                                   value="{{ old('consultation_fee', $clinics->first()?->consultation_fee ?? 800) }}" 
+                                   class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-bold outline-none">
+                        </div>
+                    </div>
+
+                    <!-- 3. Live Slot Selector -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block font-bold text-slate-700">
+                                3. Choose Available Time Slot *
+                            </label>
+                            <span id="slotStatusMsg" class="text-[11px] text-slate-500 font-medium">Loading slots...</span>
+                        </div>
+
+                        <!-- Hidden input storing selected slot time -->
+                        <input type="hidden" name="appointment_time" id="intake_appointment_time" value="{{ old('appointment_time') }}">
+
+                        <!-- Slots Grid -->
+                        <div id="slotsPillsGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-3 bg-white rounded-xl border border-slate-200 min-h-[60px]">
+                            <div class="col-span-full py-3 text-center text-slate-400">
+                                Select clinic & date to view available time slots
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chief Complaint -->
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Reason for Visit / Chief Complaint</label>
+                        <input type="text" name="appointment_reason" placeholder="e.g. Acute lower back pain, first consultation..." value="{{ old('appointment_reason') }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORM ACTIONS -->
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <a href="{{ route('patients.index') }}" class="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50">
                     Cancel
                 </a>
-                <button type="submit" class="px-7 py-2.5 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-xl shadow-sm transition">
-                    Register Patient & Open File
+                <button type="submit" class="px-7 py-2.5 bg-[#0a2540] hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4"></i> Register Patient Profile
                 </button>
             </div>
         </form>
     </div>
 
 </div>
+
+<script>
+    const loggedDoctorId = {{ $loggedInDoctor ? $loggedInDoctor->id : ($doctors->first()?->id ?? 1) }};
+
+    function toggleAppointmentBooking(checked) {
+        const sec = document.getElementById('appointmentSection');
+        if (checked) {
+            sec.classList.remove('hidden');
+            fetchAvailableSlots();
+        } else {
+            sec.classList.add('hidden');
+            document.getElementById('intake_appointment_time').value = '';
+        }
+    }
+
+    async function fetchAvailableSlots() {
+        const clinicSelect = document.getElementById('intake_clinic_id');
+        const clinicId = clinicSelect ? clinicSelect.value : '';
+        const dateInput = document.getElementById('intake_appointment_date');
+        const date = dateInput ? dateInput.value : '';
+        const container = document.getElementById('slotsPillsGrid');
+        const statusMsg = document.getElementById('slotStatusMsg');
+        const selectedTimeInput = document.getElementById('intake_appointment_time');
+
+        // Update fee from selected clinic
+        const selectedOption = clinicSelect.options[clinicSelect.selectedIndex];
+        if (selectedOption && selectedOption.dataset.fee) {
+            document.getElementById('intake_consultation_fee').value = selectedOption.dataset.fee;
+        }
+
+        if (!clinicId || !date) {
+            container.innerHTML = '<div class="col-span-full py-3 text-center text-slate-400">Please select clinic and date</div>';
+            return;
+        }
+
+        statusMsg.innerText = 'Checking availability...';
+        container.innerHTML = '<div class="col-span-full py-3 text-center text-slate-400"><i class="animate-spin inline-block mr-2">⌛</i> Loading slots...</div>';
+
+        try {
+            const res = await fetch(`/api/doctor-slots?doctor_id=${loggedDoctorId}&clinic_id=${clinicId}&date=${date}`);
+            const data = await res.json();
+
+            if (!data.success || !data.is_available || !data.slots || data.slots.length === 0) {
+                statusMsg.innerText = data.message || 'No available slots on this day';
+                container.innerHTML = `<div class="col-span-full py-3 text-center text-rose-500 font-semibold">${data.message || 'No slots available for this clinic on selected date'}</div>`;
+                return;
+            }
+
+            statusMsg.innerText = `${data.available_count} slot(s) available`;
+            container.innerHTML = '';
+
+            data.slots.forEach(slot => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.innerText = slot.label;
+                btn.dataset.time = slot.time;
+
+                if (!slot.is_available) {
+                    btn.disabled = true;
+                    btn.className = 'py-2 px-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed line-through opacity-75';
+                    btn.title = slot.is_booked ? 'Already Booked' : (slot.reason || 'Blocked');
+                } else {
+                    const isSelected = selectedTimeInput.value === slot.time;
+                    btn.className = isSelected 
+                        ? 'py-2 px-2.5 rounded-lg border-2 border-blue-600 bg-blue-600 text-white font-bold text-xs shadow-xs transition'
+                        : 'py-2 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold text-xs transition cursor-pointer';
+
+                    btn.onclick = () => {
+                        selectedTimeInput.value = slot.time;
+                        // update styles
+                        document.querySelectorAll('#slotsPillsGrid button').forEach(b => {
+                            if (!b.disabled) {
+                                b.className = 'py-2 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold text-xs transition cursor-pointer';
+                            }
+                        });
+                        btn.className = 'py-2 px-2.5 rounded-lg border-2 border-blue-600 bg-blue-600 text-white font-bold text-xs shadow-xs transition';
+                        statusMsg.innerText = `Selected Slot: ${slot.label}`;
+                    };
+                }
+
+                container.appendChild(btn);
+            });
+
+        } catch (e) {
+            statusMsg.innerText = 'Failed to load slots';
+            container.innerHTML = '<div class="col-span-full py-3 text-center text-rose-500">Error loading clinic slots. Please try again.</div>';
+        }
+    }
+
+    // Auto-fetch if book appointment was already checked on load (e.g. validation redirect)
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('book_appointment').checked) {
+            fetchAvailableSlots();
+        }
+    });
+</script>
 @endsection

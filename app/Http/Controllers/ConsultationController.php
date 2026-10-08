@@ -78,6 +78,12 @@ class ConsultationController extends Controller
             return redirect()->route('queue.index')->with('error', 'Please select a patient from queue or directory to start consultation.');
         }
 
+        if ($loggedInDoctor && $patient) {
+            if ($patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access: Patient is registered under another doctor.');
+            }
+        }
+
         // Get previous visit for smart revisit carry-forward
         $previousVisit = $patient->visits()->with(['diagnoses', 'prescriptions.items'])->latest('visit_date')->first();
 
@@ -272,6 +278,15 @@ class ConsultationController extends Controller
     public function show($id)
     {
         $visit = Visit::with(['patient.medicalHistory', 'doctor', 'diagnoses', 'prescriptions.items', 'invoice.items'])->findOrFail($id);
+        
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $visit->doctor_id !== $loggedInDoctor->id && $visit->patient?->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access to consultation record.');
+            }
+        }
+
         return view('consultations.show', compact('visit'));
     }
 }

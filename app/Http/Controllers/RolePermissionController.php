@@ -18,6 +18,8 @@ class RolePermissionController extends Controller
             'queue' => ['title' => 'Today\'s OPD Queue', 'description' => 'Live token calling, waiting list & consultation launch', 'icon' => 'users-round'],
             'appointments' => ['title' => 'Appointments Management', 'description' => 'Appointment list, booking, status transitions & filters', 'icon' => 'calendar'],
             'calendar' => ['title' => 'Appointment Calendar', 'description' => 'Month, week and day interactive slot calendar', 'icon' => 'calendar-days'],
+            'clinics' => ['title' => 'Practice Clinics & Branches', 'description' => 'Multi-clinic registrations, branches, and custom clinic parameters', 'icon' => 'building-2'],
+            'slots' => ['title' => 'Slot & Schedule Manager', 'description' => 'Calendar-based slot generation, working hours & blocking', 'icon' => 'calendar-check-2'],
             'patients' => ['title' => 'Patients Master Directory', 'description' => 'Patient registration, search, and 11-tab medical profile', 'icon' => 'user-plus'],
             'consultations' => ['title' => 'Consultations & Visits', 'description' => 'Clinical examinations, vitals recording & doctor notes', 'icon' => 'stethoscope'],
             'prescriptions' => ['title' => 'Prescription Management', 'description' => 'Digital Rx generation, medicine builder & printing', 'icon' => 'pill'],
@@ -56,7 +58,7 @@ class RolePermissionController extends Controller
         $submittedPermissions = $request->input('permissions', []); // [role => [menu_key => 1]]
 
         $menuKeys = [
-            'dashboard', 'queue', 'appointments', 'calendar', 'patients',
+            'dashboard', 'queue', 'appointments', 'calendar', 'clinics', 'slots', 'patients',
             'consultations', 'prescriptions', 'medical_reports', 'progress',
             'followups', 'availability', 'billing', 'dues', 'payments', 'expenses', 'reports'
         ];

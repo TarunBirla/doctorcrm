@@ -10,6 +10,8 @@ class Patient extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'doctor_id',
+        'created_by_user_id',
         'patient_id',
         'first_name',
         'last_name',
@@ -48,6 +50,16 @@ class Patient extends Model
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function doctor()
+    {
+        return $this->belongsTo(Doctor::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function medicalHistory()

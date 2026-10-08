@@ -57,8 +57,10 @@ class FollowUpController extends Controller
         $missedCount = (clone $countQuery)->where('status', 'missed')->count();
         $completedCount = (clone $countQuery)->where('status', 'completed')->count();
 
-        $patients = Patient::orderBy('first_name')->get();
-        $doctors = Doctor::all();
+        $patients = $loggedInDoctor 
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            : Patient::orderBy('first_name')->get();
+        $doctors = $loggedInDoctor ? collect([$loggedInDoctor]) : Doctor::all();
 
         return view('followups.index', compact(
             'followUps', 'status', 'date', 'todayCount', 'upcomingCount',

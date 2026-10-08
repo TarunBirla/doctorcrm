@@ -7,6 +7,8 @@ use Carbon\Carbon;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Doctor;
+use App\Models\Clinic;
+use App\Models\DoctorSlotOverride;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\AuditLog;
@@ -35,7 +37,7 @@ class AppointmentController extends Controller
         }
 
         if (!empty($date)) {
-            $query->where('appointment_date', $date);
+            $query->whereDate('appointment_date', $date);
         }
 
         if (!empty($status)) {
@@ -64,7 +66,7 @@ class AppointmentController extends Controller
         // Top KPI Cards for the filtered date / all
         $statsQuery = Appointment::query();
         if (!empty($date)) {
-            $statsQuery->where('appointment_date', $date);
+            $statsQuery->whereDate('appointment_date', $date);
         }
         $totalAppointments = (clone $statsQuery)->count();
         $completedAppointments = (clone $statsQuery)->where('status', 'completed')->count();
@@ -77,27 +79,73 @@ class AppointmentController extends Controller
         $totalRevenue = (clone $invoicesQuery)->sum('paid_amount');
         $totalDues = (clone $invoicesQuery)->sum('due_amount');
 
-        $doctors = Doctor::all();
-        $patients = Patient::orderBy('first_name')->get();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $patients = $loggedInDoctor ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
+            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
+            if ($clinics->isEmpty() && $loggedInDoctor) {
+                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+            }
+            if ($clinics->isEmpty()) {
+                $clinics = Clinic::where('is_active', true)->get();
+            }
+            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+        } else {
+            $doctors = Doctor::active()->orderBy('name')->get();
+            $patients = Patient::orderBy('first_name')->get();
+            $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
+        }
 
         return view('appointments.index', compact(
             'appointments', 'totalAppointments', 'completedAppointments',
             'waitingAppointments', 'totalRevenue', 'totalDues',
-            'date', 'status', 'type', 'paymentStatus', 'search', 'doctors', 'patients'
+            'date', 'status', 'type', 'paymentStatus', 'search', 'doctors', 'patients', 'clinics'
         ));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        $doctors = Doctor::all();
-        $patients = Patient::orderBy('first_name')->get();
-        return view('appointments.create', compact('doctors', 'patients'));
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $patients = $loggedInDoctor ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
+            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
+            if ($clinics->isEmpty() && $loggedInDoctor) {
+                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+            }
+            if ($clinics->isEmpty()) {
+                $clinics = Clinic::where('is_active', true)->get();
+            }
+            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+        } else {
+            $patients = Patient::orderBy('first_name')->get();
+            $doctors = Doctor::active()->orderBy('name')->get();
+            $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
+        }
+
+        $preselectedPatientId = $request->get('patient_id');
+        $preselectedClinicId = $request->get('clinic_id');
+        $preselectedDate = $request->get('date', now()->toDateString());
+        $preselectedTime = $request->get('time');
+
+        return view('appointments.create', compact('doctors', 'patients', 'clinics', 'loggedInDoctor', 'preselectedPatientId', 'preselectedClinicId', 'preselectedDate', 'preselectedTime'));
     }
 
     public function store(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+        }
+
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
+            'clinic_id' => 'required|exists:clinics,id',
             'doctor_id' => 'required|exists:doctors,id',
             'appointment_date' => 'required|date',
             'appointment_time' => 'required|string',
@@ -107,10 +155,21 @@ class AppointmentController extends Controller
             'consultation_fee' => 'required|numeric|min:0',
         ]);
 
-        // Slot availability check: Check if doctor already has an active appointment at this exact slot
+        // Security check: Doctor cannot book for another doctor's patients
+        if ($loggedInDoctor) {
+            $patient = Patient::findOrFail($validated['patient_id']);
+            if ($patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized: You can only book appointments for your own registered patients.');
+            }
+            // Enforce logged-in doctor
+            $validated['doctor_id'] = $loggedInDoctor->id;
+        }
+
+        // Slot availability check: Check if doctor already has an active appointment at this exact slot & clinic
         $time24 = date('H:i', strtotime($validated['appointment_time']));
         $slotOccupied = Appointment::where('doctor_id', $validated['doctor_id'])
-            ->where('appointment_date', $validated['appointment_date'])
+            ->where('clinic_id', $validated['clinic_id'])
+            ->whereDate('appointment_date', $validated['appointment_date'])
             ->whereNotIn('status', ['cancelled'])
             ->get()
             ->first(function ($apt) use ($time24) {
@@ -119,8 +178,9 @@ class AppointmentController extends Controller
 
         if ($slotOccupied && $validated['appointment_type'] !== 'emergency') {
             $doc = Doctor::find($validated['doctor_id']);
+            $clinicObj = Clinic::find($validated['clinic_id']);
             return back()->withInput()->withErrors([
-                'appointment_time' => "This slot ({$validated['appointment_time']}) is already booked for Dr. {$doc->name}. Please pick another available slot from the availability grid."
+                'appointment_time' => "This slot ({$validated['appointment_time']}) is already booked for Dr. {$doc->name} at {$clinicObj->name}. Please pick another available slot."
             ]);
         }
 
@@ -131,6 +191,7 @@ class AppointmentController extends Controller
             'appointment_no' => $appointmentNo,
             'patient_id' => $validated['patient_id'],
             'doctor_id' => $validated['doctor_id'],
+            'clinic_id' => $validated['clinic_id'],
             'appointment_date' => $validated['appointment_date'],
             'appointment_time' => $validated['appointment_time'],
             'appointment_type' => $validated['appointment_type'],
@@ -171,7 +232,7 @@ class AppointmentController extends Controller
         AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Created appointment for {$appointment->patient->full_name} on {$appointment->appointment_date->format('d M Y')} (Token #{$tokenNumber})");
 
         return redirect()->route('appointments.index', ['date' => $appointment->appointment_date->toDateString()])
-            ->with('success', "Appointment booked successfully! Token #{$tokenNumber} assigned.");
+            ->with('success', "Appointment booked successfully! Token #{$tokenNumber} assigned at {$appointment->clinic?->name}.");
     }
 
     public function updateStatus(Request $request, $id)
@@ -205,7 +266,7 @@ class AppointmentController extends Controller
 
         // Conflict check
         $existing = Appointment::where('doctor_id', $appointment->doctor_id)
-            ->where('appointment_date', $validated['appointment_date'])
+            ->whereDate('appointment_date', $validated['appointment_date'])
             ->where('appointment_time', $validated['appointment_time'])
             ->where('id', '!=', $id)
             ->whereNotIn('status', ['cancelled'])
@@ -278,6 +339,7 @@ class AppointmentController extends Controller
     public function getDoctorSlots(Request $request)
     {
         $doctorId = $request->get('doctor_id');
+        $clinicId = $request->get('clinic_id');
         $date = $request->get('date', now()->toDateString());
 
         if (!$doctorId) {
@@ -287,6 +349,17 @@ class AppointmentController extends Controller
         $doctor = Doctor::find($doctorId);
         if (!$doctor) {
             return response()->json(['error' => 'Doctor not found'], 404);
+        }
+
+        // Resolve Clinic
+        $clinic = null;
+        if ($clinicId) {
+            $clinic = Clinic::find($clinicId);
+        }
+        if (!$clinic) {
+            $clinic = $doctor->clinics()->where('is_active', true)->first()
+                   ?? Clinic::where('doctor_id', $doctor->id)->where('is_active', true)->first()
+                   ?? Clinic::where('is_active', true)->first();
         }
 
         try {
@@ -299,20 +372,34 @@ class AppointmentController extends Controller
             $dateFormatted = $parsedDate->toDateString();
         }
 
-        $availability = DoctorAvailability::where('doctor_id', $doctorId)
-            ->where('day_of_week', $dayOfWeek)
-            ->first();
+        // 1. Check clinic-specific availability, fallback to general doctor availability
+        $availability = null;
+        if ($clinic) {
+            $availability = DoctorAvailability::where('doctor_id', $doctorId)
+                ->where('clinic_id', $clinic->id)
+                ->where('day_of_week', $dayOfWeek)
+                ->first();
+        }
 
-        $isAvailable = $availability ? (bool) $availability->is_available : true;
+        if (!$availability) {
+            $availability = DoctorAvailability::where('doctor_id', $doctorId)
+                ->where('day_of_week', $dayOfWeek)
+                ->first();
+        }
+
+        $isAvailable = $availability ? (bool) $availability->is_available : ($dayOfWeek !== 'Sunday');
+
+        $effectiveFee = $clinic ? $clinic->consultation_fee : $doctor->consultation_fee;
 
         if (!$isAvailable) {
             return response()->json([
                 'success' => true,
-                'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
+                'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $effectiveFee],
+                'clinic' => $clinic ? ['id' => $clinic->id, 'name' => $clinic->name] : null,
                 'date' => $dateFormatted,
                 'day' => $dayOfWeek,
                 'is_available' => false,
-                'message' => "Dr. {$doctor->name} is marked off / unavailable on {$dayOfWeek}s.",
+                'message' => "Dr. {$doctor->name} is unavailable at " . ($clinic ? $clinic->name : 'this clinic') . " on {$dayOfWeek}s.",
                 'slots' => [],
                 'available_count' => 0,
                 'booked_count' => 0,
@@ -320,27 +407,53 @@ class AppointmentController extends Controller
         }
 
         // Clean time strings (handles 09:00:00, 09:00, or AM/PM)
-        $rawStart = $availability ? $availability->start_time : '09:00';
-        $rawEnd = $availability ? $availability->end_time : '18:00';
-        $duration = ($availability && $availability->slot_duration > 0) ? (int) $availability->slot_duration : 15;
+        $rawStart = $availability ? $availability->start_time : ($clinic ? '09:00' : '09:00');
+        $rawEnd = $availability ? $availability->end_time : ($clinic ? '17:00' : '18:00');
+        $duration = ($availability && $availability->slot_duration > 0)
+            ? (int) $availability->slot_duration
+            : ($clinic->appointment_duration ?? 15);
 
         try {
             $startHour = Carbon::parse("{$dateFormatted} " . trim($rawStart));
             $endHour = Carbon::parse("{$dateFormatted} " . trim($rawEnd));
         } catch (\Exception $e) {
             $startHour = Carbon::parse("{$dateFormatted} 09:00");
-            $endHour = Carbon::parse("{$dateFormatted} 18:00");
+            $endHour = Carbon::parse("{$dateFormatted} 17:00");
         }
 
-        // Fetch already booked appointments
-        $bookedTimes = Appointment::where('doctor_id', $doctorId)
-            ->where('appointment_date', $dateFormatted)
-            ->whereNotIn('status', ['cancelled'])
-            ->get()
-            ->map(function ($apt) {
-                return date('H:i', strtotime($apt->appointment_time));
-            })
-            ->toArray();
+        // Fetch already booked appointments for this doctor (+ clinic if specified)
+        $bookedQuery = Appointment::where('doctor_id', $doctorId)
+            ->whereDate('appointment_date', $dateFormatted)
+            ->whereNotIn('status', ['cancelled']);
+
+        if ($clinic) {
+            $bookedQuery->where(function ($q) use ($clinic) {
+                $q->where('clinic_id', $clinic->id)->orWhereNull('clinic_id');
+            });
+        }
+
+        $bookedTimes = $bookedQuery->get()->map(function ($apt) {
+            return date('H:i', strtotime($apt->appointment_time));
+        })->toArray();
+
+        // Fetch blocked slots from DoctorSlotOverride
+        $blockedOverrides = [];
+        $customExtraSlots = [];
+        if ($clinic) {
+            $overrides = \App\Models\DoctorSlotOverride::where('doctor_id', $doctorId)
+                ->where('clinic_id', $clinic->id)
+                ->whereDate('slot_date', $dateFormatted)
+                ->get();
+
+            foreach ($overrides as $ov) {
+                $timeKey = date('H:i', strtotime($ov->slot_time));
+                if ($ov->is_blocked) {
+                    $blockedOverrides[$timeKey] = $ov->reason ?: 'Blocked by doctor';
+                } else {
+                    $customExtraSlots[$timeKey] = $ov->reason ?: 'Extra slot';
+                }
+            }
+        }
 
         $slots = [];
         $current = $startHour->copy();
@@ -370,28 +483,56 @@ class AppointmentController extends Controller
 
             if (!$isBreak) {
                 $isBooked = in_array($time24, $bookedTimes);
+                $isBlocked = isset($blockedOverrides[$time24]);
+
                 $slots[] = [
                     'time' => $time24,
                     'label' => $timeLabel,
                     'is_booked' => $isBooked,
+                    'is_blocked' => $isBlocked,
+                    'is_available' => (!$isBooked && !$isBlocked),
+                    'reason' => $isBlocked ? $blockedOverrides[$time24] : null,
                 ];
             }
 
             $current->addMinutes($duration);
         }
 
-        $availableCount = count(array_filter($slots, fn($s) => !$s['is_booked']));
+        // Add custom extra slots if not already in slots list
+        foreach ($customExtraSlots as $extraTime => $note) {
+            $exists = collect($slots)->contains('time', $extraTime);
+            if (!$exists) {
+                $customCarbon = Carbon::parse("{$dateFormatted} {$extraTime}");
+                $isBooked = in_array($extraTime, $bookedTimes);
+                $slots[] = [
+                    'time' => $extraTime,
+                    'label' => $customCarbon->format('h:i A'),
+                    'is_booked' => $isBooked,
+                    'is_blocked' => false,
+                    'is_available' => !$isBooked,
+                    'reason' => $note,
+                ];
+            }
+        }
+
+        // Sort slots by time
+        usort($slots, fn($a, $b) => strcmp($a['time'], $b['time']));
+
+        $availableCount = count(array_filter($slots, fn($s) => $s['is_available']));
         $bookedCount = count(array_filter($slots, fn($s) => $s['is_booked']));
+        $blockedCount = count(array_filter($slots, fn($s) => $s['is_blocked']));
 
         return response()->json([
             'success' => true,
-            'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $doctor->consultation_fee],
+            'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $effectiveFee],
+            'clinic' => $clinic ? ['id' => $clinic->id, 'name' => $clinic->name, 'fee' => $clinic->consultation_fee, 'duration' => $clinic->appointment_duration] : null,
             'date' => $dateFormatted,
             'day' => $dayOfWeek,
             'is_available' => true,
             'slots' => $slots,
             'available_count' => $availableCount,
             'booked_count' => $bookedCount,
+            'blocked_count' => $blockedCount,
         ]);
     }
 

@@ -21,6 +21,17 @@ class InvoiceController extends Controller
 
         $query = Invoice::with(['patient', 'doctor', 'transactions']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if (!empty($status)) {
             $query->where('payment_status', $status);
         }
@@ -39,13 +50,20 @@ class InvoiceController extends Controller
 
         $invoices = $query->orderBy('invoice_date', 'desc')->paginate(15)->withQueryString();
 
-        $totalBilled = Invoice::sum('total_amount');
-        $totalCollected = Invoice::sum('paid_amount');
-        $totalDue = Invoice::sum('due_amount');
-        $unpaidCount = Invoice::whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->count();
+        $statsQuery = Invoice::query();
+        if ($loggedInDoctor) {
+            $statsQuery->where('doctor_id', $loggedInDoctor->id);
+        }
 
-        $patients = Patient::orderBy('first_name')->get();
-        $doctors = Doctor::all();
+        $totalBilled = (clone $statsQuery)->sum('total_amount');
+        $totalCollected = (clone $statsQuery)->sum('paid_amount');
+        $totalDue = (clone $statsQuery)->sum('due_amount');
+        $unpaidCount = (clone $statsQuery)->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->count();
+
+        $patients = $loggedInDoctor 
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            : Patient::orderBy('first_name')->get();
+        $doctors = $loggedInDoctor ? collect([$loggedInDoctor]) : Doctor::all();
 
         return view('invoices.index', compact(
             'invoices', 'status', 'search', 'date',

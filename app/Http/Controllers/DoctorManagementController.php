@@ -84,16 +84,30 @@ class DoctorManagementController extends Controller
                 'is_active' => true,
             ]);
 
-            // 3. Initialize standard working schedule (Monday to Saturday)
-            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            // 3. Link doctor to primary clinic in doctor_clinics pivot
+            $primaryClinic = \App\Models\Clinic::where('is_active', true)->first();
+            if ($primaryClinic) {
+                DB::table('doctor_clinics')->updateOrInsert(
+                    ['doctor_id' => $doctor->id, 'clinic_id' => $primaryClinic->id],
+                    ['is_primary' => true, 'updated_at' => now(), 'created_at' => now()]
+                );
+            }
+
+            // 4. Initialize standard working schedule (Monday to Sunday)
+            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             foreach ($days as $day) {
+                $isSunday = ($day === 'Sunday');
                 DoctorAvailability::create([
                     'doctor_id' => $doctor->id,
+                    'clinic_id' => $primaryClinic ? $primaryClinic->id : null,
                     'day_of_week' => $day,
-                    'start_time' => '09:00:00',
-                    'end_time' => '17:00:00',
-                    'slot_duration_minutes' => 15,
-                    'is_available' => true,
+                    'start_time' => '09:00',
+                    'end_time' => '17:00',
+                    'break_start' => '13:00',
+                    'break_end' => '14:00',
+                    'slot_duration' => 15,
+                    'max_patients' => 30,
+                    'is_available' => !$isSunday,
                 ]);
             }
 

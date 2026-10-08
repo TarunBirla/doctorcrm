@@ -22,6 +22,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DoctorManagementController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ClinicController;
+use App\Http\Controllers\SlotManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +65,16 @@ Route::resource('appointments', AppointmentController::class)->except(['show', '
 Route::post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.status');
 Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
 Route::get('/calendar', [AppointmentController::class, 'calendar'])->name('calendar.index');
+
+// Multi-Clinic Practice Management
+Route::resource('clinics', ClinicController::class);
+Route::post('/clinics/{id}/toggle-status', [ClinicController::class, 'toggleStatus'])->name('clinics.toggle-status');
+
+// Calendar-Based Slot Management UI & Overrides
+Route::get('/slots/manage', [SlotManagementController::class, 'index'])->name('slots.manage');
+Route::post('/slots/schedule', [SlotManagementController::class, 'updateSchedule'])->name('slots.schedule.update');
+Route::post('/slots/override', [SlotManagementController::class, 'toggleBlock'])->name('slots.override.toggle');
+Route::post('/slots/custom', [SlotManagementController::class, 'addCustomSlot'])->name('slots.custom.create');
 
 // Today's Queue
 Route::get('/queue', [QueueController::class, 'index'])->name('queue.index');

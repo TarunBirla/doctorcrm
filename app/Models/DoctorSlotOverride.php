@@ -4,23 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class DoctorAvailability extends Model
+class DoctorSlotOverride extends Model
 {
     protected $fillable = [
         'doctor_id',
         'clinic_id',
-        'day_of_week',
-        'start_time',
-        'end_time',
-        'break_start',
-        'break_end',
-        'slot_duration',
-        'max_patients',
-        'is_available',
+        'slot_date',
+        'slot_time',
+        'is_blocked',
+        'reason',
     ];
 
     protected $casts = [
-        'is_available' => 'boolean',
+        'slot_date' => 'date',
+        'is_blocked' => 'boolean',
     ];
 
     public function doctor()

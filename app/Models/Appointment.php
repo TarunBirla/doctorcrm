@@ -13,6 +13,7 @@ class Appointment extends Model
         'appointment_no',
         'patient_id',
         'doctor_id',
+        'clinic_id',
         'appointment_date',
         'appointment_time',
         'end_time',
@@ -56,6 +57,11 @@ class Appointment extends Model
     public function doctor()
     {
         return $this->belongsTo(Doctor::class);
+    }
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
     }
 
     public function visit()

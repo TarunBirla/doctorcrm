@@ -1,6 +1,22 @@
 @php
-    $modalPatients = \App\Models\Patient::orderBy('first_name')->get();
-    $modalDoctors = \App\Models\Doctor::all();
+    $modalRole = session('current_role', auth()->user()->role ?? 'super_admin');
+    $modalLoggedInDoctor = null;
+    if ($modalRole === 'doctor' && auth()->check()) {
+        $modalLoggedInDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
+        $modalPatients = $modalLoggedInDoctor ? \App\Models\Patient::where('doctor_id', $modalLoggedInDoctor->id)->orderBy('first_name')->get() : collect();
+        $modalClinics = $modalLoggedInDoctor ? $modalLoggedInDoctor->clinics()->where('is_active', true)->get() : collect();
+        if ($modalClinics->isEmpty() && $modalLoggedInDoctor) {
+            $modalClinics = \App\Models\Clinic::where('doctor_id', $modalLoggedInDoctor->id)->where('is_active', true)->get();
+        }
+        if ($modalClinics->isEmpty()) {
+            $modalClinics = \App\Models\Clinic::where('is_active', true)->get();
+        }
+        $modalDoctors = collect($modalLoggedInDoctor ? [$modalLoggedInDoctor] : []);
+    } else {
+        $modalPatients = \App\Models\Patient::orderBy('first_name')->get();
+        $modalDoctors = \App\Models\Doctor::active()->get();
+        $modalClinics = \App\Models\Clinic::where('is_active', true)->get();
+    }
     $nextPatientId = \App\Models\Patient::generatePatientId();
 @endphp
 
@@ -54,25 +70,33 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Select Clinic *</label>
+                    <select name="clinic_id" id="modalClinicSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                        @foreach($modalClinics as $mc)
+                            <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}">{{ $mc->name }} ({{ $mc->city }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
                     <label class="block font-semibold text-slate-700 mb-1">Doctor *</label>
                     <select name="doctor_id" id="modalDoctorSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                        <option value="">-- Choose Doctor --</option>
                         @foreach($modalDoctors as $doc)
-                            <option value="{{ $doc->id }}" {{ (auth()->check() && auth()->user()->role === 'doctor' && $doc->user_id === auth()->id()) ? 'selected' : '' }}>
+                            <option value="{{ $doc->id }}" {{ ($modalLoggedInDoctor && $modalLoggedInDoctor->id === $doc->id) ? 'selected' : '' }}>
                                 {{ $doc->name }} ({{ $doc->specialization }})
                             </option>
                         @endforeach
                     </select>
                 </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Appointment Type *</label>
-                    <select name="appointment_type" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                        <option value="new">New Consultation</option>
-                        <option value="follow_up">Follow-up</option>
-                        <option value="revisit">Revisit</option>
-                        <option value="emergency">Emergency</option>
-                    </select>
-                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Appointment Type *</label>
+                <select name="appointment_type" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <option value="new">New Consultation</option>
+                    <option value="follow_up">Follow-up</option>
+                    <option value="revisit">Revisit</option>
+                    <option value="emergency">Emergency</option>
+                </select>
             </div>
 
             <div class="grid grid-cols-2 gap-3">

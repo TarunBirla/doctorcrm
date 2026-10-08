@@ -246,6 +246,7 @@
         // Live Doctor Slot Engine for Quick Appointment Modal
         function fetchModalDoctorSlots() {
             const docSelect = document.getElementById('modalDoctorSelect');
+            const clinicSelect = document.getElementById('modalClinicSelect');
             const dateInput = document.getElementById('modalDateSelect');
             const slotsGrid = document.getElementById('modalSlotsGrid');
             const statusText = document.getElementById('modalSlotStatusText');
@@ -255,10 +256,11 @@
             if (!docSelect || !dateInput || !slotsGrid) return;
 
             const docId = docSelect.value;
+            const clinicId = clinicSelect ? clinicSelect.value : '';
             const apptDate = dateInput.value;
 
             if (!docId || !apptDate) {
-                slotsGrid.innerHTML = '<span class="text-[11px] text-slate-400 italic">Select doctor & date above to load live availability.</span>';
+                slotsGrid.innerHTML = '<span class="text-[11px] text-slate-400 italic">Select clinic, doctor & date to load live availability.</span>';
                 if (statusText) statusText.innerText = 'Select doctor to check slots';
                 return;
             }
@@ -266,7 +268,7 @@
             slotsGrid.innerHTML = '<span class="text-[11px] text-blue-600 animate-pulse font-semibold">Checking available slots...</span>';
             if (statusText) statusText.innerText = 'Loading...';
 
-            fetch(`/api/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(apptDate)}`)
+            fetch(`/api/doctor-slots?doctor_id=${encodeURIComponent(docId)}&clinic_id=${encodeURIComponent(clinicId)}&date=${encodeURIComponent(apptDate)}`)
                 .then(res => res.json())
                 .then(res => {
                     if (res.is_available === false) {

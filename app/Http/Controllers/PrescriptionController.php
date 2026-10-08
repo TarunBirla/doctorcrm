@@ -50,6 +50,14 @@ class PrescriptionController extends Controller
     public function show($id)
     {
         $prescription = Prescription::with(['patient.medicalHistory', 'doctor', 'items', 'visit'])->findOrFail($id);
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $prescription->doctor_id !== $loggedInDoctor->id && $prescription->patient?->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access to prescription.');
+            }
+        }
+
         $clinic = Clinic::first() ?? new Clinic();
 
         return view('prescriptions.show', compact('prescription', 'clinic'));
@@ -58,6 +66,14 @@ class PrescriptionController extends Controller
     public function print($id)
     {
         $prescription = Prescription::with(['patient.medicalHistory', 'doctor', 'items', 'visit'])->findOrFail($id);
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $prescription->doctor_id !== $loggedInDoctor->id && $prescription->patient?->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access to prescription.');
+            }
+        }
+
         $clinic = Clinic::first() ?? new Clinic();
 
         return view('prescriptions.print', compact('prescription', 'clinic'));
@@ -65,9 +81,18 @@ class PrescriptionController extends Controller
 
     public function create(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $patients = $loggedInDoctor ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
+            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+        } else {
+            $patients = Patient::orderBy('first_name')->get();
+            $doctors = Doctor::all();
+        }
+
         $patientId = $request->get('patient_id');
-        $patients = Patient::orderBy('first_name')->get();
-        $doctors = Doctor::all();
         $selectedPatient = $patientId ? Patient::find($patientId) : null;
 
         return view('prescriptions.create', compact('patients', 'doctors', 'selectedPatient'));
@@ -75,6 +100,12 @@ class PrescriptionController extends Controller
 
     public function store(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+        }
+
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'required|exists:doctors,id',
@@ -91,6 +122,14 @@ class PrescriptionController extends Controller
             'items.*.timing' => 'nullable|string',
             'items.*.instructions' => 'nullable|string',
         ]);
+
+        if ($loggedInDoctor) {
+            $validated['doctor_id'] = $loggedInDoctor->id;
+            $pat = Patient::findOrFail($validated['patient_id']);
+            if ($pat->doctor_id && $pat->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access: Patient belongs to another doctor.');
+            }
+        }
 
         $prescriptionNo = Prescription::generatePrescriptionNo();
 

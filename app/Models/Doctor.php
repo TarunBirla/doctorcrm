@@ -64,4 +64,24 @@ class Doctor extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function ownedClinics()
+    {
+        return $this->hasMany(Clinic::class);
+    }
+
+    public function clinics()
+    {
+        return $this->belongsToMany(Clinic::class, 'doctor_clinics')->withPivot('is_primary')->withTimestamps();
+    }
+
+    public function patients()
+    {
+        return $this->hasMany(Patient::class);
+    }
+
+    public function slotOverrides()
+    {
+        return $this->hasMany(DoctorSlotOverride::class);
+    }
 }
