@@ -18,6 +18,17 @@ class FollowUpController extends Controller
 
         $query = FollowUp::with(['patient', 'doctor', 'visit']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if ($status === 'today') {
             $query->where('follow_up_date', now()->toDateString());
         } elseif ($status === 'upcoming') {
@@ -34,10 +45,17 @@ class FollowUpController extends Controller
 
         $followUps = $query->orderBy('follow_up_date', 'asc')->paginate(15)->withQueryString();
 
-        $todayCount = FollowUp::where('follow_up_date', now()->toDateString())->count();
-        $upcomingCount = FollowUp::where('follow_up_date', '>', now()->toDateString())->where('status', 'scheduled')->count();
-        $missedCount = FollowUp::where('status', 'missed')->count();
-        $completedCount = FollowUp::where('status', 'completed')->count();
+        $countQuery = FollowUp::query();
+        if ($loggedInDoctor) {
+            $countQuery->where('doctor_id', $loggedInDoctor->id);
+        } elseif ($currentRole === 'doctor') {
+            $countQuery->whereRaw('1 = 0');
+        }
+
+        $todayCount = (clone $countQuery)->where('follow_up_date', now()->toDateString())->count();
+        $upcomingCount = (clone $countQuery)->where('follow_up_date', '>', now()->toDateString())->where('status', 'scheduled')->count();
+        $missedCount = (clone $countQuery)->where('status', 'missed')->count();
+        $completedCount = (clone $countQuery)->where('status', 'completed')->count();
 
         $patients = Patient::orderBy('first_name')->get();
         $doctors = Doctor::all();

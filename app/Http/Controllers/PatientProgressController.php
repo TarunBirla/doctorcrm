@@ -12,7 +12,20 @@ class PatientProgressController extends Controller
     public function index(Request $request)
     {
         $patientId = $request->get('patient_id');
-        $patients = Patient::orderBy('first_name')->get();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $patientsQuery = Patient::orderBy('first_name');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $patientsQuery->where(function ($q) use ($loggedInDoctor) {
+                    $q->whereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                      ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
+                });
+            } else {
+                $patientsQuery->whereRaw('1 = 0');
+            }
+        }
+        $patients = $patientsQuery->get();
 
         $selectedPatient = $patientId ? Patient::with('progressRecords')->find($patientId) : $patients->first();
 

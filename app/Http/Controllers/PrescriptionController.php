@@ -19,6 +19,17 @@ class PrescriptionController extends Controller
 
         $query = Prescription::with(['patient', 'doctor', 'items']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if (!empty($search)) {
             $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")

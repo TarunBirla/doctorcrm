@@ -20,6 +20,23 @@ class PatientController extends Controller
 
         $query = Patient::with(['medicalHistory', 'invoices']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->where(function ($q) use ($loggedInDoctor) {
+                    $q->whereHas('appointments', function ($aq) use ($loggedInDoctor) {
+                        $aq->where('doctor_id', $loggedInDoctor->id);
+                    })->orWhereHas('visits', function ($vq) use ($loggedInDoctor) {
+                        $vq->where('doctor_id', $loggedInDoctor->id);
+                    });
+                });
+            } else {
+                $query->whereRaw('1 = 0'); // No patients if doctor record missing
+            }
+        }
+
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -46,10 +63,20 @@ class PatientController extends Controller
 
         $patients = $query->orderBy('created_at', 'desc')->paginate(12)->withQueryString();
 
-        $totalPatients = Patient::count();
-        $malePatients = Patient::where('gender', 'Male')->count();
-        $femalePatients = Patient::where('gender', 'Female')->count();
-        $patientsWithDues = Patient::whereHas('invoices', function ($q) {
+        $countQuery = Patient::query();
+        if ($loggedInDoctor) {
+            $countQuery->where(function ($q) use ($loggedInDoctor) {
+                $q->whereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                  ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
+            });
+        } elseif ($currentRole === 'doctor') {
+            $countQuery->whereRaw('1 = 0');
+        }
+
+        $totalPatients = (clone $countQuery)->count();
+        $malePatients = (clone $countQuery)->where('gender', 'Male')->count();
+        $femalePatients = (clone $countQuery)->where('gender', 'Female')->count();
+        $patientsWithDues = (clone $countQuery)->whereHas('invoices', function ($q) {
             $q->whereIn('payment_status', ['unpaid', 'partially_paid', 'due']);
         })->count();
 

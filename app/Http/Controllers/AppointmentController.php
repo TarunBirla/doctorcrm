@@ -26,9 +26,11 @@ class AppointmentController extends Controller
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first() ?? Doctor::first();
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
             if ($loggedInDoctor) {
                 $query->where('doctor_id', $loggedInDoctor->id);
+            } else {
+                $query->whereRaw('1 = 0');
             }
         }
 
@@ -233,13 +235,15 @@ class AppointmentController extends Controller
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = null;
         if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first() ?? Doctor::first();
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
         }
 
         $query = Appointment::with(['patient', 'doctor']);
 
         if ($loggedInDoctor) {
             $query->where('doctor_id', $loggedInDoctor->id);
+        } elseif ($currentRole === 'doctor') {
+            $query->whereRaw('1 = 0');
         }
 
         // Fetch appointments for month or week

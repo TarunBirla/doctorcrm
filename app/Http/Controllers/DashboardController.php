@@ -88,8 +88,21 @@ class DashboardController extends Controller
                 break;
         }
 
-        // 1. Appointments Summary
+        // Resolve current role and logged-in doctor if role is doctor
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor') {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+        }
+
+        // 1. Appointments Summary (Isolated for doctor)
         $appointmentsQuery = Appointment::whereBetween('appointment_date', [$startDate->toDateString(), $endDate->toDateString()]);
+        if ($loggedInDoctor) {
+            $appointmentsQuery->where('doctor_id', $loggedInDoctor->id);
+        } elseif ($currentRole === 'doctor') {
+            $appointmentsQuery->whereRaw('1 = 0'); // Empty if doctor profile not linked
+        }
+
         $totalAppointments = (clone $appointmentsQuery)->count();
         $completedAppointments = (clone $appointmentsQuery)->where('status', 'completed')->count();
         $waitingAppointments = (clone $appointmentsQuery)->where('status', 'waiting')->count();
@@ -103,13 +116,31 @@ class DashboardController extends Controller
 
         // 2. Financial Summary
         $invoicesQuery = Invoice::whereBetween('invoice_date', [$startDate->toDateString(), $endDate->toDateString()]);
-        $totalBilled = (clone $invoicesQuery)->sum('total_amount');
-        
         $transactionsQuery = PaymentTransaction::whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()]);
+
+        if ($loggedInDoctor) {
+            $invoicesQuery->whereHas('appointment', function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+            });
+            $transactionsQuery->whereHas('invoice.appointment', function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+            });
+        } elseif ($currentRole === 'doctor') {
+            $invoicesQuery->whereRaw('1 = 0');
+            $transactionsQuery->whereRaw('1 = 0');
+        }
+
+        $totalBilled = (clone $invoicesQuery)->sum('total_amount');
         $totalCollected = (clone $transactionsQuery)->sum('amount');
         
         // Outstanding dues overall
-        $totalOutstandingDues = Invoice::whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->sum('due_amount');
+        $totalOutstandingDuesQuery = Invoice::whereIn('payment_status', ['unpaid', 'partially_paid', 'due']);
+        if ($loggedInDoctor) {
+            $totalOutstandingDuesQuery->whereHas('appointment', function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+            });
+        }
+        $totalOutstandingDues = $totalOutstandingDuesQuery->sum('due_amount');
         $rangeOutstandingDues = (clone $invoicesQuery)->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->sum('due_amount');
 
         // Payment method breakdown
@@ -119,24 +150,47 @@ class DashboardController extends Controller
         $bankCollection = (clone $transactionsQuery)->where('payment_method', 'Bank Transfer')->sum('amount');
         $otherCollection = (clone $transactionsQuery)->whereNotIn('payment_method', ['Cash', 'UPI', 'Card', 'Bank Transfer'])->sum('amount');
 
-        // Expenses in range
-        $totalExpenses = Expense::whereBetween('expense_date', [$startDate->toDateString(), $endDate->toDateString()])->sum('amount');
+        // Expenses in range (Only super_admin or clinic wide, 0 for doctor)
+        $totalExpenses = ($currentRole === 'doctor') ? 0 : Expense::whereBetween('expense_date', [$startDate->toDateString(), $endDate->toDateString()])->sum('amount');
         $netIncome = $totalCollected - $totalExpenses;
 
-        // 3. Patient Statistics
-        $totalPatientsCount = Patient::count();
-        $newPatientsInRange = Patient::whereBetween('created_at', [$startDate, $endDate])->count();
-        $patientsWithDuesCount = Patient::whereHas('invoices', function($q) {
+        // 3. Patient Statistics (Isolated for doctor: only patients who consulted with this doctor)
+        $patientsBaseQuery = Patient::query();
+        if ($loggedInDoctor) {
+            $patientsBaseQuery->where(function ($q) use ($loggedInDoctor) {
+                $q->whereHas('appointments', function ($aq) use ($loggedInDoctor) {
+                    $aq->where('doctor_id', $loggedInDoctor->id);
+                })->orWhereHas('visits', function ($vq) use ($loggedInDoctor) {
+                    $vq->where('doctor_id', $loggedInDoctor->id);
+                });
+            });
+        } elseif ($currentRole === 'doctor') {
+            $patientsBaseQuery->whereRaw('1 = 0');
+        }
+
+        $totalPatientsCount = (clone $patientsBaseQuery)->count();
+        $newPatientsInRange = (clone $patientsBaseQuery)->whereBetween('created_at', [$startDate, $endDate])->count();
+        $patientsWithDuesCount = (clone $patientsBaseQuery)->whereHas('invoices', function($q) {
             $q->whereIn('payment_status', ['unpaid', 'partially_paid', 'due']);
         })->count();
-        $patientsNeedingFollowUp = FollowUp::where('status', 'scheduled')
-            ->whereDate('follow_up_date', '>=', now()->toDateString())
-            ->count();
 
-        // 4. Today's Queue (Always real-time today for doctors & staff)
-        $todayQueue = Appointment::with(['patient', 'doctor'])
-            ->where('appointment_date', now()->toDateString())
-            ->orderByRaw("CASE 
+        $followUpsQuery = FollowUp::where('status', 'scheduled')
+            ->whereDate('follow_up_date', '>=', now()->toDateString());
+        if ($loggedInDoctor) {
+            $followUpsQuery->where('doctor_id', $loggedInDoctor->id);
+        }
+        $patientsNeedingFollowUp = $followUpsQuery->count();
+
+        // 4. Today's Queue (Filtered for Doctor if logged in as doctor)
+        $todayQueueQuery = Appointment::with(['patient', 'doctor'])
+            ->where('appointment_date', now()->toDateString());
+        if ($loggedInDoctor) {
+            $todayQueueQuery->where('doctor_id', $loggedInDoctor->id);
+        } elseif ($currentRole === 'doctor') {
+            $todayQueueQuery->whereRaw('1 = 0');
+        }
+
+        $todayQueue = $todayQueueQuery->orderByRaw("CASE 
                 WHEN status = 'in_consultation' THEN 1 
                 WHEN status = 'waiting' THEN 2 
                 WHEN status = 'confirmed' THEN 3 
@@ -146,23 +200,35 @@ class DashboardController extends Controller
             ->orderBy('token_number', 'asc')
             ->get();
 
-        // Identify "Who is Next?"
-        $nextPatientAppointment = Appointment::with('patient')
+        // Identify "Who is Next?" for this doctor
+        $nextPatientQuery = Appointment::with('patient')
             ->where('appointment_date', now()->toDateString())
-            ->where('status', 'waiting')
-            ->orderBy('token_number', 'asc')
-            ->first();
+            ->where('status', 'waiting');
+        if ($loggedInDoctor) {
+            $nextPatientQuery->where('doctor_id', $loggedInDoctor->id);
+        }
+        $nextPatientAppointment = $nextPatientQuery->orderBy('token_number', 'asc')->first();
 
         // 5. Recent Financial Transactions
-        $recentTransactions = PaymentTransaction::with(['invoice', 'patient'])
-            ->orderBy('payment_date', 'desc')
+        $recentTransactionsQuery = PaymentTransaction::with(['invoice', 'patient']);
+        if ($loggedInDoctor) {
+            $recentTransactionsQuery->whereHas('invoice.appointment', function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+            });
+        }
+        $recentTransactions = $recentTransactionsQuery->orderBy('payment_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->take(6)
             ->get();
 
         // 6. Recent Consultations / Visits
-        $recentVisits = Visit::with(['patient', 'doctor'])
-            ->orderBy('visit_date', 'desc')
+        $recentVisitsQuery = Visit::with(['patient', 'doctor']);
+        if ($loggedInDoctor) {
+            $recentVisitsQuery->where('doctor_id', $loggedInDoctor->id);
+        } elseif ($currentRole === 'doctor') {
+            $recentVisitsQuery->whereRaw('1 = 0');
+        }
+        $recentVisits = $recentVisitsQuery->orderBy('visit_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->take(6)
             ->get();
@@ -176,9 +242,20 @@ class DashboardController extends Controller
             $day = Carbon::today()->subDays($i);
             $dayStr = $day->toDateString();
             $trendDates[] = $day->format('d M');
-            $trendAppointments[] = Appointment::where('appointment_date', $dayStr)->count();
-            $trendRevenue[] = (float) Invoice::where('invoice_date', $dayStr)->sum('total_amount');
-            $trendCollections[] = (float) PaymentTransaction::where('payment_date', $dayStr)->sum('amount');
+
+            $appCountQuery = Appointment::where('appointment_date', $dayStr);
+            $invRevQuery = Invoice::where('invoice_date', $dayStr);
+            $payColQuery = PaymentTransaction::where('payment_date', $dayStr);
+
+            if ($loggedInDoctor) {
+                $appCountQuery->where('doctor_id', $loggedInDoctor->id);
+                $invRevQuery->whereHas('appointment', fn($q) => $q->where('doctor_id', $loggedInDoctor->id));
+                $payColQuery->whereHas('invoice.appointment', fn($q) => $q->where('doctor_id', $loggedInDoctor->id));
+            }
+
+            $trendAppointments[] = $appCountQuery->count();
+            $trendRevenue[] = (float) $invRevQuery->sum('total_amount');
+            $trendCollections[] = (float) $payColQuery->sum('amount');
         }
 
         $clinic = Clinic::first() ?? new Clinic();

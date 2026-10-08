@@ -99,6 +99,10 @@
                             </td>
                             <td class="py-3.5 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5">
+                                    <a href="{{ route('settings.availability', ['doctor_id' => $doc->id]) }}" class="p-1.5 rounded-lg border border-slate-200 text-blue-600 hover:bg-blue-50 transition" title="Doctor Schedule & Slots">
+                                        <i data-lucide="clock-4" class="w-4 h-4"></i>
+                                    </a>
+
                                     <button type="button" onclick="editDoctor({{ json_encode($doc) }})" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Edit Doctor">
                                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                                     </button>

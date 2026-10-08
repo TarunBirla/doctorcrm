@@ -164,6 +164,14 @@
                     <span>Follow-ups</span>
                 </a>
                 @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'availability'))
+                <a href="{{ route('settings.availability') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('settings.availability') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="clock-4" class="w-4 h-4 {{ request()->routeIs('settings.availability') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>{{ $currentRole === 'doctor' ? 'My Availability & Slots' : 'Doctor Availability' }}</span>
+                </a>
+                @endif
             </div>
         </div>
         @endif

@@ -7,14 +7,51 @@
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
 
+    @if($currentRole === 'super_admin')
+        <!-- SUPER ADMIN DOCTOR SELECTOR -->
+        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <i data-lucide="user-check" class="w-5 h-5 text-blue-600"></i>
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm">Select Doctor to Configure</h4>
+                    <p class="text-[11px] text-slate-400">View and adjust clinical consultation schedule for any doctor</p>
+                </div>
+            </div>
+            <form method="GET" action="{{ route('settings.availability') }}" class="flex items-center gap-2">
+                <select name="doctor_id" onchange="this.form.submit()" class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white outline-none">
+                    @foreach($allDoctors as $doc)
+                        <option value="{{ $doc->id }}" {{ $doctor && $doctor->id === $doc->id ? 'selected' : '' }}>
+                            Dr. {{ $doc->name }} ({{ $doc->specialization }})
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+    @elseif($currentRole === 'doctor')
+        <!-- DOCTOR SELF-SCHEDULE BANNER -->
+        <div class="p-4 bg-linear-to-r from-blue-700 to-indigo-800 rounded-2xl text-white shadow-sm flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-base">
+                    Dr
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">Dr. {{ $doctor->name }} - My Consulting Hours</h3>
+                    <p class="text-xs text-blue-100/80">Configure your daily working days, slot intervals, and OPD token limits.</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-white/20 text-[11px] font-bold">Personal Schedule</span>
+        </div>
+    @endif
+
     <div class="card-custom p-8 bg-white space-y-6">
         <div class="border-b border-slate-100 pb-4">
-            <h3 class="font-bold text-slate-900 text-base">Weekly Practice Schedule: {{ $doctor->name ?? 'Dr. Rajiv Sharma' }}</h3>
+            <h3 class="font-bold text-slate-900 text-base">Weekly Practice Schedule: Dr. {{ $doctor->name ?? 'Doctor' }}</h3>
             <p class="text-xs text-slate-400">Configure daily working hours, break periods, and maximum OPD token capacity</p>
         </div>
 
         <form action="{{ route('settings.availability.update') }}" method="POST" class="space-y-4 text-xs">
             @csrf
+            <input type="hidden" name="doctor_id" value="{{ $doctor->id ?? '' }}">
 
             <div class="space-y-3">
                 @php

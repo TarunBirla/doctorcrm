@@ -27,6 +27,17 @@ class ConsultationController extends Controller
 
         $query = Visit::with(['patient', 'doctor', 'diagnoses', 'prescriptions']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor) {
+                $query->where('doctor_id', $loggedInDoctor->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         if (!empty($search)) {
             $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -49,6 +60,12 @@ class ConsultationController extends Controller
         $appointmentId = $request->get('appointment_id');
         $patientId = $request->get('patient_id');
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+        }
+
         $appointment = null;
         if ($appointmentId) {
             $appointment = Appointment::with(['patient.medicalHistory', 'patient.visits.prescriptions', 'patient.reports'])->findOrFail($appointmentId);
@@ -56,7 +73,7 @@ class ConsultationController extends Controller
             $doctor = $appointment->doctor;
         } elseif ($patientId) {
             $patient = Patient::with(['medicalHistory', 'visits.prescriptions', 'reports'])->findOrFail($patientId);
-            $doctor = Doctor::first();
+            $doctor = $loggedInDoctor ?? Doctor::first();
         } else {
             return redirect()->route('queue.index')->with('error', 'Please select a patient from queue or directory to start consultation.');
         }

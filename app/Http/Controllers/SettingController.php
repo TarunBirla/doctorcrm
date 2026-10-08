@@ -64,17 +64,47 @@ class SettingController extends Controller
         return back()->with('success', 'Clinic settings updated successfully.');
     }
 
-    public function availability()
+    public function availability(Request $request)
     {
-        $doctor = Doctor::with('availabilities')->first();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $allDoctors = Doctor::active()->orderBy('name')->get();
+
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $doctor = Doctor::where('user_id', auth()->id())->first();
+            if (!$doctor) {
+                return redirect()->route('dashboard')->with('error', 'Doctor profile not found for your account.');
+            }
+        } else {
+            // Super Admin or staff: allow picking doctor via ?doctor_id=
+            $requestedDoctorId = $request->get('doctor_id');
+            if ($requestedDoctorId) {
+                $doctor = Doctor::find($requestedDoctorId);
+            }
+            if (!isset($doctor) || !$doctor) {
+                $doctor = $allDoctors->first() ?? Doctor::first();
+            }
+        }
+
         $availabilities = $doctor ? $doctor->availabilities : collect();
 
-        return view('settings.availability', compact('doctor', 'availabilities'));
+        return view('settings.availability', compact('doctor', 'availabilities', 'allDoctors', 'currentRole'));
     }
 
     public function updateAvailability(Request $request)
     {
-        $doctor = Doctor::first();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $doctorId = $request->input('doctor_id');
+
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $doctor = Doctor::where('user_id', auth()->id())->first();
+        } else {
+            $doctor = $doctorId ? Doctor::find($doctorId) : Doctor::first();
+        }
+
+        if (!$doctor) {
+            return back()->with('error', 'Doctor record not found.');
+        }
+
         $daysData = $request->input('days', []);
 
         foreach ($daysData as $dayName => $data) {
@@ -95,8 +125,8 @@ class SettingController extends Controller
             );
         }
 
-        AuditLog::record('Doctor Availability Updated', 'Doctor', (string) $doctor->id, "Weekly clinical schedule and slot constraints updated");
+        AuditLog::record('Doctor Availability Updated', 'Doctor', (string) $doctor->id, "Weekly clinical schedule and slot constraints updated for Dr. {$doctor->name}");
 
-        return back()->with('success', 'Doctor availability and consulting hours saved.');
+        return back()->with('success', "Availability and consulting hours saved successfully for Dr. {$doctor->name}.");
     }
 }

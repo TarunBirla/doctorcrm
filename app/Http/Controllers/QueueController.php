@@ -16,6 +16,13 @@ class QueueController extends Controller
         $today = now()->toDateString();
         $doctorId = $request->get('doctor_id');
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $doctorId = $loggedInDoctor ? $loggedInDoctor->id : -1;
+        }
+
         $query = Appointment::with(['patient.medicalHistory', 'doctor', 'invoice'])
             ->where('appointment_date', $today);
 
