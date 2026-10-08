@@ -65,7 +65,7 @@
                                     {{ $rx->items->count() }} Meds
                                 </span>
                             </td>
-                            <td class="p-3 text-slate-600">{{ $rx->doctor->name ?? 'Dr. Rajiv' }}</td>
+                            <td class="p-3 text-slate-600">{{ $rx->doctor->name ?? 'Doctor' }}</td>
                             <td class="p-3 pr-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <a href="{{ route('prescriptions.print', $rx->id) }}" target="_blank" title="Print" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">

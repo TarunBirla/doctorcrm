@@ -1,22 +1,28 @@
 @php
-    $currentRole = session('current_role', 'super_admin');
+    $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
     $roleDisplayNames = [
         'super_admin' => 'Super Admin',
         'doctor' => 'Doctor',
         'receptionist' => 'Receptionist / Staff',
     ];
 
-    $userName = match($currentRole) {
-        'doctor' => 'DR. RAJIV SHARMA',
-        'receptionist' => 'POOJA VERMA (STAFF)',
-        default => 'SYSTEM SUPERADMIN',
-    };
-
-    $userInitials = match($currentRole) {
-        'doctor' => 'DR',
-        'receptionist' => 'PV',
-        default => 'SY',
-    };
+    $authUser = auth()->user();
+    if ($authUser) {
+        $userName = strtoupper($authUser->name);
+        $nameParts = explode(' ', trim($authUser->name));
+        if (count($nameParts) >= 2) {
+            $userInitials = strtoupper(substr($nameParts[0], 0, 1) . substr(end($nameParts), 0, 1));
+        } else {
+            $userInitials = strtoupper(substr($authUser->name, 0, 2));
+        }
+    } else {
+        $userName = match($currentRole) {
+            'doctor' => 'DOCTOR',
+            'receptionist' => 'STAFF',
+            default => 'SYSTEM SUPERADMIN',
+        };
+        $userInitials = 'DR';
+    }
 
     $notifications = \App\Models\Notification::latest()->take(4)->get();
 @endphp
@@ -71,7 +77,7 @@
                    class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-slate-700 transition {{ $currentRole === 'doctor' ? 'font-bold text-blue-700 bg-blue-50/60' : '' }}">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full {{ $currentRole === 'doctor' ? 'bg-blue-600' : 'bg-slate-300' }}"></span>
-                        <span>Doctor (Dr. Rajiv)</span>
+                        <span>Doctor Role</span>
                     </div>
                     @if($currentRole === 'doctor')
                         <i data-lucide="check" class="w-3.5 h-3.5 text-blue-600"></i>

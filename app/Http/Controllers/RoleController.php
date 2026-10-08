@@ -26,8 +26,8 @@ class RoleController extends Controller
 
         $roleLabels = [
             'super_admin' => 'Super Admin',
-            'doctor' => 'Doctor (Dr. Rajiv Sharma)',
-            'receptionist' => 'Receptionist / Front Desk (Pooja Verma)',
+            'doctor' => 'Doctor Role',
+            'receptionist' => 'Receptionist / Front Desk Role',
         ];
 
         AuditLog::record('Role Switched', 'User', (string) ($user->id ?? 1), "Active role changed to {$roleLabels[$role]}");

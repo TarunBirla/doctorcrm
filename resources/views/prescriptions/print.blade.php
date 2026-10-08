@@ -153,7 +153,7 @@
 
             <div class="text-center min-w-[200px]">
                 <div class="h-10 border-b border-slate-400 mb-1 flex items-end justify-center">
-                    <span class="font-serif italic text-blue-900 font-bold text-sm">Dr. Rajiv Sharma</span>
+                    <span class="font-serif italic text-blue-900 font-bold text-sm">{{ $prescription->doctor->name ?? $clinic->doctor_name }}</span>
                 </div>
                 <span class="font-bold text-slate-800 block">{{ $prescription->doctor->name ?? $clinic->doctor_name }}</span>
                 <span class="text-[10px] text-slate-400">Doctor's Digital Signature</span>

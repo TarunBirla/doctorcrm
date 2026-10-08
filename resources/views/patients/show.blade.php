@@ -330,7 +330,7 @@
                                         {{ $vst->visit_type }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-slate-400">Date: {{ $vst->visit_date->format('d M Y') }} • Consultant: {{ $vst->doctor->name ?? 'Dr. Rajiv' }}</span>
+                                <span class="text-xs text-slate-400">Date: {{ $vst->visit_date->format('d M Y') }} • Consultant: {{ $vst->doctor->name ?? 'Doctor' }}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 @if($vst->prescriptions->first())
@@ -448,7 +448,7 @@
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
                                 <span class="font-bold text-slate-900 text-sm">Prescription #{{ $rx->prescription_no }}</span>
-                                <span class="text-xs text-slate-400 block">Date: {{ $rx->prescription_date->format('d M Y') }} • Prescribed by {{ $rx->doctor->name ?? 'Dr. Rajiv' }}</span>
+                                <span class="text-xs text-slate-400 block">Date: {{ $rx->prescription_date->format('d M Y') }} • Prescribed by {{ $rx->doctor->name ?? 'Doctor' }}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('prescriptions.print', $rx->id) }}" target="_blank" 
@@ -736,7 +736,7 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="p-3 pl-5 font-bold text-slate-900">{{ $fu->follow_up_date->format('d M Y') }}</td>
                                     <td class="p-3 text-slate-600">{{ $fu->follow_up_time ?? '10:00 AM' }}</td>
-                                    <td class="p-3 text-slate-700">{{ $fu->doctor->name ?? 'Dr. Rajiv' }}</td>
+                                    <td class="p-3 text-slate-700">{{ $fu->doctor->name ?? 'Doctor' }}</td>
                                     <td class="p-3 font-medium text-slate-800">{{ $fu->reason }}</td>
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize 

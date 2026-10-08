@@ -74,7 +74,7 @@
                                 </a>
                                 <span class="text-[11px] text-slate-400 block">{{ $fu->patient->patient_id }} • {{ $fu->patient->mobile }}</span>
                             </td>
-                            <td class="p-3.5 text-slate-700 font-medium">{{ $fu->doctor->name ?? 'Dr. Rajiv' }}</td>
+                            <td class="p-3.5 text-slate-700 font-medium">{{ $fu->doctor->name ?? 'Doctor' }}</td>
                             <td class="p-3.5 text-slate-800 max-w-xs">{{ $fu->reason }}</td>
                             <td class="p-3.5">
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize 

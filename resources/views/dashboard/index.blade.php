@@ -403,12 +403,28 @@
             </div>
 
             <!-- CLINIC DOCTOR PROFILE MINI-CARD -->
-            @if($doctors->first())
-                @php $doc = $doctors->first(); @endphp
-                <div class="card-custom p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white">
+            @php
+                $currentDoctorProfile = null;
+                if (auth()->check() && (auth()->user()->role === 'doctor' || session('current_role') === 'doctor')) {
+                    $currentDoctorProfile = \App\Models\Doctor::where('user_id', auth()->id())->first();
+                }
+                if (!$currentDoctorProfile) {
+                    $currentDoctorProfile = $doctors->first();
+                }
+            @endphp
+            @if($currentDoctorProfile)
+                @php 
+                    $doc = $currentDoctorProfile;
+                    $docInitials = 'DR';
+                    $docNameParts = explode(' ', trim(str_ireplace('Dr.', '', $doc->name)));
+                    if (count($docNameParts) >= 2) {
+                        $docInitials = strtoupper(substr($docNameParts[0], 0, 1) . substr(end($docNameParts), 0, 1));
+                    }
+                @endphp
+                <div class="card-custom p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white shadow-md">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-base text-blue-300">
-                            DR
+                            {{ $docInitials }}
                         </div>
                         <div>
                             <h4 class="font-bold text-sm text-white">{{ $doc->name }}</h4>
