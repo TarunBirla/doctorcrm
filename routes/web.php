@@ -17,12 +17,18 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\DatabaseSetupController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+// Live Server Database Setup & Migration Routes (https://crm.physiopii.in/setup-database)
+Route::get('/setup-database', [DatabaseSetupController::class, 'index'])->name('database.setup');
+Route::match(['get', 'post'], '/setup-database/run', [DatabaseSetupController::class, 'run'])->name('database.setup.run');
+Route::match(['get', 'post'], '/setup-database/fresh', [DatabaseSetupController::class, 'fresh'])->name('database.setup.fresh');
 
 // Role Switching
 Route::get('/switch-role/{role}', [RoleController::class, 'switchRole'])->name('role.switch');

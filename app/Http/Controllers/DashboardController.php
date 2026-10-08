@@ -19,6 +19,15 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Auto-detect if database is not initialized yet on live server
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('users') || !\Illuminate\Support\Facades\Schema::hasTable('patients')) {
+                return redirect()->route('database.setup');
+            }
+        } catch (\Exception $e) {
+            return redirect()->route('database.setup');
+        }
+
         $dateFilter = $request->get('date_filter', 'today');
         $customStart = $request->get('start_date');
         $customEnd = $request->get('end_date');

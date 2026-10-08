@@ -221,6 +221,12 @@
                     <i data-lucide="shield-check" class="w-4 h-4 {{ request()->routeIs('audit-logs.index') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Audit Trail Logs</span>
                 </a>
+
+                <a href="{{ route('database.setup') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-medium {{ request()->routeIs('database.setup*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="database" class="w-4 h-4 {{ request()->routeIs('database.setup*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>Database Setup</span>
+                </a>
             </div>
         </div>
         @endif
