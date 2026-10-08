@@ -28,6 +28,11 @@ class DashboardController extends Controller
             return redirect()->route('database.setup');
         }
 
+        // If not logged in, redirect to login page
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
         $dateFilter = $request->get('date_filter', 'today');
         $customStart = $request->get('start_date');
         $customEnd = $request->get('end_date');

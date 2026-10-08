@@ -126,14 +126,41 @@
             </div>
         </div>
 
-        <!-- USER PROFILE BADGE -->
-        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div class="w-8 h-8 rounded-full bg-navy-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                {{ $userInitials }}
-            </div>
-            <div class="hidden xl:block text-left">
-                <span class="font-bold text-xs text-slate-900 block leading-none">{{ $userName }}</span>
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{{ $roleDisplayNames[$currentRole] ?? 'Admin' }}</span>
+        <!-- USER PROFILE BADGE & DROPDOWN -->
+        <div class="relative">
+            <button onclick="document.getElementById('userProfileMenu').classList.toggle('hidden')" 
+                    class="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    {{ $userInitials }}
+                </div>
+                <div class="hidden xl:block text-left">
+                    <span class="font-bold text-xs text-slate-900 block leading-none">{{ $userName }}</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{{ $roleDisplayNames[$currentRole] ?? 'Admin' }}</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+            </button>
+
+            <!-- User Menu Dropdown -->
+            <div id="userProfileMenu" class="hidden absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 z-50 text-xs animate-fade-in">
+                <div class="px-3.5 py-2 border-b border-slate-100">
+                    <span class="font-bold text-slate-900 block">{{ $userName }}</span>
+                    <span class="text-[11px] text-slate-400 block truncate">{{ auth()->user()->email ?? ($currentRole . '@carepoint.com') }}</span>
+                </div>
+                <a href="{{ route('settings.index') }}" class="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition">
+                    <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>Clinic Settings</span>
+                </a>
+                <a href="{{ route('database.setup') }}" class="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition">
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>Database Hub</span>
+                </a>
+                <form action="{{ route('logout') }}" method="POST" class="border-t border-slate-100 mt-1 pt-1">
+                    @csrf
+                    <button type="submit" class="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition font-semibold text-left">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        <span>Log Out</span>
+                    </button>
+                </form>
             </div>
         </div>
 

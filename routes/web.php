@@ -18,12 +18,18 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DatabaseSetupController;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+// Authentication Routes (Login & Logout)
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Live Server Database Setup & Migration Routes (https://crm.physiopii.in/setup-database)
 Route::withoutMiddleware([

@@ -240,9 +240,17 @@
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <span class="text-[11px] text-slate-500 font-medium">Clinic Online • 2026</span>
             </div>
-            <a href="{{ route('settings.index') }}" class="text-slate-400 hover:text-slate-700">
-                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
-            </a>
+            <div class="flex items-center gap-1">
+                <a href="{{ route('settings.index') }}" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="Clinic Settings">
+                    <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                </a>
+                <form action="{{ route('logout') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Log Out">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </aside>

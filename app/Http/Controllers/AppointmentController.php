@@ -96,16 +96,17 @@ class AppointmentController extends Controller
             'consultation_fee' => 'required|numeric|min:0',
         ]);
 
-        // Conflict check: Check if same doctor has another appointment within +/- 10 minutes on same date
-        $existing = Appointment::where('doctor_id', $validated['doctor_id'])
+        // Check if THIS SAME PATIENT already has an active appointment with the doctor at this exact time
+        $duplicatePatient = Appointment::where('doctor_id', $validated['doctor_id'])
+            ->where('patient_id', $validated['patient_id'])
             ->where('appointment_date', $validated['appointment_date'])
             ->where('appointment_time', $validated['appointment_time'])
             ->whereNotIn('status', ['cancelled'])
             ->first();
 
-        if ($existing) {
+        if ($duplicatePatient) {
             return back()->withInput()->withErrors([
-                'appointment_time' => 'Doctor already has an appointment booked at this exact time slot (' . $validated['appointment_time'] . '). Please select another slot.'
+                'appointment_time' => 'This patient already has an active appointment booked with this doctor at ' . $validated['appointment_time'] . '.'
             ]);
         }
 
@@ -120,9 +121,9 @@ class AppointmentController extends Controller
             'appointment_time' => $validated['appointment_time'],
             'appointment_type' => $validated['appointment_type'],
             'token_number' => $tokenNumber,
-            'reason' => $validated['reason'],
-            'notes' => $validated['notes'],
-            'consultation_fee' => $validated['consultation_fee'],
+            'reason' => $validated['reason'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+            'consultation_fee' => $validated['consultation_fee'] ?? 800.00,
             'payment_status' => 'unpaid',
             'status' => 'scheduled',
         ]);

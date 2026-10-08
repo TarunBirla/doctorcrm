@@ -98,6 +98,12 @@
                 </div>
             </div>
 
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Internal Notes (Optional)</label>
+                <input type="text" name="notes" placeholder="Special instructions or clinical references..."
+                       class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+            </div>
+
             <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button type="button" onclick="closeModal('quickAppointmentModal')" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">
                     Cancel
