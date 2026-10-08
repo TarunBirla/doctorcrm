@@ -19,6 +19,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Safe fallback if SESSION_DRIVER=database is set before migrations are run
+        if (config('session.driver') === 'database') {
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasTable('sessions')) {
+                    config(['session.driver' => 'file']);
+                }
+            } catch (\Throwable $e) {
+                config(['session.driver' => 'file']);
+            }
+        }
     }
 }
