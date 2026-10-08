@@ -310,14 +310,15 @@ class AppointmentController extends Controller
         // Fetch appointments for month or week
         if ($view === 'day') {
             $appointments = (clone $query)
-                ->where('appointment_date', $carbonDate->toDateString())
+                ->whereDate('appointment_date', $carbonDate->toDateString())
                 ->orderBy('appointment_time', 'asc')
                 ->get();
         } elseif ($view === 'week') {
             $startWeek = (clone $carbonDate)->startOfWeek();
             $endWeek = (clone $carbonDate)->endOfWeek();
             $appointments = (clone $query)
-                ->whereBetween('appointment_date', [$startWeek->toDateString(), $endWeek->toDateString()])
+                ->whereDate('appointment_date', '>=', $startWeek->toDateString())
+                ->whereDate('appointment_date', '<=', $endWeek->toDateString())
                 ->orderBy('appointment_time', 'asc')
                 ->get();
         } else {
@@ -325,15 +326,22 @@ class AppointmentController extends Controller
             $startMonth = (clone $carbonDate)->startOfMonth();
             $endMonth = (clone $carbonDate)->endOfMonth();
             $appointments = (clone $query)
-                ->whereBetween('appointment_date', [$startMonth->toDateString(), $endMonth->toDateString()])
+                ->whereDate('appointment_date', '>=', $startMonth->toDateString())
+                ->whereDate('appointment_date', '<=', $endMonth->toDateString())
                 ->orderBy('appointment_time', 'asc')
                 ->get();
         }
 
-        $doctors = Doctor::active()->get();
-        $patients = Patient::orderBy('first_name')->get();
+        $appointmentsByDate = $appointments->groupBy(function ($appt) {
+            return $appt->appointment_date ? Carbon::parse($appt->appointment_date)->format('Y-m-d') : '';
+        });
 
-        return view('appointments.calendar', compact('appointments', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'loggedInDoctor'));
+        $doctors = Doctor::active()->get();
+        $patients = $loggedInDoctor 
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            : Patient::orderBy('first_name')->get();
+
+        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'loggedInDoctor'));
     }
 
     public function getDoctorSlots(Request $request)

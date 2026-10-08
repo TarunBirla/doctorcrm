@@ -89,33 +89,38 @@
                 @for($d = 1; $d <= $daysInMonth; $d++)
                     @php
                         $curDate = $carbonDate->copy()->day($d)->toDateString();
-                        $dayAppts = $appointments->where('appointment_date', $curDate);
+                        $dayAppts = isset($appointmentsByDate) ? $appointmentsByDate->get($curDate, collect()) : $appointments->filter(fn($x) => \Carbon\Carbon::parse($x->appointment_date)->toDateString() === $curDate);
                         $isToday = $curDate === now()->toDateString();
                     @endphp
-                    <div class="min-h-[110px] rounded-xl border {{ $isToday ? 'border-blue-400 bg-blue-50/20 shadow-xs' : 'border-slate-200 bg-white' }} p-2 flex flex-col justify-between hover:border-slate-300 transition">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold {{ $isToday ? 'w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center' : 'text-slate-700' }}">
+                    <div class="min-h-[120px] rounded-xl border {{ $isToday ? 'border-blue-500 bg-blue-50/20 shadow-xs ring-1 ring-blue-500/30' : 'border-slate-200 bg-white' }} p-2.5 flex flex-col justify-between hover:border-slate-300 transition">
+                        <div class="flex items-center justify-between pb-1 border-b border-slate-100/80">
+                            <span class="text-xs font-bold {{ $isToday ? 'w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs' : 'text-slate-700' }}">
                                 {{ $d }}
                             </span>
                             @if($dayAppts->count() > 0)
-                                <span class="text-[10px] font-bold text-slate-400">{{ $dayAppts->count() }} Appts</span>
+                                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                                    {{ $dayAppts->count() }} {{ Str::plural('Appt', $dayAppts->count()) }}
+                                </span>
                             @endif
                         </div>
 
                         <!-- Appt Pills -->
-                        <div class="space-y-1 mt-1 overflow-y-auto max-h-16 text-[10px]">
+                        <div class="space-y-1.5 mt-1.5 overflow-y-auto max-h-20 text-[10px]">
                             @foreach($dayAppts->take(3) as $a)
                                 <a href="{{ route('patients.show', $a->patient_id) }}" 
-                                   class="block px-1.5 py-0.5 rounded truncate font-semibold 
-                                    @if($a->status === 'completed') bg-emerald-50 text-emerald-800 border border-emerald-100
-                                    @elseif($a->status === 'waiting') bg-amber-50 text-amber-800 border border-amber-100
-                                    @elseif($a->status === 'in_consultation') bg-blue-100 text-blue-900 border border-blue-200
-                                    @else bg-slate-100 text-slate-700 @endif">
-                                    {{ $a->appointment_time }} - {{ $a->patient->first_name }}
+                                   title="{{ date('h:i A', strtotime($a->appointment_time)) }} - {{ $a->patient?->full_name }} ({{ ucfirst($a->status) }})"
+                                   class="block px-2 py-1 rounded-lg truncate font-semibold transition hover:opacity-95 shadow-2xs
+                                    @if($a->status === 'completed') bg-emerald-50 text-emerald-800 border border-emerald-200
+                                    @elseif($a->status === 'waiting') bg-amber-50 text-amber-800 border border-amber-200
+                                    @elseif($a->status === 'in_consultation') bg-blue-100 text-blue-900 border border-blue-300
+                                    @elseif($a->status === 'confirmed') bg-indigo-50 text-indigo-800 border border-indigo-200
+                                    @else bg-slate-100 text-slate-700 border border-slate-200 @endif">
+                                    <span class="font-bold text-slate-900">{{ date('h:i A', strtotime($a->appointment_time)) }}</span>
+                                    <span class="ml-1 text-slate-800 font-medium">{{ $a->patient?->full_name ?? 'Patient' }}</span>
                                 </a>
                             @endforeach
                             @if($dayAppts->count() > 3)
-                                <span class="text-[9px] text-slate-400 font-bold block">+{{ $dayAppts->count() - 3 }} more</span>
+                                <span class="text-[9px] text-blue-600 font-bold block text-center bg-blue-50/70 rounded py-0.5">+{{ $dayAppts->count() - 3 }} more</span>
                             @endif
                         </div>
                     </div>
@@ -131,14 +136,14 @@
                                 #{{ $a->token_number }}
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">{{ $a->patient->full_name }}</h4>
-                                <span class="text-slate-500">{{ $a->appointment_date->format('d M Y') }} at <strong>{{ $a->appointment_time }}</strong> • Type: {{ ucfirst($a->appointment_type) }}</span>
+                                <h4 class="font-bold text-slate-900 text-sm">{{ $a->patient?->full_name }}</h4>
+                                <span class="text-slate-500">{{ \Carbon\Carbon::parse($a->appointment_date)->format('d M Y') }} at <strong>{{ date('h:i A', strtotime($a->appointment_time)) }}</strong> • Type: {{ ucfirst($a->appointment_type) }}</span>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-3">
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize 
-                                {{ $a->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($a->status === 'waiting' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700') }}">
+                                {{ $a->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($a->status === 'waiting' ? 'bg-amber-100 text-amber-800' : ($a->status === 'confirmed' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700')) }}">
                                 {{ $a->status }}
                             </span>
                             <a href="{{ route('patients.show', $a->patient_id) }}" class="px-3 py-1.5 border border-slate-200 rounded-xl font-semibold hover:bg-slate-100">
