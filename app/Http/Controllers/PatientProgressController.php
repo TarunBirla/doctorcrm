@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\PatientProgress;
 use App\Models\Patient;
 use App\Models\AuditLog;
+use App\Models\Doctor;
 
 class PatientProgressController extends Controller
 {
@@ -13,12 +14,15 @@ class PatientProgressController extends Controller
     {
         $patientId = $request->get('patient_id');
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+
         $patientsQuery = Patient::orderBy('first_name');
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
             if ($loggedInDoctor) {
                 $patientsQuery->where(function ($q) use ($loggedInDoctor) {
-                    $q->whereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                    $q->where('doctor_id', $loggedInDoctor->id)
+                      ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
                       ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
                 });
             } else {
@@ -27,7 +31,19 @@ class PatientProgressController extends Controller
         }
         $patients = $patientsQuery->get();
 
-        $selectedPatient = $patientId ? Patient::with('progressRecords')->find($patientId) : $patients->first();
+        $selectedPatient = null;
+        if ($patientId) {
+            $candidate = Patient::with('progressRecords')->find($patientId);
+            if ($candidate) {
+                if ($loggedInDoctor && $candidate->doctor_id && $candidate->doctor_id !== $loggedInDoctor->id) {
+                    $selectedPatient = $patients->first();
+                } else {
+                    $selectedPatient = $candidate;
+                }
+            }
+        } else {
+            $selectedPatient = $patients->first();
+        }
 
         $progressRecords = collect();
         $chartDates = [];
@@ -72,6 +88,15 @@ class PatientProgressController extends Controller
             'treatment_response' => 'nullable|string',
             'doctor_notes' => 'nullable|string',
         ]);
+
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $patient = Patient::findOrFail($validated['patient_id']);
+            if ($loggedInDoctor && $patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access: You can only record progress for your own patients.');
+            }
+        }
 
         $bmi = null;
         if (!empty($validated['weight']) && !empty($validated['height']) && $validated['height'] > 0) {

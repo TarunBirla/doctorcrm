@@ -7,10 +7,22 @@ use App\Models\MedicalReport;
 use App\Models\Patient;
 use App\Models\Visit;
 use App\Models\AuditLog;
+use App\Models\Doctor;
 use Illuminate\Support\Facades\Storage;
 
 class MedicalReportController extends Controller
 {
+    private function authorizeReportAccess(MedicalReport $report)
+    {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $report->patient && $report->patient->doctor_id && $report->patient->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized: You can only access medical reports of your own patients.');
+            }
+        }
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -21,10 +33,12 @@ class MedicalReportController extends Controller
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = null;
         if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
             if ($loggedInDoctor) {
                 $query->whereHas('patient', function ($q) use ($loggedInDoctor) {
-                    $q->where('doctor_id', $loggedInDoctor->id);
+                    $q->where('doctor_id', $loggedInDoctor->id)
+                      ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                      ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
                 });
             } else {
                 $query->whereRaw('1 = 0');
@@ -32,12 +46,15 @@ class MedicalReportController extends Controller
         }
 
         if (!empty($search)) {
-            $query->whereHas('patient', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('patient_id', 'like', "%{$search}%");
-            })->orWhere('report_name', 'like', "%{$search}%")
-              ->orWhere('laboratory', 'like', "%{$search}%");
+            $query->where(function ($sq) use ($search) {
+                $sq->whereHas('patient', function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('patient_id', 'like', "%{$search}%")
+                      ->orWhere('mobile', 'like', "%{$search}%");
+                })->orWhere('report_name', 'like', "%{$search}%")
+                  ->orWhere('laboratory', 'like', "%{$search}%");
+            });
         }
 
         if (!empty($type)) {
@@ -46,7 +63,11 @@ class MedicalReportController extends Controller
 
         $reports = $query->orderBy('report_date', 'desc')->paginate(12)->withQueryString();
         $patients = $loggedInDoctor 
-            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            ? Patient::where(function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                  ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
+            })->orderBy('first_name')->get()
             : Patient::orderBy('first_name')->get();
 
         return view('reports.medical', compact('reports', 'patients', 'search', 'type'));
@@ -77,6 +98,15 @@ class MedicalReportController extends Controller
 
         $reportNo = MedicalReport::generateReportNo();
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            $patient = Patient::findOrFail($validated['patient_id']);
+            if ($loggedInDoctor && $patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized: You can only upload medical reports for your own registered patients.');
+            }
+        }
+
         $report = MedicalReport::create([
             'report_no' => $reportNo,
             'patient_id' => $validated['patient_id'],
@@ -99,6 +129,7 @@ class MedicalReportController extends Controller
     public function preview($id)
     {
         $report = MedicalReport::with(['patient', 'visit'])->findOrFail($id);
+        $this->authorizeReportAccess($report);
 
         if ($report->file_path && Storage::disk('public')->exists($report->file_path)) {
             $path = Storage::disk('public')->path($report->file_path);
@@ -116,6 +147,7 @@ class MedicalReportController extends Controller
     public function download($id)
     {
         $report = MedicalReport::with(['patient', 'visit'])->findOrFail($id);
+        $this->authorizeReportAccess($report);
 
         if ($report->file_path && Storage::disk('public')->exists($report->file_path)) {
             $ext = pathinfo($report->file_path, PATHINFO_EXTENSION) ?: 'pdf';
@@ -149,7 +181,9 @@ class MedicalReportController extends Controller
 
     public function destroy($id)
     {
-        $report = MedicalReport::findOrFail($id);
+        $report = MedicalReport::with('patient')->findOrFail($id);
+        $this->authorizeReportAccess($report);
+
         if ($report->file_path && Storage::disk('public')->exists($report->file_path)) {
             Storage::disk('public')->delete($report->file_path);
         }
