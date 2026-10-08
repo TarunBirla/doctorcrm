@@ -1043,7 +1043,6 @@
                         <li><a href="{{ route('login') }}" class="hover:text-white transition">Doctor Login</a></li>
                         <li><a href="{{ route('login') }}" class="hover:text-white transition">Receptionist Portal</a></li>
                         <li><a href="{{ route('login') }}" class="hover:text-white transition">Super Admin Access</a></li>
-                        <li><a href="{{ route('database.setup') }}" class="hover:text-white transition">Database Setup</a></li>
                     </ul>
                 </div>
 

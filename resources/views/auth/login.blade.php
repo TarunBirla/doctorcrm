@@ -129,10 +129,9 @@
             </div>
         </div>
 
-        <!-- Setup Database Helper Link -->
+        <!-- Footer -->
         <div class="text-center text-xs text-slate-400 space-y-1">
-            <p>Deploying on live server? <a href="{{ route('database.setup') }}" class="font-bold text-primary hover:underline">Run Database Setup</a></p>
-            <p>© {{ date('Y') }} CarePoint Clinic Management. All rights reserved.</p>
+            <p>© {{ date('Y') }} PhysioPii Clinic Management. All rights reserved.</p>
         </div>
     </div>
 
