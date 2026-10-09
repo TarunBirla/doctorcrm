@@ -47,12 +47,12 @@
             <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
                 <i data-lucide="calendar" class="w-6 h-6"></i>
             </div>
-            <div>
+            <!-- <div>
                 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Schedule Control</p>
                 <a href="{{ route('slots.manage') }}" class="text-sm font-bold text-purple-700 hover:underline flex items-center gap-1 mt-0.5">
                     Open Slot Manager <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </a>
-            </div>
+            </div> -->
         </div>
     </div>
 
@@ -130,9 +130,9 @@
 
             <!-- Card Actions -->
             <div class="p-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between gap-2">
-                <a href="{{ route('slots.manage', ['clinic_id' => $clinic->id]) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition" title="Manage Time Slots for this clinic">
+                <!-- <a href="{{ route('slots.manage', ['clinic_id' => $clinic->id]) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition" title="Manage Time Slots for this clinic">
                     <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i> Slots
-                </a>
+                </a> -->
 
                 <div class="flex items-center gap-1.5">
                     <a href="{{ route('clinics.edit', $clinic->id) }}" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Edit Clinic">
