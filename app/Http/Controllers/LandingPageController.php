@@ -15,22 +15,42 @@ class LandingPageController extends Controller
      */
     public function index()
     {
-        $clinicsCount = Clinic::where('is_active', true)->count();
-        $doctorsCount = Doctor::active()->count();
-        $patientsCount = Patient::count();
-        $appointmentsCount = Appointment::count();
+        $clinics = Clinic::where('is_active', true)->get();
+        $doctors = Doctor::active()->get();
+        return view('landing.index', compact('clinics', 'doctors'));
+    }
 
-        // Fallbacks for display counters if fresh install
-        $clinicsDisplay = max($clinicsCount, 12);
-        $doctorsDisplay = max($doctorsCount, 25);
-        $patientsDisplay = max($patientsCount, 5400);
-        $appointmentsDisplay = max($appointmentsCount, 18500);
+    public function about()
+    {
+        $clinics = Clinic::where('is_active', true)->get();
+        return view('landing.about', compact('clinics'));
+    }
 
-        return view('landing.index', compact(
-            'clinicsDisplay',
-            'doctorsDisplay',
-            'patientsDisplay',
-            'appointmentsDisplay'
-        ));
+    public function services()
+    {
+        $clinics = Clinic::where('is_active', true)->get();
+        return view('landing.services', compact('clinics'));
+    }
+
+    public function testimonials()
+    {
+        return view('landing.testimonials');
+    }
+
+    public function gallery()
+    {
+        return view('landing.gallery');
+    }
+
+    public function contact()
+    {
+        $clinics = Clinic::where('is_active', true)->get();
+        return view('landing.contact', compact('clinics'));
+    }
+
+    public function enquiry()
+    {
+        $clinics = Clinic::where('is_active', true)->get();
+        return view('landing.enquiry', compact('clinics'));
     }
 }

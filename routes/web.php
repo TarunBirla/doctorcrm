@@ -55,8 +55,15 @@ Route::withoutMiddleware([
 // Role Switching
 Route::get('/switch-role/{role}', [RoleController::class, 'switchRole'])->name('role.switch');
 
-// Public Landing Page (https://crm.physiopii.in/)
+// Public Website Routes (SDPC Indore - Physiotherapy & Spine Clinic)
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+Route::get('/about', [LandingPageController::class, 'about'])->name('landing.about');
+Route::get('/services', [LandingPageController::class, 'services'])->name('landing.services');
+Route::get('/testimonials', [LandingPageController::class, 'testimonials'])->name('landing.testimonials');
+Route::get('/gallery', [LandingPageController::class, 'gallery'])->name('landing.gallery');
+Route::get('/contact', [LandingPageController::class, 'contact'])->name('landing.contact');
+Route::get('/enquiry', [LandingPageController::class, 'enquiry'])->name('landing.enquiry');
+Route::get('/book-appointment', [LandingPageController::class, 'enquiry'])->name('landing.appointment');
 Route::get('/videos/watch/{token}', [DoctorVideoController::class, 'publicShare'])->name('videos.public');
 
 // Dashboard & Global Search (CRM Portal)
