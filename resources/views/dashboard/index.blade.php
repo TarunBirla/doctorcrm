@@ -118,42 +118,7 @@
             </div>
         </div>
 
-        <!-- CLINIC DOCTOR PROFILE MINI-CARD -->
-            @php
-                $currentDoctorProfile = null;
-                if (auth()->check() && (auth()->user()->role === 'doctor' || session('current_role') === 'doctor')) {
-                    $currentDoctorProfile = \App\Models\Doctor::where('user_id', auth()->id())->first();
-                }
-                if (!$currentDoctorProfile) {
-                    $currentDoctorProfile = $doctors->first();
-                }
-            @endphp
-            @if($currentDoctorProfile)
-                @php 
-                    $doc = $currentDoctorProfile;
-                    $docInitials = 'DR';
-                    $docNameParts = explode(' ', trim(str_ireplace('Dr.', '', $doc->name)));
-                    if (count($docNameParts) >= 2) {
-                        $docInitials = strtoupper(substr($docNameParts[0], 0, 1) . substr(end($docNameParts), 0, 1));
-                    }
-                @endphp
-                <div class="card-custom p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white shadow-md">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-base text-blue-300">
-                            {{ $docInitials }}
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-white">{{ $doc->name }}</h4>
-                            <p class="text-[11px] text-blue-200">{{ $doc->specialization }}</p>
-                            <span class="text-[10px] text-slate-400 font-mono">Reg: {{ $doc->registration_no }}</span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
-                        <span>Consultation Fee:</span>
-                        <span class="font-bold text-white text-sm">₹{{ number_format($doc->consultation_fee, 0) }}</span>
-                    </div>
-                </div>
-            @endif
+        
 
     </div>
 
