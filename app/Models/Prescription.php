@@ -11,7 +11,13 @@ class Prescription extends Model
         'visit_id',
         'patient_id',
         'doctor_id',
+        'clinic_id',
         'prescription_date',
+        'assessment_type',
+        'assessment_data',
+        'prescribed_exercises',
+        'modalities',
+        'treatment_days',
         'diagnosis_summary',
         'advice',
         'follow_up_date',
@@ -20,7 +26,14 @@ class Prescription extends Model
     protected $casts = [
         'prescription_date' => 'date',
         'follow_up_date' => 'date',
+        'assessment_data' => 'array',
+        'prescribed_exercises' => 'array',
     ];
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
 
     public static function generatePrescriptionNo(): string
     {

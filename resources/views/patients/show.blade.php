@@ -452,30 +452,69 @@
         @if($activeTab === 'prescriptions')
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-slate-900 text-sm">Prescriptions History</h3>
-                    <a href="{{ route('prescriptions.create', ['patient_id' => $patient->id]) }}" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
-                        + New Prescription
-                    </a>
+                    <h3 class="font-bold text-slate-900 text-sm">Prescriptions & Clinical Assessments</h3>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('prescriptions.create', ['patient_id' => $patient->id, 'type' => 'musculoskeletal']) }}" class="px-3 py-1.5 bg-blue-700 text-white rounded-xl text-xs font-bold hover:bg-blue-800 transition">
+                            + Musculoskeletal Assessment
+                        </a>
+                        <a href="{{ route('prescriptions.create', ['patient_id' => $patient->id, 'type' => 'neurological']) }}" class="px-3 py-1.5 bg-purple-700 text-white rounded-xl text-xs font-bold hover:bg-purple-800 transition">
+                            + Neurological Assessment
+                        </a>
+                    </div>
                 </div>
 
                 @forelse($patient->prescriptions as $rx)
+                    @php
+                        $isNeuro = ($rx->assessment_type === 'neurological');
+                        $rxClinic = $rx->clinic ?? $patient->clinic;
+                    @endphp
                     <div class="card-custom p-6 bg-white space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <div>
-                                <span class="font-bold text-slate-900 text-sm">Prescription #{{ $rx->prescription_no }}</span>
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-900 text-sm">Prescription #{{ $rx->prescription_no }}</span>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full {{ $isNeuro ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                                        {{ $isNeuro ? '🧠 Neurological' : '🦴 Musculoskeletal' }}
+                                    </span>
+                                    @if($rxClinic)
+                                        <span class="text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded">
+                                            🏥 {{ $rxClinic->name }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <span class="text-xs text-slate-400 block">Date: {{ $rx->prescription_date->format('d M Y') }} • Prescribed by {{ $rx->doctor->name ?? 'Doctor' }}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('prescriptions.print', $rx->id) }}" target="_blank" 
                                    class="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                                     <i data-lucide="printer" class="w-3.5 h-3.5"></i>
-                                    <span>Print Prescription</span>
+                                    <span>Print Chart</span>
                                 </a>
                                 <a href="{{ route('prescriptions.show', $rx->id) }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold">
-                                    View Rx
+                                    View Details
                                 </a>
                             </div>
                         </div>
+
+                        <!-- Diagnosis -->
+                        <div class="p-2.5 bg-slate-50 rounded-xl text-xs">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 block">Diagnosis:</span>
+                            <strong class="text-slate-800">{{ $rx->diagnosis_summary }}</strong>
+                        </div>
+
+                        <!-- Prescribed Exercises Preview (if any) -->
+                        @if(!empty($rx->prescribed_exercises) && count($rx->prescribed_exercises) > 0)
+                            <div class="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs space-y-1.5">
+                                <span class="font-bold text-emerald-900 text-[11px] uppercase block">Prescribed Exercises Protocol ({{ count($rx->prescribed_exercises) }} Exercises):</span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($rx->prescribed_exercises as $pex)
+                                        <span class="px-2 py-0.5 bg-white text-emerald-800 rounded border border-emerald-200 text-[11px] font-semibold">
+                                            🏋️ {{ $pex['name'] ?? 'Exercise' }} ({{ $pex['sets'] ?? '3 Sets' }} x {{ $pex['reps'] ?? '10 Reps' }})
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Medication Items Table -->
                         <div class="overflow-x-auto text-xs">
