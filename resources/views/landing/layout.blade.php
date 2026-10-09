@@ -142,7 +142,7 @@
                 <span class="text-slate-600">|</span>
                 <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 font-bold text-brand-200 hover:text-white transition">
                     <i class="fa-solid fa-user-doctor"></i>
-                    <span>Doctor / Staff Portal</span>
+                    <span>Doctor Portal</span>
                 </a>
             </div>
         </div>
@@ -156,13 +156,7 @@
                 <!-- CLINIC LOGO & IDENTITY -->
                 <a href="{{ route('landing') }}" class="flex items-center gap-3.5 group">
                     <img src="{{ asset('logo.png') }}" alt="SDPC Clinic Logo" class="h-14 w-auto object-contain group-hover:scale-105 transition">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl font-black tracking-tight text-slate-900 group-hover:text-brand-700 transition">SDPC</span>
-                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">Indore</span>
-                        </div>
-                        <p class="text-[11px] font-extrabold uppercase text-slate-500 tracking-wider">Shyama Devi Physiotherapy Clinic</p>
-                    </div>
+                    
                 </a>
 
                 <!-- DESKTOP NAV LINKS -->
@@ -174,7 +168,7 @@
                         About Us
                     </a>
                     <a href="{{ route('landing.services') }}" class="px-3.5 py-2 rounded-lg text-sm font-bold transition {{ request()->routeIs('landing.services') ? 'text-brand-700 bg-brand-50' : 'text-slate-700 hover:text-brand-600 hover:bg-slate-50' }}">
-                        Services & Conditions
+                        Services
                     </a>
                     <a href="{{ route('landing.testimonials') }}" class="px-3.5 py-2 rounded-lg text-sm font-bold transition {{ request()->routeIs('landing.testimonials') ? 'text-brand-700 bg-brand-50' : 'text-slate-700 hover:text-brand-600 hover:bg-slate-50' }}">
                         Testimonials
