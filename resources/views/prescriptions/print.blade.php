@@ -65,10 +65,8 @@
                 
                 <!-- Left: Logo & Clinic Title -->
                 <div class="space-y-1.5 flex-1">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center font-black text-lg tracking-tighter shadow-sm border border-blue-950">
-                            SD
-                        </div>
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('logo.png') }}" alt="SDPC Logo" class="h-16 w-auto object-contain shrink-0">
                         <div>
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
                                 {{ $prescribedClinic->name }}

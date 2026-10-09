@@ -24,14 +24,14 @@
 
 <aside class="w-64 bg-white border-r border-slate-200/90 flex flex-col shrink-0 min-h-screen select-none no-print">
     <!-- CLINIC BRANDING HEADER -->
-    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-200">
-                <i data-lucide="cross" class="w-5 h-5"></i>
+            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-1 shadow-sm overflow-hidden shrink-0">
+                <img src="{{ asset('logo.png') }}" alt="SDPC" class="h-8 w-auto object-contain">
             </div>
             <div>
-                <h1 class="text-sm font-bold tracking-tight text-slate-900 leading-tight">CAREPOINT</h1>
-                <p class="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">Super Clinic</p>
+                <h1 class="text-sm font-black tracking-tight text-slate-900 leading-tight">SDPC</h1>
+                <p class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Physiotherapy</p>
             </div>
         </div>
         <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-700 uppercase">

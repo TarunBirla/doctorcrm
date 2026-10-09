@@ -76,51 +76,51 @@ class CleanFreshDbCommand extends Command
             DB::statement('PRAGMA foreign_keys = ON;');
         }
 
-        // 2. Setup exactly 2 clean clinics
+        // 2. Setup exactly 2 clean clinics matching SDPC letterhead
         DB::table('doctor_clinics')->delete();
         Clinic::query()->delete();
 
         $clinic1 = Clinic::create([
-            'name' => 'CarePoint Physiotherapy & Spine Clinic - Branch 1',
-            'tagline' => 'Center for Advanced Physiotherapy, Chiropractic & Spine Rehab',
+            'name' => 'SD Physiotherapy Clinic - Branch 1 (Khatiwala Tank)',
+            'tagline' => 'Physiotherapy • Osteopathy • Chiropractic | Drug Free • Surgery Free • Pain Free Spine Specialist',
             'doctor_name' => 'Dr. Mahesh Sahu PT',
             'doctor_reg_no' => 'M.I.A.P. L-40612, MPPC-32862',
-            'phone' => '+91 98260 12345',
-            'email' => 'branch1@physiopii.in',
-            'address' => 'Plot No. 12, Scheme 54, Near C21 Mall, Vijay Nagar',
+            'phone' => '0731-4976163 / 098933 62477',
+            'email' => 'maheshsahu1983@gmail.com',
+            'address' => '562, Khatiwala Tank',
+            'city' => 'Indore',
+            'state' => 'Madhya Pradesh',
+            'pincode' => '452014',
+            'website' => 'sdphysiotherapy.in',
+            'consultation_fee' => 500.00,
+            'appointment_duration' => 30,
+            'working_days' => 'Monday - Saturday (Sunday Closed)',
+            'working_hours' => '09:00 AM - 08:00 PM',
+            'break_hours' => '01:30 PM - 03:30 PM',
+            'is_active' => true,
+        ]);
+        $this->info("✓ Created Clinic 1: {$clinic1->name} (562, Khatiwala Tank, Indore)");
+
+        $clinic2 = Clinic::create([
+            'name' => 'SD Physiotherapy Clinic - Branch 2 (Mahalaxmi Nagar)',
+            'tagline' => 'Physiotherapy • Osteopathy • Chiropractic | Drug Free • Surgery Free • Pain Free Spine Specialist',
+            'doctor_name' => 'Dr. Mahesh Sahu PT',
+            'doctor_reg_no' => 'M.I.A.P. L-40612, MPPC-32862',
+            'phone' => '0731-4979170 / 098933 62477',
+            'email' => 'maheshsahu1983@gmail.com',
+            'address' => 'MR6-110, Mahalaxmi Nagar',
             'city' => 'Indore',
             'state' => 'Madhya Pradesh',
             'pincode' => '452010',
-            'website' => 'www.physiopii.in',
+            'website' => 'sdphysiotherapy.in',
             'consultation_fee' => 500.00,
             'appointment_duration' => 30,
-            'working_days' => 'Monday - Saturday',
+            'working_days' => 'Monday - Saturday (Sunday Closed)',
             'working_hours' => '09:00 AM - 08:00 PM',
             'break_hours' => '01:30 PM - 03:30 PM',
             'is_active' => true,
         ]);
-        $this->info("✓ Created Clinic 1: {$clinic1->name} (Indore - Vijay Nagar)");
-
-        $clinic2 = Clinic::create([
-            'name' => 'CarePoint Neuro-Rehab & Pain Care - Branch 2',
-            'tagline' => 'Specialized Neuro Rehabilitation, Stroke Recovery & Joint Mobilization',
-            'doctor_name' => 'Dr. Mahesh Sahu PT',
-            'doctor_reg_no' => 'M.I.A.P. L-40612, MPPC-32862',
-            'phone' => '+91 98260 67890',
-            'email' => 'branch2@physiopii.in',
-            'address' => 'UG-4, Shekhar Central, Manorama Ganj, AB Road, Palasia',
-            'city' => 'Indore',
-            'state' => 'Madhya Pradesh',
-            'pincode' => '452001',
-            'website' => 'www.physiopii.in',
-            'consultation_fee' => 600.00,
-            'appointment_duration' => 30,
-            'working_days' => 'Monday - Saturday',
-            'working_hours' => '09:00 AM - 08:00 PM',
-            'break_hours' => '01:30 PM - 03:30 PM',
-            'is_active' => true,
-        ]);
-        $this->info("✓ Created Clinic 2: {$clinic2->name} (Indore - Palasia)");
+        $this->info("✓ Created Clinic 2: {$clinic2->name} (MR6-110, Mahalaxmi Nagar, Indore)");
 
         // 3. Setup Doctors & Link to both Clinics
         $doctorUser1 = User::updateOrCreate(
@@ -129,7 +129,7 @@ class CleanFreshDbCommand extends Command
                 'name' => 'Dr. Mahesh Sahu PT',
                 'password' => Hash::make('password'),
                 'role' => 'doctor',
-                'phone' => '+91 98260 12345',
+                'phone' => '098933 62477',
                 'is_active' => true,
             ]
         );
@@ -159,13 +159,13 @@ class CleanFreshDbCommand extends Command
             ['user_id' => $doctorUser1->id],
             [
                 'name' => 'Dr. Mahesh Sahu PT',
-                'specialization' => 'Senior Physiotherapist & Neuro Specialist',
+                'specialization' => 'Spine Specialist, Neuro Rehab & Chiropractic',
                 'qualification' => 'M.P.T Neuro, FOMT Australia, CHIROPRACTIC Sweden',
                 'registration_no' => 'M.I.A.P. L-40612, MPPC-32862',
-                'phone' => '+91 98260 12345',
+                'phone' => '098933 62477',
                 'email' => 'doctor@carepoint.com',
                 'consultation_fee' => 500.00,
-                'bio' => 'Senior Consultant Physiotherapist specializing in Musculoskeletal adjustments and Neurological rehabilitation.',
+                'bio' => 'Drug Free • Surgery Free • Pain Free Spine Specialist. Expert in Osteopathy, Chiropractic (Sweden) and Neurological Rehabilitation.',
                 'is_active' => true,
             ]
         );

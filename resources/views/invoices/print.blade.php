@@ -30,16 +30,19 @@
     <div class="print-card max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-2xl border border-slate-200 shadow-lg space-y-6">
         
         <!-- HEADER -->
-        <div class="border-b-2 border-slate-900 pb-6 flex items-start justify-between">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ $clinic->name }}</h1>
-                <p class="text-xs text-blue-700 font-semibold uppercase tracking-wider">{{ $clinic->tagline }}</p>
-                <div class="text-xs text-slate-500 mt-2 space-y-0.5">
-                    <p>{{ $clinic->address }}, {{ $clinic->city }}, {{ $clinic->state }} - {{ $clinic->pincode }}</p>
-                    <p>Phone: {{ $clinic->phone }} • Email: {{ $clinic->email }}</p>
-                    @if($clinic->gst_number)
-                        <p class="font-mono">GSTIN: {{ $clinic->gst_number }}</p>
-                    @endif
+        <div class="border-b-2 border-slate-900 pb-6 flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <img src="{{ asset('logo.png') }}" alt="SDPC" class="h-14 w-auto object-contain shrink-0">
+                <div>
+                    <h1 class="text-xl font-black text-slate-900 tracking-tight">{{ $clinic->name }}</h1>
+                    <p class="text-xs text-blue-700 font-semibold uppercase tracking-wider">{{ $clinic->tagline }}</p>
+                    <div class="text-xs text-slate-500 mt-2 space-y-0.5">
+                        <p>{{ $clinic->address }}, {{ $clinic->city }}, {{ $clinic->state }} - {{ $clinic->pincode }}</p>
+                        <p>Phone: {{ $clinic->phone }} • Email: {{ $clinic->email }}</p>
+                        @if($clinic->gst_number)
+                            <p class="font-mono">GSTIN: {{ $clinic->gst_number }}</p>
+                        @endif
+                    </div>
                 </div>
             </div>
 

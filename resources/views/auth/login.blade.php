@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinic Sign In - CarePoint Management System</title>
+    <title>Sign In - SDPC Shyama Devi Physiotherapy Clinic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -36,11 +36,11 @@
     <div class="w-full max-w-md space-y-6">
         <!-- Logo & Title -->
         <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 mb-1">
-                <i data-lucide="cross" class="w-7 h-7"></i>
+            <div class="inline-flex items-center justify-center p-2 rounded-2xl bg-white border border-slate-200 shadow-md mb-1">
+                <img src="{{ asset('logo.png') }}" alt="SDPC" class="h-16 w-auto object-contain">
             </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">CarePoint Clinic</h1>
-            <p class="text-xs sm:text-sm text-slate-500 font-semibold">Doctor & Patient Management System</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">SDPC Clinic</h1>
+            <p class="text-xs sm:text-sm text-slate-600 font-semibold">Shyama Devi Physiotherapy Clinic Management</p>
         </div>
 
         <!-- Login Card -->
