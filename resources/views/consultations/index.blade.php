@@ -21,25 +21,50 @@
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-        <form method="GET" action="{{ route('consultations.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-            <div class="sm:col-span-6 relative">
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search by patient name, patient ID, visit number..."
-                       class="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <form method="GET" action="{{ route('consultations.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end text-xs">
+            <div class="relative">
+                <label class="block font-semibold text-slate-600 mb-1">Search Patient / Visit</label>
+                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Name, PAT ID, visit #..."
+                       class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 font-semibold outline-none">
             </div>
 
-            <div class="sm:col-span-4">
+            <div>
+                <label class="block font-semibold text-slate-600 mb-1">Clinic Branch</label>
+                <select name="clinic_id" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 font-semibold outline-none">
+                    <option value="">All Clinics</option>
+                    @foreach($clinics as $cl)
+                        <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
+                            {{ $cl->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-600 mb-1">Therapy Category</label>
+                <select name="category_id" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 font-semibold outline-none">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $cg)
+                        <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
+                            {{ $cg->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-600 mb-1">Visit Date</label>
                 <input type="date" name="date" value="{{ $date ?? '' }}"
-                       class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-600">
+                       class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 font-semibold outline-none text-slate-700">
             </div>
 
-            <div class="sm:col-span-2 flex items-center gap-2">
-                <button type="submit" class="w-full py-2 px-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition">
+            <div class="flex items-center gap-2">
+                <button type="submit" class="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-sm text-center">
                     Filter
                 </button>
-                @if(!empty($search) || !empty($date))
-                    <a href="{{ route('consultations.index') }}" class="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50" title="Clear Filters">
+                @if(!empty($search) || !empty($date) || !empty($clinicId) || !empty($categoryId))
+                    <a href="{{ route('consultations.index') }}" class="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold text-center" title="Clear Filters">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </a>
                 @endif

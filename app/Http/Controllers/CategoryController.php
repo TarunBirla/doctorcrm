@@ -23,13 +23,6 @@ class CategoryController extends Controller
 
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                // Doctor sees standard system categories (doctor_id is null) AND their own created categories
-                $query->where(function ($q) use ($loggedInDoctor) {
-                    $q->whereNull('doctor_id')
-                      ->orWhere('doctor_id', $loggedInDoctor->id);
-                });
-            }
         }
 
         if ($request->filled('search')) {

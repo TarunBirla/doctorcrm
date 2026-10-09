@@ -32,17 +32,41 @@
 
     <!-- SEARCH & FILTER BAR -->
     <div class="card-custom p-5 bg-white">
-        <form action="{{ route('patients.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-3 text-xs items-end">
+        <form action="{{ route('patients.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs items-end">
             
-            <div class="md:col-span-2">
+            <div class="lg:col-span-2">
                 <label class="block font-semibold text-slate-600 mb-1">Search Patient</label>
-                <input type="text" name="search" value="{{ $search }}" placeholder="Search by name, ID (PAT-000001), phone, city..." 
-                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-blue-500">
+                <input type="text" name="search" value="{{ $search }}" placeholder="Name, ID (PAT-000001), phone, city..." 
+                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-blue-500 font-semibold">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-600 mb-1">Clinic Branch</label>
+                <select name="clinic_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
+                    <option value="">All Clinics</option>
+                    @foreach($clinics as $cl)
+                        <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
+                            {{ $cl->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-600 mb-1">Therapy Category</label>
+                <select name="category_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $cg)
+                        <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
+                            {{ $cg->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div>
                 <label class="block font-semibold text-slate-600 mb-1">Blood Group</label>
-                <select name="blood_group" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500">
+                <select name="blood_group" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
                     <option value="">All Blood Groups</option>
                     @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bg)
                         <option value="{{ $bg }}" {{ $bloodGroup === $bg ? 'selected' : '' }}>{{ $bg }}</option>
@@ -52,7 +76,7 @@
 
             <div>
                 <label class="block font-semibold text-slate-600 mb-1">Gender</label>
-                <select name="gender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500">
+                <select name="gender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
                     <option value="">All Genders</option>
                     <option value="Male" {{ $gender === 'Male' ? 'selected' : '' }}>Male</option>
                     <option value="Female" {{ $gender === 'Female' ? 'selected' : '' }}>Female</option>
@@ -60,16 +84,8 @@
                 </select>
             </div>
 
-            <div>
-                <label class="block font-semibold text-slate-600 mb-1">Due Filter</label>
-                <select name="has_due" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500">
-                    <option value="">All Patients</option>
-                    <option value="yes" {{ $hasDue === 'yes' ? 'selected' : '' }}>Has Pending Dues</option>
-                </select>
-            </div>
-
             <div class="flex items-center gap-2">
-                <button type="submit" class="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition shadow-sm text-center">
+                <button type="submit" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-sm text-center">
                     Filter
                 </button>
                 <a href="{{ route('patients.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold text-center">
@@ -126,7 +142,18 @@
                                         <a href="{{ route('patients.show', $patient->id) }}" class="font-bold text-slate-900 hover:text-blue-700 block">
                                             {{ $patient->full_name }}
                                         </a>
-                                        <span class="text-[11px] font-mono text-slate-400">{{ $patient->patient_id }}</span>
+                                        <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                            <span class="text-[11px] font-mono text-slate-400">{{ $patient->patient_id }}</span>
+                                            @if($patient->category)
+                                                <span class="text-[9px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200">{{ $patient->category->name }}</span>
+                                            @endif
+                                            @if($patient->clinic)
+                                                <span class="text-[9px] px-1.5 py-0.2 bg-slate-100 text-slate-600 font-bold rounded">{{ $patient->clinic->name }}</span>
+                                            @endif
+                                            @if(($patient->recovery_percentage ?? 0) > 0)
+                                                <span class="text-[9px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 font-bold rounded border border-emerald-200">{{ $patient->recovery_percentage }}% Recovered</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>

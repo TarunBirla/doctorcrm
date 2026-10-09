@@ -9,7 +9,29 @@
 
     <!-- SELECT PATIENT HEADER CARD -->
     <div class="card-custom p-5 bg-white flex flex-wrap items-center justify-between gap-4">
-        <form action="{{ route('progress.index') }}" method="GET" class="flex items-center gap-3 text-xs">
+        <form action="{{ route('progress.index') }}" method="GET" class="flex flex-wrap items-center gap-3 text-xs">
+            <span class="font-bold text-slate-700">Filter By:</span>
+            
+            <select name="clinic_id" onchange="this.form.submit()" class="px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-700 outline-none focus:bg-white text-xs">
+                <option value="">All Practice Clinics</option>
+                @foreach($clinics ?? [] as $cl)
+                    <option value="{{ $cl->id }}" {{ (string)($clinicId ?? '') === (string)$cl->id ? 'selected' : '' }}>
+                        {{ $cl->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="category_id" onchange="this.form.submit()" class="px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-700 outline-none focus:bg-white text-xs">
+                <option value="">All Categories</option>
+                @foreach($categories ?? [] as $cat)
+                    <option value="{{ $cat->id }}" {{ (string)($categoryId ?? '') === (string)$cat->id ? 'selected' : '' }}>
+                        {{ $cat->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+
             <span class="font-bold text-slate-700">Select Patient:</span>
             <select name="patient_id" onchange="this.form.submit()" class="px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:bg-white w-72">
                 @foreach($patients as $p)
@@ -18,6 +40,12 @@
                     </option>
                 @endforeach
             </select>
+
+            @if(!empty($clinicId) || !empty($categoryId))
+                <a href="{{ route('progress.index') }}" class="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition" title="Reset Filters">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            @endif
         </form>
 
         @if($selectedPatient)

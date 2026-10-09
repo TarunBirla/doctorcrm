@@ -67,9 +67,11 @@ Route::post('/patients/{id}/medical-history', [PatientController::class, 'update
 Route::get('/patients/{id}/print-summary', [PatientController::class, 'printSummary'])->name('patients.print-summary');
 
 // Appointments & Calendar
-Route::resource('appointments', AppointmentController::class)->except(['show', 'edit']);
+Route::resource('appointments', AppointmentController::class)->except(['show']);
 Route::post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.status');
 Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+Route::post('/appointments/{id}/extend', [AppointmentController::class, 'extendDays'])->name('appointments.extend');
+Route::post('/appointments/{id}/recovery', [AppointmentController::class, 'updateRecovery'])->name('appointments.recovery');
 Route::get('/calendar', [AppointmentController::class, 'calendar'])->name('calendar.index');
 
 // Multi-Clinic Practice Management

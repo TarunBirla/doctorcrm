@@ -15,6 +15,8 @@ class QueueController extends Controller
     {
         $today = now()->toDateString();
         $doctorId = $request->get('doctor_id');
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = null;
@@ -23,11 +25,21 @@ class QueueController extends Controller
             $doctorId = $loggedInDoctor ? $loggedInDoctor->id : -1;
         }
 
-        $query = Appointment::with(['patient.medicalHistory', 'doctor', 'invoice'])
+        $query = Appointment::with(['patient.medicalHistory', 'doctor', 'invoice', 'clinic', 'category'])
             ->where('appointment_date', $today);
 
-        if ($doctorId) {
+        if ($doctorId && $doctorId != -1) {
             $query->where('doctor_id', $doctorId);
+        } elseif ($doctorId == -1) {
+            $query->whereRaw('1 = 0');
+        }
+
+        if (!empty($clinicId)) {
+            $query->where('clinic_id', $clinicId);
+        }
+
+        if (!empty($categoryId)) {
+            $query->where('category_id', $categoryId);
         }
 
         $allToday = $query->orderBy('token_number', 'asc')->get();
@@ -46,9 +58,17 @@ class QueueController extends Controller
             ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
             : Patient::orderBy('first_name')->get();
 
+        $clinics = $loggedInDoctor
+            ? ($loggedInDoctor->clinics()->where('is_active', true)->get()->isNotEmpty()
+                ? $loggedInDoctor->clinics()->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get())
+            : \App\Models\Clinic::where('is_active', true)->get();
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
         return view('queue.index', compact(
             'allToday', 'inConsultation', 'waitingList', 'nextPatient',
-            'upcomingList', 'completedList', 'cancelledList', 'doctors', 'patients', 'today'
+            'upcomingList', 'completedList', 'cancelledList', 'doctors', 'patients', 'clinics', 'categories', 'today', 'clinicId', 'categoryId'
         ));
     }
 

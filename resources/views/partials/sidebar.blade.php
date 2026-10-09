@@ -134,22 +134,6 @@
                         <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">{{ $doctorClinics->count() }}</span>
                     @endif
                 </a>
-
-                @if($currentRole === 'doctor' && $doctorClinics->isNotEmpty())
-                <div class="pl-7 pr-2 py-1 space-y-1">
-                    @foreach($doctorClinics as $docClinic)
-                    <a href="{{ route('appointments.index', ['clinic_id' => $docClinic->id]) }}" 
-                       class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-600 hover:bg-blue-50/70 hover:text-blue-800 transition group"
-                       title="{{ $docClinic->name }} ({{ $docClinic->city ?? 'Clinic' }})">
-                        <div class="flex items-center gap-2 truncate">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            <span class="truncate">{{ $docClinic->name }}</span>
-                        </div>
-                        <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 text-slate-500 font-bold shrink-0 group-hover:bg-blue-100 group-hover:text-blue-700">{{ $docClinic->city ?? 'Clinic' }}</span>
-                    </a>
-                    @endforeach
-                </div>
-                @endif
                 @endif
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))

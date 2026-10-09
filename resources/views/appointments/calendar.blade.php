@@ -30,34 +30,58 @@
         </div>
     @endif
 
-    <!-- TOP CONTROLS BAR -->
-    <div class="card-custom p-4 bg-white flex flex-wrap items-center justify-between gap-4">
+    <!-- TOP CONTROLS & FILTER BAR -->
+    <div class="card-custom p-4 bg-white border border-slate-100 shadow-xs flex flex-wrap items-center justify-between gap-4">
         
         <!-- View Toggle & Date Navigation -->
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-                <a href="?view=day&date={{ $selectedDate }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'day' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Day</a>
-                <a href="?view=week&date={{ $selectedDate }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Week</a>
-                <a href="?view=month&date={{ $selectedDate }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Month</a>
+                <a href="?view=day&date={{ $selectedDate }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'day' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Day</a>
+                <a href="?view=week&date={{ $selectedDate }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'week' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Week</a>
+                <a href="?view=month&date={{ $selectedDate }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="px-3 py-1.5 rounded-lg transition {{ $view === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">Month</a>
             </div>
 
             <div class="flex items-center gap-2">
-                <a href="?view={{ $view }}&date={{ $carbonDate->copy()->subMonth()->toDateString() }}" class="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
+                <a href="?view={{ $view }}&date={{ $carbonDate->copy()->subMonth()->toDateString() }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </a>
                 <span class="text-sm font-bold text-slate-900 min-w-[140px] text-center">
                     {{ $carbonDate->format('F Y') }}
                 </span>
-                <a href="?view={{ $view }}&date={{ $carbonDate->copy()->addMonth()->toDateString() }}" class="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
+                <a href="?view={{ $view }}&date={{ $carbonDate->copy()->addMonth()->toDateString() }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </a>
-                <a href="?view={{ $view }}&date={{ now()->toDateString() }}" class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-semibold">
+                <a href="?view={{ $view }}&date={{ now()->toDateString() }}&clinic_id={{ $clinicId }}&category_id={{ $categoryId }}" class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-semibold">
                     Today
                 </a>
             </div>
         </div>
 
-        <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-4 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold hover:bg-navy-800 transition shadow-sm">
+        <!-- Clinic & Category Filters -->
+        <form method="GET" action="{{ route('calendar.index') }}" class="flex items-center gap-2 text-xs">
+            <input type="hidden" name="view" value="{{ $view }}">
+            <input type="hidden" name="date" value="{{ $selectedDate }}">
+            
+            <select name="clinic_id" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-semibold outline-none focus:bg-white focus:border-blue-500">
+                <option value="">All Practice Clinics</option>
+                @foreach($clinics as $cl)
+                    <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
+                        {{ $cl->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="category_id" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-semibold outline-none focus:bg-white focus:border-blue-500">
+                <option value="">All Categories</option>
+                @foreach($categories as $cg)
+                    <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
+                        {{ $cg->name }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+
+        <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-sm">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
             <span>Add Appointment</span>
         </button>

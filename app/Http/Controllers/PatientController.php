@@ -53,6 +53,23 @@ class PatientController extends Controller
             $query->where('gender', $gender);
         }
 
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
+
+        if (!empty($clinicId)) {
+            $query->where(function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('clinic_id', $clinicId));
+            });
+        }
+
+        if (!empty($categoryId)) {
+            $query->where(function ($q) use ($categoryId) {
+                $q->where('category_id', $categoryId)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('category_id', $categoryId));
+            });
+        }
+
         if ($hasDue === 'yes') {
             $query->whereHas('invoices', function ($q) {
                 $q->whereIn('payment_status', ['unpaid', 'partially_paid', 'due']);
@@ -80,10 +97,17 @@ class PatientController extends Controller
         })->count();
 
         $doctors = Doctor::all();
+        $clinics = $loggedInDoctor
+            ? ($loggedInDoctor->clinics()->where('is_active', true)->get()->isNotEmpty()
+                ? $loggedInDoctor->clinics()->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get())
+            : \App\Models\Clinic::where('is_active', true)->get();
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
 
         return view('patients.index', compact(
             'patients', 'totalPatients', 'malePatients', 'femalePatients',
-            'patientsWithDues', 'search', 'bloodGroup', 'gender', 'hasDue', 'doctors'
+            'patientsWithDues', 'search', 'bloodGroup', 'gender', 'hasDue', 'doctors', 'clinics', 'categories', 'clinicId', 'categoryId'
         ));
     }
 

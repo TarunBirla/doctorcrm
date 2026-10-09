@@ -23,8 +23,10 @@ class AppointmentController extends Controller
         $type = $request->get('type');
         $paymentStatus = $request->get('payment_status');
         $search = $request->get('search');
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
 
-        $query = Appointment::with(['patient', 'doctor', 'invoice']);
+        $query = Appointment::with(['patient', 'doctor', 'invoice', 'clinic', 'category']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         if ($currentRole === 'doctor' && auth()->check()) {
@@ -52,6 +54,14 @@ class AppointmentController extends Controller
             $query->where('payment_status', $paymentStatus);
         }
 
+        if (!empty($clinicId)) {
+            $query->where('clinic_id', $clinicId);
+        }
+
+        if (!empty($categoryId)) {
+            $query->where('category_id', $categoryId);
+        }
+
         if (!empty($search)) {
             $query->whereHas('patient', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -68,6 +78,13 @@ class AppointmentController extends Controller
         if (!empty($date)) {
             $statsQuery->whereDate('appointment_date', $date);
         }
+        if (!empty($clinicId)) {
+            $statsQuery->where('clinic_id', $clinicId);
+        }
+        if (!empty($categoryId)) {
+            $statsQuery->where('category_id', $categoryId);
+        }
+
         $totalAppointments = (clone $statsQuery)->count();
         $completedAppointments = (clone $statsQuery)->where('status', 'completed')->count();
         $waitingAppointments = (clone $statsQuery)->where('status', 'waiting')->count();
@@ -79,7 +96,6 @@ class AppointmentController extends Controller
         $totalRevenue = (clone $invoicesQuery)->sum('paid_amount');
         $totalDues = (clone $invoicesQuery)->sum('due_amount');
 
-        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = null;
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
@@ -98,10 +114,12 @@ class AppointmentController extends Controller
             $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
         }
 
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
         return view('appointments.index', compact(
             'appointments', 'totalAppointments', 'completedAppointments',
             'waitingAppointments', 'totalRevenue', 'totalDues',
-            'date', 'status', 'type', 'paymentStatus', 'search', 'doctors', 'patients', 'clinics'
+            'date', 'status', 'type', 'paymentStatus', 'search', 'clinicId', 'categoryId', 'doctors', 'patients', 'clinics', 'categories'
         ));
     }
 
@@ -232,6 +250,264 @@ class AppointmentController extends Controller
             ->with('success', "Appointment package ({$treatmentDays} days) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . " at {$appointment->clinic?->name}.");
     }
 
+    public function edit($id)
+    {
+        $appointment = Appointment::with(['patient', 'doctor', 'clinic', 'category', 'invoice'])->findOrFail($id);
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = null;
+
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $appointment->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized access: You can only edit your own appointments.');
+            }
+            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
+            if ($clinics->isEmpty() && $loggedInDoctor) {
+                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+            }
+            if ($clinics->isEmpty()) {
+                $clinics = Clinic::where('is_active', true)->get();
+            }
+            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+        } else {
+            $doctors = Doctor::active()->orderBy('name')->get();
+            $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
+        }
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'appointment' => $appointment,
+                'patient' => $appointment->patient,
+                'clinic' => $appointment->clinic,
+                'category' => $appointment->category,
+            ]);
+        }
+
+        return view('appointments.edit', compact('appointment', 'clinics', 'categories', 'doctors', 'loggedInDoctor'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $appointment = Appointment::with(['patient', 'invoice.items', 'clinic', 'category'])->findOrFail($id);
+
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if ($currentRole === 'doctor' && auth()->check()) {
+            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
+            if ($loggedInDoctor && $appointment->doctor_id !== $loggedInDoctor->id) {
+                abort(403, 'Unauthorized: You can only modify your own appointments.');
+            }
+        }
+
+        $validated = $request->validate([
+            'appointment_date' => 'nullable|date',
+            'treatment_days' => 'nullable|integer|min:1|max:365',
+            'additional_days' => 'nullable|integer|min:0|max:180',
+            'daily_fee' => 'nullable|numeric|min:0',
+            'recovery_percentage' => 'nullable|integer|min:0|max:100',
+            'recovery_status' => 'nullable|string|max:100',
+            'recovery_notes' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:scheduled,confirmed,waiting,in_consultation,completed,cancelled,no_show,rescheduled',
+            'category_id' => 'nullable|exists:treatment_categories,id',
+            'clinic_id' => 'nullable|exists:clinics,id',
+            'reason' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        if (!empty($validated['clinic_id'])) {
+            $appointment->clinic_id = $validated['clinic_id'];
+        }
+        if (!empty($validated['category_id'])) {
+            $appointment->category_id = $validated['category_id'];
+        }
+        if (!empty($validated['appointment_date'])) {
+            $appointment->appointment_date = $validated['appointment_date'];
+        }
+        if (!empty($validated['status'])) {
+            $appointment->status = $validated['status'];
+        }
+        if (isset($validated['reason'])) {
+            $appointment->reason = $validated['reason'];
+        }
+        if (isset($validated['notes'])) {
+            $appointment->notes = $validated['notes'];
+        }
+
+        // Daily Fee
+        if (isset($validated['daily_fee']) && $validated['daily_fee'] >= 0) {
+            $appointment->daily_fee = (float) $validated['daily_fee'];
+        }
+
+        // Treatment Days and additional extension days
+        if (isset($validated['treatment_days'])) {
+            $appointment->treatment_days = (int) $validated['treatment_days'];
+        }
+        $addDays = (int) ($validated['additional_days'] ?? 0);
+        if ($addDays > 0) {
+            $appointment->extended_days = ($appointment->extended_days ?? 0) + $addDays;
+        }
+
+        $totalDays = $appointment->treatment_days + ($appointment->extended_days ?? 0);
+        $dailyFee = (float) ($appointment->daily_fee ?? 800.00);
+        $totalFee = $dailyFee * $totalDays;
+        $appointment->consultation_fee = $totalFee;
+
+        // Recovery %
+        if (isset($validated['recovery_percentage'])) {
+            $recoveryPct = (int) $validated['recovery_percentage'];
+            $appointment->recovery_percentage = $recoveryPct;
+            $appointment->recovery_status = $validated['recovery_status'] ?? $appointment->getRecoveryLevelLabel();
+            $appointment->recovery_notes = $validated['recovery_notes'] ?? $appointment->recovery_notes;
+
+            // Sync to patient
+            if ($appointment->patient) {
+                $appointment->patient->update([
+                    'recovery_percentage' => $recoveryPct,
+                    'category_id' => $appointment->category_id ?: $appointment->patient->category_id,
+                    'clinic_id' => $appointment->clinic_id ?: $appointment->patient->clinic_id,
+                ]);
+
+                \App\Models\PatientProgress::create([
+                    'patient_id' => $appointment->patient_id,
+                    'recorded_date' => now()->toDateString(),
+                    'pain_level' => max(0, min(10, (int) round((100 - $recoveryPct) / 10))),
+                    'symptoms_assessment' => "Recovery: {$recoveryPct}% - " . $appointment->getRecoveryLevelLabel(),
+                    'treatment_response' => $appointment->recovery_notes ?: "Session extended / updated. Current recovery: {$recoveryPct}%. Treatment duration: {$totalDays} days.",
+                    'doctor_notes' => "Appointment #{$appointment->appointment_no} modified (Total {$totalDays} days, Fee: ₹{$totalFee}).",
+                ]);
+            }
+        }
+
+        $appointment->save();
+
+        // Update Invoice
+        if ($appointment->invoice) {
+            $invoice = $appointment->invoice;
+            $invoice->subtotal = $totalFee;
+            $invoice->total_amount = $totalFee;
+            $invoice->due_amount = max(0, $totalFee - $invoice->paid_amount);
+            $invoice->payment_status = ($invoice->due_amount <= 0 && $totalFee > 0) ? 'paid' : ($invoice->paid_amount > 0 ? 'partially_paid' : 'unpaid');
+            $categoryName = $appointment->category?->name ?? 'Physiotherapy Package';
+            $invoice->notes = "Physiotherapy package: {$categoryName} for {$totalDays} days (₹" . number_format($dailyFee, 2) . "/day)";
+            $invoice->save();
+
+            $item = $invoice->items()->first();
+            if ($item) {
+                $item->update([
+                    'item_description' => "{$categoryName} ({$totalDays} Days Treatment Package)",
+                    'quantity' => $totalDays,
+                    'unit_price' => $dailyFee,
+                    'total' => $totalFee,
+                ]);
+            }
+        }
+
+        AuditLog::record('Appointment Updated', 'Appointment', $appointment->appointment_no, "Updated appointment #{$appointment->appointment_no}: {$totalDays} days (extended +{$addDays}d), Recovery: {$appointment->recovery_percentage}%, Total Fee: ₹{$totalFee}");
+
+        return back()->with('success', "Appointment #{$appointment->appointment_no} updated successfully! Total Days: {$totalDays}, Recovery: {$appointment->recovery_percentage}%, Package Fee: ₹" . number_format($totalFee, 2));
+    }
+
+    public function extendDays(Request $request, $id)
+    {
+        $appointment = Appointment::with(['patient', 'invoice.items', 'category'])->findOrFail($id);
+
+        $validated = $request->validate([
+            'additional_days' => 'required|integer|min:1|max:180',
+            'recovery_percentage' => 'nullable|integer|min:0|max:100',
+            'recovery_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $addDays = (int) $validated['additional_days'];
+        $appointment->extended_days = ($appointment->extended_days ?? 0) + $addDays;
+        $totalDays = $appointment->treatment_days + $appointment->extended_days;
+
+        $dailyFee = (float) ($appointment->daily_fee ?? 800.00);
+        $totalFee = $dailyFee * $totalDays;
+        $appointment->consultation_fee = $totalFee;
+
+        if (isset($validated['recovery_percentage'])) {
+            $pct = (int) $validated['recovery_percentage'];
+            $appointment->recovery_percentage = $pct;
+            $appointment->recovery_status = $appointment->getRecoveryLevelLabel();
+            $appointment->recovery_notes = $validated['recovery_notes'] ?? $appointment->recovery_notes;
+
+            if ($appointment->patient) {
+                $appointment->patient->update(['recovery_percentage' => $pct]);
+
+                \App\Models\PatientProgress::create([
+                    'patient_id' => $appointment->patient_id,
+                    'recorded_date' => now()->toDateString(),
+                    'pain_level' => max(0, min(10, (int) round((100 - $pct) / 10))),
+                    'symptoms_assessment' => "Recovery: {$pct}% - " . $appointment->getRecoveryLevelLabel(),
+                    'treatment_response' => "Extended treatment by +{$addDays} days. Recovery: {$pct}%. Notes: " . ($validated['recovery_notes'] ?? 'None'),
+                    'doctor_notes' => "Extended sessions for appointment #{$appointment->appointment_no} (+{$addDays} days, total: {$totalDays} days).",
+                ]);
+            }
+        }
+
+        $appointment->save();
+
+        if ($appointment->invoice) {
+            $invoice = $appointment->invoice;
+            $invoice->subtotal = $totalFee;
+            $invoice->total_amount = $totalFee;
+            $invoice->due_amount = max(0, $totalFee - $invoice->paid_amount);
+            $invoice->payment_status = ($invoice->due_amount <= 0 && $totalFee > 0) ? 'paid' : ($invoice->paid_amount > 0 ? 'partially_paid' : 'unpaid');
+            $categoryName = $appointment->category?->name ?? 'Physiotherapy Package';
+            $invoice->notes = "Physiotherapy package: {$categoryName} for {$totalDays} days (₹" . number_format($dailyFee, 2) . "/day)";
+            $invoice->save();
+
+            $item = $invoice->items()->first();
+            if ($item) {
+                $item->update([
+                    'item_description' => "{$categoryName} ({$totalDays} Days Treatment Package)",
+                    'quantity' => $totalDays,
+                    'unit_price' => $dailyFee,
+                    'total' => $totalFee,
+                ]);
+            }
+        }
+
+        AuditLog::record('Appointment Extended', 'Appointment', $appointment->appointment_no, "Extended appointment #{$appointment->appointment_no} by {$addDays} days (Total: {$totalDays} days, ₹{$totalFee})");
+
+        return back()->with('success', "Appointment extended by +{$addDays} days! Total duration: {$totalDays} days. Fee updated to ₹" . number_format($totalFee, 2));
+    }
+
+    public function updateRecovery(Request $request, $id)
+    {
+        $appointment = Appointment::with('patient')->findOrFail($id);
+        $validated = $request->validate([
+            'recovery_percentage' => 'required|integer|min:0|max:100',
+            'recovery_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $pct = (int) $validated['recovery_percentage'];
+        $appointment->recovery_percentage = $pct;
+        $appointment->recovery_status = $appointment->getRecoveryLevelLabel();
+        if (isset($validated['recovery_notes'])) {
+            $appointment->recovery_notes = $validated['recovery_notes'];
+        }
+        $appointment->save();
+
+        if ($appointment->patient) {
+            $appointment->patient->update(['recovery_percentage' => $pct]);
+
+            \App\Models\PatientProgress::create([
+                'patient_id' => $appointment->patient_id,
+                'recorded_date' => now()->toDateString(),
+                'pain_level' => max(0, min(10, (int) round((100 - $pct) / 10))),
+                'symptoms_assessment' => "Recovery: {$pct}% - " . $appointment->getRecoveryLevelLabel(),
+                'treatment_response' => "Updated recovery status: {$pct}%.",
+                'doctor_notes' => $validated['recovery_notes'] ?? null,
+            ]);
+        }
+
+        AuditLog::record('Recovery Updated', 'Appointment', $appointment->appointment_no, "Recovery updated to {$pct}% for #{$appointment->appointment_no}");
+
+        return back()->with('success', "Patient recovery updated to {$pct}% ({$appointment->getRecoveryLevelLabel()}).");
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $appointment = Appointment::with('patient')->findOrFail($id);
@@ -304,6 +580,16 @@ class AppointmentController extends Controller
             $query->whereRaw('1 = 0');
         }
 
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
+
+        if (!empty($clinicId)) {
+            $query->where('clinic_id', $clinicId);
+        }
+        if (!empty($categoryId)) {
+            $query->where('category_id', $categoryId);
+        }
+
         // Fetch appointments for month or week
         if ($view === 'day') {
             $appointments = (clone $query)
@@ -346,7 +632,7 @@ class AppointmentController extends Controller
 
         $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
 
-        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor'));
+        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor', 'clinicId', 'categoryId'));
     }
 
     public function getDoctorSlots(Request $request)

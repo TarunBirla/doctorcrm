@@ -50,9 +50,34 @@ class ConsultationController extends Controller
             $query->where('visit_date', $date);
         }
 
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
+
+        if (!empty($clinicId)) {
+            $query->where(function ($q) use ($clinicId) {
+                $q->whereHas('patient', fn($pq) => $pq->where('clinic_id', $clinicId))
+                  ->orWhereHas('appointment', fn($aq) => $aq->where('clinic_id', $clinicId));
+            });
+        }
+
+        if (!empty($categoryId)) {
+            $query->where(function ($q) use ($categoryId) {
+                $q->whereHas('patient', fn($pq) => $pq->where('category_id', $categoryId))
+                  ->orWhereHas('appointment', fn($aq) => $aq->where('category_id', $categoryId));
+            });
+        }
+
         $visits = $query->orderBy('visit_date', 'desc')->orderBy('created_at', 'desc')->paginate(12)->withQueryString();
 
-        return view('consultations.index', compact('visits', 'search', 'date'));
+        $clinics = $loggedInDoctor
+            ? ($loggedInDoctor->clinics()->where('is_active', true)->get()->isNotEmpty()
+                ? $loggedInDoctor->clinics()->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get())
+            : \App\Models\Clinic::where('is_active', true)->get();
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
+        return view('consultations.index', compact('visits', 'search', 'date', 'clinics', 'categories', 'clinicId', 'categoryId'));
     }
 
     public function create(Request $request)

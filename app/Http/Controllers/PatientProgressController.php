@@ -29,6 +29,24 @@ class PatientProgressController extends Controller
                 $patientsQuery->whereRaw('1 = 0');
             }
         }
+
+        $clinicId = $request->get('clinic_id');
+        $categoryId = $request->get('category_id');
+
+        if (!empty($clinicId)) {
+            $patientsQuery->where(function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('clinic_id', $clinicId));
+            });
+        }
+
+        if (!empty($categoryId)) {
+            $patientsQuery->where(function ($q) use ($categoryId) {
+                $q->where('category_id', $categoryId)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('category_id', $categoryId));
+            });
+        }
+
         $patients = $patientsQuery->get();
 
         $selectedPatient = null;
@@ -65,9 +83,18 @@ class PatientProgressController extends Controller
             }
         }
 
+        $clinics = $loggedInDoctor
+            ? ($loggedInDoctor->clinics()->where('is_active', true)->get()->isNotEmpty()
+                ? $loggedInDoctor->clinics()->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get())
+            : \App\Models\Clinic::where('is_active', true)->get();
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
         return view('progress.index', compact(
             'patients', 'selectedPatient', 'progressRecords',
-            'chartDates', 'chartWeights', 'chartSystolic', 'chartDiastolic', 'chartPulse', 'chartPain'
+            'chartDates', 'chartWeights', 'chartSystolic', 'chartDiastolic', 'chartPulse', 'chartPain',
+            'clinics', 'categories', 'clinicId', 'categoryId'
         ));
     }
 

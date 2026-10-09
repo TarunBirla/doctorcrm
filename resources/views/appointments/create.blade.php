@@ -127,15 +127,36 @@
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1.5">Select Patient <span class="text-rose-500">*</span></label>
-                <select name="patient_id" required 
+                <select name="patient_id" id="pagePatientSelect" onchange="handlePagePatientChange()" required 
                         class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-slate-50/50 text-slate-800">
                     <option value="">-- Choose Patient from your Directory --</option>
                     @foreach($patients as $patient)
-                        <option value="{{ $patient->id }}" {{ (old('patient_id', $preselectedPatientId ?? '') == $patient->id) ? 'selected' : '' }}>
+                        @php
+                            $lastAppt = $patient->appointments()->latest()->first();
+                            $resClinicId = $patient->clinic_id ?? $lastAppt?->clinic_id;
+                            $resCatId = $patient->category_id ?? $lastAppt?->category_id;
+                            $resRecovery = $patient->recovery_percentage ?? $lastAppt?->recovery_percentage ?? 0;
+                            $resDays = $lastAppt?->treatment_days ?? 5;
+                        @endphp
+                        <option value="{{ $patient->id }}" 
+                                data-clinic-id="{{ $resClinicId }}"
+                                data-category-id="{{ $resCatId }}"
+                                data-recovery="{{ $resRecovery }}"
+                                data-days="{{ $resDays }}"
+                                {{ (old('patient_id', $preselectedPatientId ?? '') == $patient->id) ? 'selected' : '' }}>
                             {{ $patient->patient_id }} • {{ $patient->full_name }} ({{ $patient->gender }}, {{ $patient->age }}y) - {{ $patient->mobile }}
                         </option>
                     @endforeach
                 </select>
+
+                <!-- AUTO-FILL NOTIFICATION BANNER -->
+                <div id="pageAutoFillBadge" class="hidden mt-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs text-blue-800 font-semibold animate-in fade-in duration-200">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        <span id="pageAutoFillText">Auto-filled Clinic & Treatment Category for patient.</span>
+                    </div>
+                    <span id="pageAutoRecoveryBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 hidden"></span>
+                </div>
             </div>
         </div>
 
@@ -258,7 +279,61 @@
     document.addEventListener('DOMContentLoaded', function() {
         handleClinicChange();
         calculateAutoFee();
+        if (document.getElementById('pagePatientSelect')?.value) {
+            handlePagePatientChange();
+        }
     });
+
+    function handlePagePatientChange() {
+        const pSelect = document.getElementById('pagePatientSelect');
+        if (!pSelect) return;
+        const opt = pSelect.options[pSelect.selectedIndex];
+        const badgeEl = document.getElementById('pageAutoFillBadge');
+        const textEl = document.getElementById('pageAutoFillText');
+        const recoveryEl = document.getElementById('pageAutoRecoveryBadge');
+
+        if (!opt || !opt.value) {
+            if (badgeEl) badgeEl.classList.add('hidden');
+            return;
+        }
+
+        const clinicId = opt.dataset.clinicId;
+        const categoryId = opt.dataset.categoryId;
+        const recovery = parseInt(opt.dataset.recovery) || 0;
+        let filled = [];
+
+        if (clinicId) {
+            const clinicSelect = document.getElementById('pageClinicSelect');
+            if (clinicSelect) {
+                clinicSelect.value = clinicId;
+                handleClinicChange();
+                filled.push('Clinic');
+            }
+        }
+
+        if (categoryId) {
+            const catSelect = document.getElementById('pageCategorySelect');
+            if (catSelect) {
+                catSelect.value = categoryId;
+                filled.push('Category');
+            }
+        }
+
+        if (badgeEl && textEl) {
+            if (filled.length > 0) {
+                badgeEl.classList.remove('hidden');
+                textEl.innerText = `Auto-filled ${filled.join(' & ')} from patient record.`;
+                if (recovery > 0) {
+                    recoveryEl.classList.remove('hidden');
+                    recoveryEl.innerText = `${recovery}% Recovered`;
+                } else {
+                    recoveryEl.classList.add('hidden');
+                }
+            } else {
+                badgeEl.classList.add('hidden');
+            }
+        }
+    }
 
     function handleClinicChange() {
         const clinicSelect = document.getElementById('pageClinicSelect');

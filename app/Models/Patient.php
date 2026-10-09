@@ -13,6 +13,7 @@ class Patient extends Model
         'doctor_id',
         'clinic_id',
         'category_id',
+        'recovery_percentage',
         'created_by_user_id',
         'patient_id',
         'first_name',
@@ -41,6 +42,7 @@ class Patient extends Model
     protected $casts = [
         'dob' => 'date',
         'age' => 'integer',
+        'recovery_percentage' => 'integer',
     ];
 
     public static function generatePatientId(): string

@@ -18,6 +18,10 @@ class Appointment extends Model
         'appointment_date',
         'treatment_days',
         'daily_fee',
+        'recovery_percentage',
+        'extended_days',
+        'recovery_status',
+        'recovery_notes',
         'appointment_time',
         'end_time',
         'appointment_type',
@@ -35,8 +39,26 @@ class Appointment extends Model
         'treatment_days' => 'integer',
         'daily_fee' => 'decimal:2',
         'consultation_fee' => 'decimal:2',
+        'recovery_percentage' => 'integer',
+        'extended_days' => 'integer',
         'waiting_since' => 'datetime',
     ];
+
+    public function getTotalDaysAttribute(): int
+    {
+        return (int) ($this->treatment_days + ($this->extended_days ?? 0));
+    }
+
+    public function getRecoveryLevelLabel(): string
+    {
+        $pct = (int) ($this->recovery_percentage ?? 0);
+        if ($pct >= 100) return 'Fully Recovered (100%)';
+        if ($pct >= 75) return 'Significant Improvement (' . $pct . '%)';
+        if ($pct >= 50) return 'Moderate Improvement (' . $pct . '%)';
+        if ($pct >= 25) return 'Mild Recovery (' . $pct . '%)';
+        if ($pct > 0) return 'Slight Progress (' . $pct . '%)';
+        return 'Initial Assessment (0%)';
+    }
 
     public static function generateAppointmentNo(): string
     {

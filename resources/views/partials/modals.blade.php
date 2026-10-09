@@ -3,7 +3,7 @@
     $modalLoggedInDoctor = null;
     if ($modalRole === 'doctor' && auth()->check()) {
         $modalLoggedInDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
-        $modalPatients = $modalLoggedInDoctor ? \App\Models\Patient::where('doctor_id', $modalLoggedInDoctor->id)->orderBy('first_name')->get() : collect();
+        $modalPatients = $modalLoggedInDoctor ? \App\Models\Patient::where('doctor_id', $modalLoggedInDoctor->id)->with(['appointments' => fn($q) => $q->latest()->limit(1)])->orderBy('first_name')->get() : collect();
         $modalClinics = $modalLoggedInDoctor ? $modalLoggedInDoctor->clinics()->where('is_active', true)->get() : collect();
         if ($modalClinics->isEmpty() && $modalLoggedInDoctor) {
             $modalClinics = \App\Models\Clinic::where('doctor_id', $modalLoggedInDoctor->id)->where('is_active', true)->get();
@@ -13,7 +13,7 @@
         }
         $modalDoctors = collect($modalLoggedInDoctor ? [$modalLoggedInDoctor] : []);
     } else {
-        $modalPatients = \App\Models\Patient::orderBy('first_name')->get();
+        $modalPatients = \App\Models\Patient::with(['appointments' => fn($q) => $q->latest()->limit(1)])->orderBy('first_name')->get();
         $modalDoctors = \App\Models\Doctor::active()->get();
         $modalClinics = \App\Models\Clinic::where('is_active', true)->get();
     }
@@ -69,18 +69,41 @@
                             + Register new patient
                         </a>
                     </div>
-                    <select name="patient_id" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
+                    <select name="patient_id" id="modalPatientSelect" onchange="handleModalPatientChange()" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         <option value="">-- Choose registered patient --</option>
                         @foreach($modalPatients as $p)
-                            <option value="{{ $p->id }}">{{ $p->full_name }} ({{ $p->patient_id }} • {{ $p->mobile }})</option>
+                            @php
+                                $lastAppt = $p->appointments->first();
+                                $resolvedClinicId = $p->clinic_id ?? $lastAppt?->clinic_id;
+                                $resolvedCatId = $p->category_id ?? $lastAppt?->category_id;
+                                $resolvedRecovery = $p->recovery_percentage ?? $lastAppt?->recovery_percentage ?? 0;
+                                $resolvedDays = $lastAppt?->treatment_days ?? 5;
+                            @endphp
+                            <option value="{{ $p->id }}" 
+                                    data-clinic-id="{{ $resolvedClinicId }}" 
+                                    data-category-id="{{ $resolvedCatId }}"
+                                    data-recovery="{{ $resolvedRecovery }}"
+                                    data-days="{{ $resolvedDays }}">
+                                {{ $p->full_name }} ({{ $p->patient_id }} • {{ $p->mobile }})
+                            </option>
                         @endforeach
                     </select>
+
+                    <!-- Auto-Fill Alert Badge -->
+                    <div id="patientAutoFillBadge" class="hidden mt-2 p-2 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs text-blue-800 font-semibold animate-in fade-in duration-200">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                            <span id="patientAutoFillText">Auto-filled Clinic & Category</span>
+                        </div>
+                        <span id="patientAutoRecoveryBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 hidden"></span>
+                    </div>
                 </div>
 
                 <!-- Clinic & Category -->
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Select Practice Clinic *</label>
                     <select name="clinic_id" id="modalClinicSelect" required onchange="handleModalClinicChange()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
+                        <option value="">-- Select Clinic --</option>
                         @foreach($modalClinics as $mc)
                             <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}">{{ $mc->name }} ({{ $mc->city ?? 'Clinic' }})</option>
                         @endforeach
@@ -89,7 +112,7 @@
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Treatment Category *</label>
-                    <select name="category_id" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
+                    <select name="category_id" id="modalCategorySelect" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         <option value="">-- Choose Therapy Category --</option>
                         @foreach($modalCategories as $cat)
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -278,6 +301,57 @@
 </div>
 
 <script>
+function handleModalPatientChange() {
+    const pSelect = document.getElementById('modalPatientSelect');
+    if (!pSelect) return;
+    const opt = pSelect.options[pSelect.selectedIndex];
+    const badgeEl = document.getElementById('patientAutoFillBadge');
+    const textEl = document.getElementById('patientAutoFillText');
+    const recoveryEl = document.getElementById('patientAutoRecoveryBadge');
+
+    if (!opt || !opt.value) {
+        if (badgeEl) badgeEl.classList.add('hidden');
+        return;
+    }
+
+    const clinicId = opt.dataset.clinicId;
+    const categoryId = opt.dataset.categoryId;
+    const recovery = parseInt(opt.dataset.recovery) || 0;
+    let filled = [];
+
+    if (clinicId) {
+        const clinicSelect = document.getElementById('modalClinicSelect');
+        if (clinicSelect) {
+            clinicSelect.value = clinicId;
+            handleModalClinicChange();
+            filled.push('Clinic');
+        }
+    }
+
+    if (categoryId) {
+        const catSelect = document.getElementById('modalCategorySelect');
+        if (catSelect) {
+            catSelect.value = categoryId;
+            filled.push('Category');
+        }
+    }
+
+    if (badgeEl && textEl) {
+        if (filled.length > 0) {
+            badgeEl.classList.remove('hidden');
+            textEl.innerText = `Auto-filled ${filled.join(' & ')} from patient record.`;
+            if (recovery > 0) {
+                recoveryEl.classList.remove('hidden');
+                recoveryEl.innerText = `${recovery}% Recovered`;
+            } else {
+                recoveryEl.classList.add('hidden');
+            }
+        } else {
+            badgeEl.classList.add('hidden');
+        }
+    }
+}
+
 function handleModalClinicChange() {
     const clinicSelect = document.getElementById('modalClinicSelect');
     const dailyFeeInput = document.getElementById('modalDailyFee');

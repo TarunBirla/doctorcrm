@@ -90,15 +90,55 @@
         </div>
     @endif
 
+    <!-- QUEUE FILTER BAR (CLINIC & CATEGORY WISE) -->
+    <div class="card-custom p-4 bg-white border border-slate-100 shadow-xs">
+        <form action="{{ route('queue.index') }}" method="GET" class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block font-semibold text-slate-600 mb-1">Filter by Clinic</label>
+                <select name="clinic_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
+                    <option value="">All Practice Clinics</option>
+                    @foreach($clinics as $cl)
+                        <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
+                            {{ $cl->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex-1 min-w-[200px]">
+                <label class="block font-semibold text-slate-600 mb-1">Filter by Category</label>
+                <select name="category_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:bg-white focus:border-blue-500 font-semibold">
+                    <option value="">All Treatment Categories</option>
+                    @foreach($categories as $cg)
+                        <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
+                            {{ $cg->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 pt-5">
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-sm">
+                    Filter Queue
+                </button>
+                @if(request()->hasAny(['clinic_id', 'category_id']))
+                    <a href="{{ route('queue.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
+                        Reset
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
     <!-- ACTIVE QUEUE BOARD -->
-    <div class="card-custom bg-white overflow-hidden">
+    <div class="card-custom bg-white border border-slate-100 shadow-xs overflow-hidden">
         
         <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
             <div>
                 <h3 class="text-sm font-bold text-slate-900">Today's Active OPD Waiting List</h3>
                 <p class="text-xs text-slate-400">Tokens ordered by arrival and doctor room status for {{ now()->format('d M Y') }}</p>
             </div>
-            <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-3.5 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold hover:bg-navy-800 transition">
+            <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-sm">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Walk-in Patient</span>
             </button>
