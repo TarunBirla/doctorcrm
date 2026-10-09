@@ -12,6 +12,7 @@ use App\Models\Exercise;
 use App\Models\TreatmentCategory;
 use App\Models\AuditLog;
 use App\Models\Visit;
+use Illuminate\Support\Facades\DB;
 
 class PrescriptionController extends Controller
 {
@@ -29,7 +30,15 @@ class PrescriptionController extends Controller
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
             if ($loggedInDoctor) {
-                $query->where('doctor_id', $loggedInDoctor->id);
+                $docClinicIds = DB::table('doctor_clinics')
+                    ->where('doctor_id', $loggedInDoctor->id)
+                    ->pluck('clinic_id')
+                    ->merge(Clinic::where('doctor_id', $loggedInDoctor->id)->pluck('id'))
+                    ->all();
+                $query->where(function ($q) use ($loggedInDoctor, $docClinicIds) {
+                    $q->where('doctor_id', $loggedInDoctor->id)
+                      ->orWhereIn('clinic_id', $docClinicIds);
+                });
             } else {
                 $query->whereRaw('1 = 0');
             }
@@ -71,8 +80,17 @@ class PrescriptionController extends Controller
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor && $prescription->doctor_id !== $loggedInDoctor->id && $prescription->patient?->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized access to prescription.');
+            if ($loggedInDoctor) {
+                $docClinicIds = DB::table('doctor_clinics')
+                    ->where('doctor_id', $loggedInDoctor->id)
+                    ->pluck('clinic_id')
+                    ->merge(Clinic::where('doctor_id', $loggedInDoctor->id)->pluck('id'))
+                    ->all();
+                $isOwn = ($prescription->doctor_id == $loggedInDoctor->id || $prescription->patient?->doctor_id == $loggedInDoctor->id);
+                $isClinic = ($prescription->clinic_id && in_array($prescription->clinic_id, $docClinicIds));
+                if (!$isOwn && !$isClinic) {
+                    abort(403, 'Unauthorized access to prescription.');
+                }
             }
         }
 
@@ -88,8 +106,17 @@ class PrescriptionController extends Controller
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor && $prescription->doctor_id !== $loggedInDoctor->id && $prescription->patient?->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized access to prescription.');
+            if ($loggedInDoctor) {
+                $docClinicIds = DB::table('doctor_clinics')
+                    ->where('doctor_id', $loggedInDoctor->id)
+                    ->pluck('clinic_id')
+                    ->merge(Clinic::where('doctor_id', $loggedInDoctor->id)->pluck('id'))
+                    ->all();
+                $isOwn = ($prescription->doctor_id == $loggedInDoctor->id || $prescription->patient?->doctor_id == $loggedInDoctor->id);
+                $isClinic = ($prescription->clinic_id && in_array($prescription->clinic_id, $docClinicIds));
+                if (!$isOwn && !$isClinic) {
+                    abort(403, 'Unauthorized access to prescription.');
+                }
             }
         }
 
@@ -105,13 +132,22 @@ class PrescriptionController extends Controller
         $loggedInDoctor = null;
         if ($currentRole === 'doctor' && auth()->check()) {
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $patients = $loggedInDoctor ? Patient::with('clinic')->where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
+            $docClinicIds = DB::table('doctor_clinics')
+                ->where('doctor_id', $loggedInDoctor?->id ?? 0)
+                ->pluck('clinic_id')
+                ->merge(Clinic::where('doctor_id', $loggedInDoctor?->id ?? 0)->pluck('id'))
+                ->unique();
+            $patients = Patient::with('clinic')
+                ->where(function ($q) use ($loggedInDoctor, $docClinicIds) {
+                    if ($loggedInDoctor) {
+                        $q->where('doctor_id', $loggedInDoctor->id)
+                          ->orWhereIn('clinic_id', $docClinicIds);
+                    }
+                })
+                ->orderBy('first_name')->get();
             $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
             
-            $clinics = Clinic::where('doctor_id', $loggedInDoctor->id ?? 0)
-                ->orWhereHas('doctors', fn($q) => $q->where('doctors.id', $loggedInDoctor->id ?? 0))
-                ->where('is_active', true)
-                ->get();
+            $clinics = Clinic::whereIn('id', $docClinicIds)->where('is_active', true)->get();
             if ($clinics->isEmpty()) {
                 $clinics = Clinic::where('is_active', true)->get();
             }
@@ -166,8 +202,8 @@ class PrescriptionController extends Controller
 
         if ($loggedInDoctor) {
             $validated['doctor_id'] = $loggedInDoctor->id;
-            if ($patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized access: Patient belongs to another doctor.');
+            if (!$patient->doctor_id || $patient->doctor_id !== $loggedInDoctor->id) {
+                $patient->update(['doctor_id' => $loggedInDoctor->id]);
             }
         }
 

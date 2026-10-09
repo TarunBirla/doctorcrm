@@ -49,6 +49,7 @@ Route::withoutMiddleware([
     Route::get('/setup-database', [DatabaseSetupController::class, 'index'])->name('database.setup');
     Route::match(['get', 'post'], '/setup-database/run', [DatabaseSetupController::class, 'run'])->name('database.setup.run');
     Route::match(['get', 'post'], '/setup-database/fresh', [DatabaseSetupController::class, 'fresh'])->name('database.setup.fresh');
+    Route::match(['get', 'post'], '/setup-database/clean', [DatabaseSetupController::class, 'clean'])->name('database.setup.clean');
 });
 
 // Role Switching

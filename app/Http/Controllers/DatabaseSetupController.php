@@ -163,4 +163,36 @@ class DatabaseSetupController extends Controller
 
         return view('setup.result', compact('success', 'message', 'output', 'errors'));
     }
+
+    /**
+     * Clean all patient/transaction data and retain 2 clinics
+     */
+    public function clean(Request $request)
+    {
+        $output = [];
+        $errors = [];
+
+        try {
+            DB::connection()->getPdo();
+
+            Artisan::call('app:clean-fresh-db');
+            $output[] = "--- CLEAN FRESH DB OUTPUT ---";
+            $output[] = trim(Artisan::output());
+
+            try {
+                Artisan::call('optimize:clear');
+            } catch (Exception $ex) {
+                // Ignore
+            }
+
+            $success = true;
+            $message = "Database successfully cleaned! All dummy patients removed, exactly 2 clinics ready for doctor testing.";
+        } catch (Exception $e) {
+            $success = false;
+            $message = "Clean Failed: " . $e->getMessage();
+            $errors[] = $e->getMessage();
+        }
+
+        return view('setup.result', compact('success', 'message', 'output', 'errors'));
+    }
 }

@@ -104,8 +104,8 @@ class ConsultationController extends Controller
         }
 
         if ($loggedInDoctor && $patient) {
-            if ($patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized access: Patient is registered under another doctor.');
+            if (!$patient->doctor_id || $patient->doctor_id !== $loggedInDoctor->id) {
+                $patient->update(['doctor_id' => $loggedInDoctor->id]);
             }
         }
 

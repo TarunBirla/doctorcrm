@@ -30,6 +30,26 @@ class Prescription extends Model
         'prescribed_exercises' => 'array',
     ];
 
+    protected static function booted()
+    {
+        static::creating(function ($prescription) {
+            if (empty($prescription->visit_id) && !empty($prescription->patient_id)) {
+                $visit = Visit::create([
+                    'visit_no' => Visit::generateVisitNo(),
+                    'patient_id' => $prescription->patient_id,
+                    'doctor_id' => $prescription->doctor_id ?? 1,
+                    'visit_date' => $prescription->prescription_date ?? now()->toDateString(),
+                    'visit_type' => ucfirst($prescription->assessment_type ?? 'Clinical') . ' Assessment',
+                    'chief_complaint' => $prescription->diagnosis_summary ?? 'Physiotherapy Consultation',
+                    'diagnosis_summary' => $prescription->diagnosis_summary ?? 'Physiotherapy Assessment',
+                    'treatment_plan' => $prescription->advice ?? 'Prescribed rehab protocol',
+                    'follow_up_date' => $prescription->follow_up_date ?? null,
+                ]);
+                $prescription->visit_id = $visit->id;
+            }
+        });
+    }
+
     public function clinic()
     {
         return $this->belongsTo(Clinic::class);
