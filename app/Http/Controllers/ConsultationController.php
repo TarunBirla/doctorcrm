@@ -242,7 +242,22 @@ class ConsultationController extends Controller
         ]);
 
         // 4. Save Physiotherapy & Medication Prescription
-        $prescribedExercises = $request->input('prescribed_exercises', []);
+        $rawExercises = $request->input('prescribed_exercises', []);
+        $prescribedExercises = [];
+        if (is_array($rawExercises)) {
+            foreach ($rawExercises as $ex) {
+                if (!empty($ex['name']) && trim($ex['name']) !== '') {
+                    $prescribedExercises[] = [
+                        'name' => trim($ex['name']),
+                        'target' => trim($ex['target'] ?? 'General'),
+                        'sets' => trim($ex['sets'] ?? '3 Sets'),
+                        'reps' => trim($ex['reps'] ?? '10 Reps'),
+                        'duration' => trim($ex['duration'] ?? '5 sec hold'),
+                        'instructions' => trim($ex['instructions'] ?? ''),
+                    ];
+                }
+            }
+        }
         $modalities = $request->input('modalities');
         $hasMeds = false;
         if (!empty($validated['medicines'])) {

@@ -231,6 +231,23 @@ class PrescriptionController extends Controller
             'follow_up_date' => $validated['follow_up_date'] ?? null,
         ]);
 
+        $rawExercises = $request->input('prescribed_exercises', []);
+        $prescribedExercises = [];
+        if (is_array($rawExercises)) {
+            foreach ($rawExercises as $ex) {
+                if (!empty($ex['name']) && trim($ex['name']) !== '') {
+                    $prescribedExercises[] = [
+                        'name' => trim($ex['name']),
+                        'target' => trim($ex['target'] ?? 'General'),
+                        'sets' => trim($ex['sets'] ?? '3 Sets'),
+                        'reps' => trim($ex['reps'] ?? '10 Reps'),
+                        'duration' => trim($ex['duration'] ?? '5 sec hold'),
+                        'instructions' => trim($ex['instructions'] ?? ''),
+                    ];
+                }
+            }
+        }
+
         $prescription = Prescription::create([
             'prescription_no' => $prescriptionNo,
             'visit_id' => $visit->id,
@@ -240,7 +257,7 @@ class PrescriptionController extends Controller
             'prescription_date' => $validated['prescription_date'],
             'assessment_type' => $validated['assessment_type'],
             'assessment_data' => $request->input('assessment_data') ?? [],
-            'prescribed_exercises' => $request->input('prescribed_exercises') ?? [],
+            'prescribed_exercises' => $prescribedExercises,
             'modalities' => $validated['modalities'] ?? null,
             'treatment_days' => $validated['treatment_days'] ?? 7,
             'diagnosis_summary' => $validated['diagnosis_summary'],
