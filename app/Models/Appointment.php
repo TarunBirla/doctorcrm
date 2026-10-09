@@ -62,9 +62,27 @@ class Appointment extends Model
 
     public static function generateAppointmentNo(): string
     {
-        $dateStr = now()->format('Ymd');
-        $countToday = self::withTrashed()->whereDate('created_at', now()->toDateString())->count() + 1;
-        return 'APT-' . $dateStr . '-' . str_pad($countToday, 3, '0', STR_PAD_LEFT);
+        $prefix = 'APT-' . now()->format('Ymd') . '-';
+        
+        $latest = self::withTrashed()
+            ->where('appointment_no', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(appointment_no) DESC, appointment_no DESC')
+            ->first();
+
+        if ($latest && preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $latest->appointment_no, $matches)) {
+            $nextSeq = ((int) $matches[1]) + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        $appointmentNo = $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+
+        while (self::withTrashed()->where('appointment_no', $appointmentNo)->exists()) {
+            $nextSeq++;
+            $appointmentNo = $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+        }
+
+        return $appointmentNo;
     }
 
     public static function nextTokenForDate($date, $doctorId = null): int

@@ -7,6 +7,7 @@ use App\Models\Patient;
 use App\Models\PatientMedicalHistory;
 use App\Models\Doctor;
 use App\Models\AuditLog;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
@@ -180,103 +181,112 @@ class PatientController extends Controller
 
         $patientId = Patient::generatePatientId();
 
-        $patient = Patient::create([
-            'patient_id' => $patientId,
-            'doctor_id' => $assignedDoctorId,
-            'clinic_id' => $validated['clinic_id'],
-            'category_id' => $validated['category_id'],
-            'description' => $validated['description'],
-            'created_by_user_id' => auth()->id(),
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'gender' => $validated['gender'],
-            'age' => $validated['age'],
-            'dob' => $validated['dob'] ?? null,
-            'mobile' => $validated['mobile'],
-            'alt_mobile' => $validated['alt_mobile'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'city' => $validated['city'] ?? null,
-            'state' => $validated['state'] ?? null,
-            'blood_group' => $validated['blood_group'] ?? null,
-            'occupation' => $validated['occupation'] ?? null,
-            'marital_status' => $validated['marital_status'] ?? null,
-            'emergency_contact' => $validated['emergency_contact'] ?? null,
-            'emergency_phone' => $validated['emergency_phone'] ?? null,
-            'referral_source' => $validated['referral_source'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id}) under Doctor #{$assignedDoctorId}");
-
-        // OPTIONAL: Instant Appointment Booking Flow (Session & Days Package based, No hourly slot needed)
-        if ($request->boolean('book_appointment') && $request->filled('appointment_date')) {
-            $clinicId = $validated['clinic_id'];
-            $appDate = $validated['appointment_date'];
-            $treatmentDays = (int) ($request->input('treatment_days') ?? 1);
-            if ($treatmentDays < 1) $treatmentDays = 1;
-
-            // Resolve Daily Fee & Total Package Fee
-            $clinicObj = \App\Models\Clinic::find($clinicId);
-            $dailyFee = (float) ($request->input('consultation_fee') ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00));
-            $totalFee = $dailyFee * $treatmentDays;
-
-            $categoryObj = \App\Models\TreatmentCategory::find($validated['category_id']);
-            $categoryName = $categoryObj ? $categoryObj->name : 'Physiotherapy Treatment';
-
-            $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
-            $tokenNumber = \App\Models\Appointment::nextTokenForDate($appDate, $assignedDoctorId);
-
-            $appointment = \App\Models\Appointment::create([
-                'appointment_no' => $appointmentNo,
-                'patient_id' => $patient->id,
+        $result = DB::transaction(function () use ($validated, $assignedDoctorId, $patientId, $request) {
+            $patient = Patient::create([
+                'patient_id' => $patientId,
                 'doctor_id' => $assignedDoctorId,
-                'clinic_id' => $clinicId,
+                'clinic_id' => $validated['clinic_id'],
                 'category_id' => $validated['category_id'],
-                'appointment_date' => $appDate,
-                'treatment_days' => $treatmentDays,
-                'daily_fee' => $dailyFee,
-                'appointment_time' => 'Session',
-                'appointment_type' => 'new',
-                'token_number' => $tokenNumber,
-                'reason' => $validated['description'],
-                'consultation_fee' => $totalFee,
-                'payment_status' => 'unpaid',
-                'status' => 'scheduled',
+                'description' => $validated['description'],
+                'created_by_user_id' => auth()->id(),
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'gender' => $validated['gender'],
+                'age' => $validated['age'],
+                'dob' => $validated['dob'] ?? null,
+                'mobile' => $validated['mobile'],
+                'alt_mobile' => $validated['alt_mobile'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'city' => $validated['city'] ?? null,
+                'state' => $validated['state'] ?? null,
+                'blood_group' => $validated['blood_group'] ?? null,
+                'occupation' => $validated['occupation'] ?? null,
+                'marital_status' => $validated['marital_status'] ?? null,
+                'emergency_contact' => $validated['emergency_contact'] ?? null,
+                'emergency_phone' => $validated['emergency_phone'] ?? null,
+                'referral_source' => $validated['referral_source'] ?? null,
+                'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Auto-generate invoice
-            $invoiceNo = \App\Models\Invoice::generateInvoiceNo();
-            $invoice = \App\Models\Invoice::create([
-                'invoice_no' => $invoiceNo,
-                'patient_id' => $patient->id,
-                'appointment_id' => $appointment->id,
-                'doctor_id' => $assignedDoctorId,
-                'invoice_date' => $appDate,
-                'subtotal' => $totalFee,
-                'discount' => 0.00,
-                'additional_charges' => 0.00,
-                'total_amount' => $totalFee,
-                'paid_amount' => 0.00,
-                'due_amount' => $totalFee,
-                'payment_status' => 'unpaid',
-                'notes' => "Physiotherapy treatment package for {$treatmentDays} days - {$categoryName}",
-            ]);
+            AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id}) under Doctor #{$assignedDoctorId}");
 
-            \App\Models\InvoiceItem::create([
-                'invoice_id' => $invoice->id,
-                'item_description' => "{$categoryName} ({$treatmentDays} Days Package)",
-                'quantity' => $treatmentDays,
-                'unit_price' => $dailyFee,
-                'total' => $totalFee,
-            ]);
+            // OPTIONAL: Instant Appointment Booking Flow (Session & Days Package based, No hourly slot needed)
+            if ($request->boolean('book_appointment') && $request->filled('appointment_date')) {
+                $clinicId = $validated['clinic_id'];
+                $appDate = $validated['appointment_date'];
+                $treatmentDays = (int) ($request->input('treatment_days') ?? 1);
+                if ($treatmentDays < 1) $treatmentDays = 1;
 
-            return redirect()->route('patients.show', $patient->id)
-                ->with('success', "Patient {$patient->full_name} registered and {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Fee: ₹" . number_format($totalFee, 2));
-        }
+                // Resolve Daily Fee & Total Package Fee
+                $clinicObj = \App\Models\Clinic::find($clinicId);
+                $dailyFee = (float) ($request->input('consultation_fee') ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00));
+                $totalFee = $dailyFee * $treatmentDays;
 
-        return redirect()->route('patients.show', $patient->id)
-            ->with('success', "Patient {$patient->full_name} ({$patient->patient_id}) registered successfully!");
+                $categoryObj = \App\Models\TreatmentCategory::find($validated['category_id']);
+                $categoryName = $categoryObj ? $categoryObj->name : 'Physiotherapy Treatment';
+
+                $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
+                $tokenNumber = \App\Models\Appointment::nextTokenForDate($appDate, $assignedDoctorId);
+
+                $appointment = \App\Models\Appointment::create([
+                    'appointment_no' => $appointmentNo,
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $assignedDoctorId,
+                    'clinic_id' => $clinicId,
+                    'category_id' => $validated['category_id'],
+                    'appointment_date' => $appDate,
+                    'treatment_days' => $treatmentDays,
+                    'daily_fee' => $dailyFee,
+                    'appointment_time' => 'Session',
+                    'appointment_type' => 'new',
+                    'token_number' => $tokenNumber,
+                    'reason' => $validated['description'],
+                    'consultation_fee' => $totalFee,
+                    'payment_status' => 'unpaid',
+                    'status' => 'scheduled',
+                ]);
+
+                // Auto-generate invoice
+                $invoiceNo = \App\Models\Invoice::generateInvoiceNo();
+                $invoice = \App\Models\Invoice::create([
+                    'invoice_no' => $invoiceNo,
+                    'patient_id' => $patient->id,
+                    'appointment_id' => $appointment->id,
+                    'doctor_id' => $assignedDoctorId,
+                    'invoice_date' => $appDate,
+                    'subtotal' => $totalFee,
+                    'discount' => 0.00,
+                    'additional_charges' => 0.00,
+                    'total_amount' => $totalFee,
+                    'paid_amount' => 0.00,
+                    'due_amount' => $totalFee,
+                    'payment_status' => 'unpaid',
+                    'notes' => "Physiotherapy treatment package for {$treatmentDays} days - {$categoryName}",
+                ]);
+
+                \App\Models\InvoiceItem::create([
+                    'invoice_id' => $invoice->id,
+                    'item_description' => "{$categoryName} ({$treatmentDays} Days Package)",
+                    'quantity' => $treatmentDays,
+                    'unit_price' => $dailyFee,
+                    'total' => $totalFee,
+                ]);
+
+                return [
+                    'patient' => $patient,
+                    'message' => "Patient {$patient->full_name} registered and {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Fee: ₹" . number_format($totalFee, 2)
+                ];
+            }
+
+            return [
+                'patient' => $patient,
+                'message' => "Patient {$patient->full_name} ({$patient->patient_id}) registered successfully!"
+            ];
+        });
+
+        return redirect()->route('patients.show', $result['patient']->id)
+            ->with('success', $result['message']);
     }
 
     protected function authorizePatientAccess(Patient $patient): void

@@ -37,9 +37,26 @@ class Prescription extends Model
 
     public static function generatePrescriptionNo(): string
     {
-        $dateStr = now()->format('Ymd');
-        $count = self::whereDate('created_at', now()->toDateString())->count() + 1;
-        return 'RX-' . $dateStr . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        $prefix = 'RX-' . now()->format('Ymd') . '-';
+        
+        $latest = self::where('prescription_no', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(prescription_no) DESC, prescription_no DESC')
+            ->first();
+
+        if ($latest && preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $latest->prescription_no, $matches)) {
+            $nextSeq = ((int) $matches[1]) + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        $prescriptionNo = $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+
+        while (self::where('prescription_no', $prescriptionNo)->exists()) {
+            $nextSeq++;
+            $prescriptionNo = $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+        }
+
+        return $prescriptionNo;
     }
 
     public function visit()

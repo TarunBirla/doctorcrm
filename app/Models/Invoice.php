@@ -36,9 +36,26 @@ class Invoice extends Model
 
     public static function generateInvoiceNo(): string
     {
-        $yearMonth = now()->format('Ym');
-        $count = self::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() + 1;
-        return 'INV-' . $yearMonth . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $prefix = 'INV-' . now()->format('Ym') . '-';
+        
+        $latest = self::where('invoice_no', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(invoice_no) DESC, invoice_no DESC')
+            ->first();
+
+        if ($latest && preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $latest->invoice_no, $matches)) {
+            $nextSeq = ((int) $matches[1]) + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        $invoiceNo = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+
+        while (self::where('invoice_no', $invoiceNo)->exists()) {
+            $nextSeq++;
+            $invoiceNo = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+        }
+
+        return $invoiceNo;
     }
 
     public function patient()

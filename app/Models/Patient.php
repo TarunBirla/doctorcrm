@@ -49,7 +49,12 @@ class Patient extends Model
     {
         $lastPatient = self::withTrashed()->orderBy('id', 'desc')->first();
         $nextNumber = $lastPatient ? ($lastPatient->id + 1) : 1;
-        return 'PAT-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        $patientId = 'PAT-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        while (self::withTrashed()->where('patient_id', $patientId)->exists()) {
+            $nextNumber++;
+            $patientId = 'PAT-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        }
+        return $patientId;
     }
 
     public function getFullNameAttribute(): string
