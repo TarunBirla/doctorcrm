@@ -95,23 +95,37 @@
                 </div>
             </div>
 
-            <!-- Patient Quick Info preview -->
-            <div id="patientQuickInfo" class="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex flex-wrap items-center justify-between text-xs gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-400 font-bold uppercase text-[10px]">Demographics:</span>
-                    <span id="previewDemographics" class="font-bold text-slate-800">
-                        {{ $selectedPatient ? "{$selectedPatient->age} yrs, {$selectedPatient->gender}" : "Select a patient to preview" }}
+            <!-- Patient Quick Info & Assessment Demographics Preview (Matching Hand-Written Sheets) -->
+            <div id="patientQuickInfo" class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Name & Demographics:</span>
+                    <span id="previewDemographics" class="font-bold text-slate-800 text-sm">
+                        {{ $selectedPatient ? "{$selectedPatient->full_name} ({$selectedPatient->age} yrs, {$selectedPatient->gender})" : "Select a patient above" }}
                     </span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-400 font-bold uppercase text-[10px]">Occupation:</span>
-                    <span id="previewOccupation" class="font-semibold text-slate-700">
-                        {{ $selectedPatient?->occupation ?? '-' }}
-                    </span>
+                <div>
+                    <label class="text-slate-500 font-bold uppercase text-[10px] block mb-1">
+                        Affected Side (प्रभावित अंग / साइड) <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="assessment_data[affected_side]" id="globalAffectedSide" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-black text-slate-800 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        <option value="Right (R)">Right Side (R)</option>
+                        <option value="Left (L)">Left Side (L)</option>
+                        <option value="Bilateral (Both)">Bilateral (Both Sides)</option>
+                        <option value="Central / Spine">Central / Spine</option>
+                    </select>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-400 font-bold uppercase text-[10px]">Address:</span>
-                    <span id="previewAddress" class="text-slate-600 truncate max-w-xs">
+                <div>
+                    <label class="text-slate-500 font-bold uppercase text-[10px] block mb-1">
+                        Occupation (व्यवसाय)
+                    </label>
+                    <input type="text" name="assessment_data[occupation]" id="previewOccupationInput" 
+                           value="{{ old('assessment_data.occupation', optional($selectedPatient)->occupation) }}" 
+                           placeholder="e.g. Desk Job, Teacher, Driver, Heavy Labor..."
+                           class="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                </div>
+                <div>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] block">Address:</span>
+                    <span id="previewAddress" class="text-slate-600 block truncate mt-1">
                         {{ $selectedPatient?->address ?? '-' }}
                     </span>
                 </div>
@@ -119,609 +133,950 @@
         </div>
 
         <!-- 2. ASSESSMENT TYPE SELECTOR (2 TYPES) -->
-        <div class="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-6 text-white shadow-md space-y-4">
+        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl p-6 text-white shadow-lg space-y-4 border border-slate-800">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-blue-200">Clinical Evaluation Type</span>
-                    <h2 class="text-xl font-black tracking-tight text-white">Select Assessment Protocol</h2>
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Official Clinical Protocol</span>
+                    <h2 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                        <span>Select Clinical Assessment Prescription</span>
+                    </h2>
                 </div>
                 <div class="inline-flex p-1.5 bg-white/10 backdrop-blur rounded-xl border border-white/20 gap-2">
                     <button type="button" onclick="setAssessmentType('musculoskeletal')" id="tabBtnMusculo"
-                            class="px-4 py-2 rounded-lg text-xs font-black transition flex items-center gap-2 bg-white text-blue-900 shadow-sm">
-                        <i data-lucide="activity" class="w-4 h-4"></i>
-                        <span>1. Musculo Skeletal Assessment</span>
+                            class="px-4 py-2.5 rounded-lg text-xs font-black transition flex items-center gap-2 bg-white text-blue-900 shadow-sm">
+                        <i data-lucide="bone" class="w-4 h-4 text-blue-600"></i>
+                        <span>1. Musculo - Skeletal Assessment (Image 1)</span>
                     </button>
                     <button type="button" onclick="setAssessmentType('neurological')" id="tabBtnNeuro"
-                            class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-white hover:bg-white/10">
-                        <i data-lucide="brain" class="w-4 h-4"></i>
-                        <span>2. Neurological Assessment</span>
+                            class="px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-white hover:bg-white/10">
+                        <i data-lucide="brain" class="w-4 h-4 text-purple-400"></i>
+                        <span>2. Neurological Assessment (Images 2 & 3)</span>
                     </button>
                 </div>
             </div>
             <input type="hidden" name="assessment_type" id="assessmentTypeInput" value="musculoskeletal">
-            <p id="assessmentTypeDesc" class="text-xs text-blue-100">
-                Evaluating Orthopedic spine, joint ROM, MMT grades, VAS pain score, palpation, osteopathic dysfunctions & biomechanics.
+            <p id="assessmentTypeDesc" class="text-xs text-blue-100 flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Evaluation of joint ROM, MMT, Posture, Tenderness, Gait, Aggravating Pain + VAS Scale, Advice & Special Ortho Tests.</span>
             </p>
         </div>
 
         <!-- 3. PRIMARY CLINICAL DIAGNOSIS -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3">
             <div class="flex items-center justify-between">
-                <label class="block text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Clinical Diagnosis / Provisional Impression <span class="text-rose-500">*</span>
+                <label class="block text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-blue-600"></i>
+                    <span>Clinical Diagnosis / Provisional Impression <span class="text-rose-500">*</span></span>
                 </label>
-                <span class="text-[11px] text-slate-400 font-medium">Clear physical therapy diagnosis</span>
+                <span class="text-[11px] text-slate-400 font-medium">Physical Therapy & Clinical Finding</span>
             </div>
-            <input type="text" name="diagnosis_summary" required placeholder="e.g., Cervical Radiculopathy (C5-C6) with Muscle Spasm, Chronic L4-L5 Lumbar Disc Herniation, Hemiplegia Post-Stroke..."
+            <input type="text" name="diagnosis_summary" required placeholder="e.g. Frozen Shoulder (Adhesive Capsulitis), Lumbar Radiculopathy L4-L5, Stroke Hemiparesis, Cervical Spondylosis..."
                    value="{{ old('diagnosis_summary') }}"
                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-blue-50/20">
         </div>
 
         <!-- ============================================================== -->
-        <!-- SECTION A: MUSCULO SKELETAL ASSESSMENT CHART (PHOTO 2 & 4)      -->
+        <!-- SECTION A: MUSCULO - SKELETAL ASSESSMENT (EXACT MATCH IMAGE 1) -->
         <!-- ============================================================== -->
         <div id="musculoSkeletalSection" class="space-y-6">
 
-            <!-- Card A1: Patient Complaints & Vitals -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <!-- Banner Header -->
+            <div class="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-2xl p-5 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-lg">
+                        🦴
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black tracking-wide uppercase">MUSCULO - SKELETAL ASSESSMENT</h3>
+                        <p class="text-xs text-blue-100">Prescription Sheet 1: Joint, Soft Tissue, Biomechanics & Special Orthopedic Tests</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-bold bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
+                    <span>Clinical Chart: Orthopedic & Spine Evaluation</span>
+                </div>
+            </div>
+
+            <!-- Card 1: Complaints, Duration, Pain Aggravation + VAS, Associate Factors, Past History -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
                 <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <i data-lucide="stethoscope" class="w-4 h-4 text-blue-600"></i> Chief Complaints & Vitalsigns
-                    </h3>
-                    <span class="text-xs font-mono font-bold text-slate-400">Page 1</span>
+                    <h4 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 text-blue-600"></i> Chief Complaints & Pain Analysis
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400 font-bold">Parameters: C/O • Duration • Aggravation • VAS</span>
                 </div>
 
-                <!-- C/O -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">C/O (Chief Complaints)</label>
-                    <textarea name="assessment_data[chief_complaints]" rows="2" placeholder="e.g. Pain and stiffness in lower back radiating down to right leg since 2 weeks..."
-                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- CHIEF COMPLAINT -->
+                    <div class="md:col-span-2 space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • CHIEF COMPLAINT <span class="text-rose-500">*</span>
+                        </label>
+                        <textarea name="assessment_data[chief_complaint]" rows="2" placeholder="e.g. Severe pain and restricted movement in right shoulder radiating to elbow..."
+                                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"></textarea>
+                    </div>
 
-                <!-- Vitalsigns -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">HR (/min)</label>
-                        <input type="text" name="assessment_data[vitals_hr]" placeholder="76 /min"
-                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">RR (/min)</label>
-                        <input type="text" name="assessment_data[vitals_rr]" placeholder="18 /min"
-                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Temp (°C / °F)</label>
-                        <input type="text" name="assessment_data[vitals_temp]" placeholder="98.4 °F / 37 °C"
-                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">BP (mmHg)</label>
-                        <input type="text" name="assessment_data[vitals_bp]" placeholder="120/80"
-                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                    <!-- DURATION -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • DURATION (अवधि)
+                        </label>
+                        <input type="text" name="assessment_data[duration]" placeholder="e.g. 5 Days / 3 Weeks / 2 Months"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                        <div class="flex flex-wrap gap-1.5 pt-1 text-[10px]">
+                            <button type="button" onclick="this.closest('.space-y-1.5').querySelector('input').value='3 Days'" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">3d</button>
+                            <button type="button" onclick="this.closest('.space-y-1.5').querySelector('input').value='1 Week'" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1w</button>
+                            <button type="button" onclick="this.closest('.space-y-1.5').querySelector('input').value='2 Weeks'" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">2w</button>
+                            <button type="button" onclick="this.closest('.space-y-1.5').querySelector('input').value='1 Month'" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">1m</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- H/O (History of) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-2">H/O (Medical History)</label>
-                    <div class="flex flex-wrap gap-4 text-xs">
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="DM" class="rounded text-blue-600"> DM
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="HT" class="rounded text-blue-600"> HT
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="COPD" class="rounded text-blue-600"> COPD
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="Fracture" class="rounded text-blue-600"> Fracture (#)
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="Surgery" class="rounded text-blue-600"> Surgery
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="Thyroid" class="rounded text-blue-600"> Thyroid
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[ho_conditions][]" value="OT" class="rounded text-blue-600"> OT
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Family, Present, Personal History -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Family History</label>
-                        <select name="assessment_data[family_history]" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
-                            <option value="-ve">-ve (Negative)</option>
-                            <option value="+ve">+ve (Positive)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Personal History</label>
-                        <input type="text" name="assessment_data[personal_history]" placeholder="Smoking / Alcohol / Sedentary / etc."
-                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Present Medical History (Date/Time)</label>
-                        <input type="text" name="assessment_data[present_history]" placeholder="Onset date, gradual / acute..."
-                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
-                    </div>
-                </div>
-
-                <!-- VAS PAIN SCALE (0 - 70) -->
-                <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200/60 space-y-3">
-                    <div class="flex items-center justify-between">
+                <!-- PAIN AGGRAVATION & VAS SCALE -->
+                <div class="p-4 bg-amber-50/60 rounded-xl border border-amber-200/70 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                            <span class="text-xs font-black text-amber-900 uppercase tracking-wide">Pain Assessment: VAS Scale (0 - 70)</span>
-                            <p class="text-[11px] text-amber-700">Visual Analogue Scale rating from no pain (0) to unbearable pain (70)</p>
+                            <span class="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-2">
+                                <i data-lucide="flame" class="w-4 h-4 text-amber-600"></i>
+                                • PAIN AGGRAVATION (दर्द कब बढ़ता है) + VAS SCALE
+                            </span>
+                            <p class="text-[11px] text-amber-800">Mark aggravating conditions: Day / Night / Activities and rate pain intensity</p>
                         </div>
-                        <span id="vasDisplay" class="px-3 py-1 rounded-full bg-amber-600 text-white font-black text-sm shadow-sm">
-                            Score: 40
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-amber-900">VAS Score:</span>
+                            <span id="vasScoreBadge" class="px-3 py-1 rounded-full bg-amber-600 text-white font-black text-sm shadow-sm">
+                                4 / 10 (Moderate)
+                            </span>
+                        </div>
                     </div>
-                    <input type="range" name="assessment_data[vas_pain_score]" id="vasSlider" min="0" max="70" step="5" value="40"
-                           oninput="document.getElementById('vasDisplay').innerText = 'Score: ' + this.value"
-                           class="w-full accent-amber-600 cursor-pointer">
-                    <div class="flex justify-between text-[10px] font-bold text-amber-800">
-                        <span>0 (No Pain)</span>
-                        <span>10</span>
-                        <span>20 (Mild)</span>
-                        <span>30</span>
-                        <span>40 (Moderate)</span>
-                        <span>50</span>
-                        <span>60 (Severe)</span>
-                        <span>70 (Excruciating)</span>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Aggravating Triggers -->
+                        <div class="space-y-2">
+                            <span class="text-[11px] font-bold text-slate-700 block">Aggravating factors (as per photo):</span>
+                            <div class="flex flex-wrap gap-2.5 text-xs">
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 font-bold text-slate-800 cursor-pointer hover:bg-amber-100 transition shadow-xs">
+                                    <input type="checkbox" name="assessment_data[pain_aggravation][]" value="Day" class="rounded text-amber-600 focus:ring-amber-500">
+                                    <span>☀️ Day (दिन में)</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 font-bold text-slate-800 cursor-pointer hover:bg-amber-100 transition shadow-xs">
+                                    <input type="checkbox" name="assessment_data[pain_aggravation][]" value="Night" class="rounded text-amber-600 focus:ring-amber-500">
+                                    <span>🌙 Night (रात में)</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 font-bold text-slate-800 cursor-pointer hover:bg-amber-100 transition shadow-xs">
+                                    <input type="checkbox" name="assessment_data[pain_aggravation][]" value="Activities" class="rounded text-amber-600 focus:ring-amber-500">
+                                    <span>🏃 Activities (कामकाज / चलने पर)</span>
+                                </label>
+                            </div>
+                            <input type="text" name="assessment_data[pain_aggravation_activities]" placeholder="Specific activities (e.g. forward bending, overhead reach, sitting > 30m)..."
+                                   class="w-full px-3 py-2 text-xs rounded-lg border border-amber-200 bg-white placeholder-slate-400 focus:border-amber-500">
+                        </div>
+
+                        <!-- Interactive VAS Pain Slider (0 to 10) -->
+                        <div class="space-y-2 bg-white p-3 rounded-xl border border-amber-200">
+                            <label class="block text-[11px] font-bold text-slate-700">Visual Analogue Scale (0 - 10):</label>
+                            <input type="range" name="assessment_data[vas_scale]" id="vasInput" min="0" max="10" step="1" value="4"
+                                   oninput="updateVasBadge(this.value)"
+                                   class="w-full accent-amber-600 cursor-pointer">
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500">
+                                <span class="text-emerald-700">0 (No Pain)</span>
+                                <span class="text-blue-700">1-3 (Mild)</span>
+                                <span class="text-amber-700">4-6 (Moderate)</span>
+                                <span class="text-rose-700">7-9 (Severe)</span>
+                                <span class="text-red-900 font-black">10 (Worst)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ASSOCIATE FACTORS & PAST HISTORY -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- ASSOCIATE FACTORS -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • Associate factors (संबद्ध लक्षण)
+                        </label>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-700 cursor-pointer hover:bg-blue-50 hover:border-blue-200">
+                                <input type="checkbox" name="assessment_data[associate_factors][]" value="Radiating pain" class="rounded text-blue-600">
+                                <span>⚡ Radiating pain</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-700 cursor-pointer hover:bg-blue-50 hover:border-blue-200">
+                                <input type="checkbox" name="assessment_data[associate_factors][]" value="Swelling" class="rounded text-blue-600">
+                                <span>💧 Swelling</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-700 cursor-pointer hover:bg-blue-50 hover:border-blue-200">
+                                <input type="checkbox" name="assessment_data[associate_factors][]" value="Numbness" class="rounded text-blue-600">
+                                <span>🪡 Numbness (सुन्नपन)</span>
+                            </label>
+                        </div>
+                        <input type="text" name="assessment_data[associate_factors_notes]" placeholder="Additional symptoms (tingling, pins & needles, weakness)..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                    </div>
+
+                    <!-- PAST HISTORY -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • PAST history (पुराना इतिहास / पूर्व बीमारी)
+                        </label>
+                        <textarea name="assessment_data[past_history]" rows="2" placeholder="e.g. Previous fall / injury 6 months ago, DM, HTN, prior spine surgery..."
+                                  class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- Card A2: On Look (Observation) & On Palpation -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- On Look (Observation) -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <i data-lucide="eye" class="w-4 h-4 text-indigo-600"></i> On Look (Observation)
-                    </h3>
-                    <div class="space-y-3 text-xs">
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Gait:</span>
-                            <input type="text" name="assessment_data[gait]" placeholder="Normal / Antalgic / Lurching" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Body Built:</span>
-                            <input type="text" name="assessment_data[body_built]" placeholder="Ectomorph / Mesomorph / Obese" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Posture:</span>
-                            <input type="text" name="assessment_data[posture]" placeholder="Front / Side / Back" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Facial Exp.:</span>
-                            <input type="text" name="assessment_data[facial_expression]" placeholder="Relaxed / Painful / Grimacing" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Deformity:</span>
-                            <input type="text" name="assessment_data[deformity]" placeholder="Kyphosis / Scoliosis / Valgus" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Muscle:</span>
-                            <input type="text" name="assessment_data[muscle_state]" placeholder="Normal / Atrophy / Hypertrophy" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Foot Deformity:</span>
-                            <input type="text" name="assessment_data[foot_deformity]" placeholder="Flat Foot / High Arch / Normal" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Skin Color:</span>
-                            <input type="text" name="assessment_data[skin_color]" placeholder="Normal / Pallor / Redness" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- On Palpation -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <i data-lucide="hand" class="w-4 h-4 text-emerald-600"></i> On Palpation
-                    </h3>
-                    <div class="space-y-3 text-xs">
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Crepitus:</span>
-                            <input type="text" name="assessment_data[crepitus]" placeholder="Present / Absent / Patellar" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Local Temp:</span>
-                            <input type="text" name="assessment_data[palpation_temp]" placeholder="Normal / Raised / Warm" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Tenderness:</span>
-                            <input type="text" name="assessment_data[tenderness]" placeholder="Grade I / II / III / Point tenderness" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Bony Contour:</span>
-                            <input type="text" name="assessment_data[bony_contour]" placeholder="Regular / Intact / Prominent" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Musspasm:</span>
-                            <input type="text" name="assessment_data[muscle_spasm]" placeholder="Spasm in Paraspinal / Trapezius" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Rigidity (Type):</span>
-                            <input type="text" name="assessment_data[rigidity]" placeholder="Cogwheel / Leadpipe / Nil" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Balance / Prop.:</span>
-                            <input type="text" name="assessment_data[balance_proprioception]" placeholder="Intact / Impaired" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="font-bold text-slate-600">Vestibular Exam:</span>
-                            <input type="text" name="assessment_data[vestibular_exam]" placeholder="Normal / Nystagmus" class="col-span-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card A3: Physical Exam R vs L Table (ROM, MMT, Special Tests, Neural Tests) -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <!-- Card 2: Observation (Posture, Tenderness, Gait) & Advice -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
                 <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <i data-lucide="git-branch" class="w-4 h-4 text-blue-600"></i> Clinical Examination (Right vs Left Comparison)
-                        </h3>
-                        <p class="text-xs text-slate-500">Record bilateral findings matching physical clinical chart</p>
-                    </div>
-                    <span class="text-xs font-mono font-bold text-slate-400">Page 2</span>
+                    <h4 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="eye" class="w-4 h-4 text-indigo-600"></i> Observation (निरीक्षण) & Advice
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400 font-bold">Posture • Tenderness • Gait • Advice</span>
                 </div>
 
-                <div class="overflow-x-auto text-xs">
-                    <table class="w-full text-left border-collapse">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Posture -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • Posture (मुद्रा)
+                        </label>
+                        <input type="text" name="assessment_data[observation_posture]" id="postureInput" 
+                               placeholder="Rounded shoulder / shoulder elevation etc."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold text-slate-800">
+                        <div class="flex flex-wrap gap-1 text-[10px]">
+                            <button type="button" onclick="appendInputVal('postureInput', 'Rounded shoulder')" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">+ Rounded shoulder</button>
+                            <button type="button" onclick="appendInputVal('postureInput', 'Shoulder elevation')" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">+ Shoulder elevation</button>
+                            <button type="button" onclick="appendInputVal('postureInput', 'Forward head')" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">+ Forward head</button>
+                            <button type="button" onclick="appendInputVal('postureInput', 'Normal alignment')" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">+ Normal</button>
+                        </div>
+                    </div>
+
+                    <!-- Tenderness -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • Tenderness (स्पर्श वेदना / दर्द का स्थान)
+                        </label>
+                        <input type="text" name="assessment_data[observation_tenderness]" placeholder="Grade I/II localized at supraspinatus / L5-S1..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold text-slate-800">
+                        <p class="text-[10px] text-slate-400">Specify site and tenderness grade (I, II, III)</p>
+                    </div>
+
+                    <!-- GAIT -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            • GAIT (चाल)
+                        </label>
+                        <input type="text" name="assessment_data[observation_gait]" id="gaitInput" placeholder="Antalgic / Trendelenburg / Normal..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold text-slate-800">
+                        <div class="flex flex-wrap gap-1 text-[10px]">
+                            <button type="button" onclick="document.getElementById('gaitInput').value='Normal'" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Normal</button>
+                            <button type="button" onclick="document.getElementById('gaitInput').value='Antalgic gait'" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Antalgic</button>
+                            <button type="button" onclick="document.getElementById('gaitInput').value='Trendelenburg gait'" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Trendelenburg</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advice (X-ray, MRI) & MMT -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-slate-100">
+                    <!-- ADVICE -->
+                    <div class="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <span class="text-xs font-bold text-slate-800 block">• Advice (जाँच सलाह - X-ray, MRI)</span>
+                        <div class="flex flex-wrap gap-3 text-xs">
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" name="assessment_data[advice_imaging][]" value="X-ray" class="rounded text-blue-600">
+                                <span>📷 X-ray</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer hover:bg-blue-50">
+                                <input type="checkbox" name="assessment_data[advice_imaging][]" value="MRI" class="rounded text-blue-600">
+                                <span>🧲 MRI</span>
+                            </label>
+                        </div>
+                        <input type="text" name="assessment_data[advice_notes]" placeholder="Specify region (e.g. X-ray Right Shoulder AP/Axillary, MRI LS Spine)..."
+                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white">
+                    </div>
+
+                    <!-- MMT -->
+                    <div class="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <span class="text-xs font-bold text-slate-800 block">• MMT (Manual Muscle Testing: Grade 0 - 5)</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-blue-700 uppercase">Right Side (R)</label>
+                                <input type="text" name="assessment_data[mmt_right]" placeholder="e.g. Grade 4/5"
+                                       class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-indigo-700 uppercase">Left Side (L)</label>
+                                <input type="text" name="assessment_data[mmt_left]" placeholder="e.g. Grade 5/5"
+                                       class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                            </div>
+                        </div>
+                        <input type="text" name="assessment_data[mmt_notes]" placeholder="Muscle group details (e.g. Deltoid, Rotator cuff, Quadriceps 4/5)..."
+                               class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: RANGE OF MOTION (Flexion, Abduction, Extension, ER, IR) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h4 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="compass" class="w-4 h-4 text-blue-600"></i> • RANGE OF MOTION (गति का दायरा - ROM)
+                        </h4>
+                        <p class="text-[11px] text-slate-500">Record degrees / restriction for Flexion, Abduction, Extension, External Rotation (ER), Internal Rotation (IR)</p>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase px-2.5 py-1 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                        Bilateral ROM Degrees
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px]">
-                                <th class="py-2.5 px-3">Examination Parameter</th>
-                                <th class="py-2.5 px-3 w-48 text-blue-700">Right (R)</th>
-                                <th class="py-2.5 px-3 w-48 text-indigo-700">Left (L)</th>
+                            <tr class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
+                                <th class="py-2.5 px-3">Movement Parameter</th>
+                                <th class="py-2.5 px-3 w-48 text-blue-800">Right (R)</th>
+                                <th class="py-2.5 px-3 w-48 text-indigo-800">Left (L)</th>
+                                <th class="py-2.5 px-3">Clinical End-Feel / Pain Note</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <!-- ROM -->
+                            <!-- Flexion -->
                             <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">ROM (Range of Motion)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[rom_right]" placeholder="e.g. Full / Restricted 40°" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[rom_left]" placeholder="e.g. Full / Pain at end-range" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
+                                <td class="py-2 px-3 font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Flexion
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_flexion_r]" placeholder="e.g. 120° / Restricted" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_flexion_l]" placeholder="e.g. 180° Full" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_flexion_notes]" placeholder="Pain at end-range" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                                </td>
                             </tr>
-                            <!-- MMT Grade -->
+                            <!-- Abduction -->
                             <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">MMT Grade (0 - 5)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[mmt_right]" placeholder="e.g. Grade 4/5" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[mmt_left]" placeholder="e.g. Grade 5/5" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
+                                <td class="py-2 px-3 font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Abduction
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_abduction_r]" placeholder="e.g. 90° Painful arc" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_abduction_l]" placeholder="e.g. 180° Full" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_abduction_notes]" placeholder="Painful arc 60°-120°" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                                </td>
                             </tr>
-                            <!-- Co-ordination UL -->
+                            <!-- Extension -->
                             <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Co-ordination - UL (Upper Limb)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[coord_ul_right]" placeholder="Finger-to-nose: Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[coord_ul_left]" placeholder="Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
+                                <td class="py-2 px-3 font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Extension
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_extension_r]" placeholder="e.g. 30° / Full" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_extension_l]" placeholder="e.g. 45° Full" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_extension_notes]" placeholder="Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                                </td>
                             </tr>
-                            <!-- Co-ordination LL -->
+                            <!-- ER -->
                             <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Co-ordination - LL (Lower Limb)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[coord_ll_right]" placeholder="Heel-to-shin: Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[coord_ll_left]" placeholder="Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
+                                <td class="py-2 px-3 font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> ER (External Rotation)
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_er_r]" placeholder="e.g. 40° Restricted" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_er_l]" placeholder="e.g. 70° Full" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_er_notes]" placeholder="Capsular pattern limitation" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                                </td>
                             </tr>
-                            <!-- Synergy -->
+                            <!-- IR -->
                             <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Synergy (UL & LL)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[synergy_right]" placeholder="Flexor/Extensor synergy" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[synergy_left]" placeholder="Normal" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <!-- Special Tests -->
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Special Tests (SLR, Faber, McMurray etc.)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[special_tests_right]" placeholder="e.g. SLR +ve at 45°" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[special_tests_left]" placeholder="e.g. SLR -ve at 80°" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <!-- Neural Tension ULTT -->
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Neural Tension - ULTT</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[ultt_right]" placeholder="Positive / Negative" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[ultt_left]" placeholder="Negative" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <!-- Neural Tension LLTT -->
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">Neural Tension - LLTT</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[lltt_right]" placeholder="Positive / Negative" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[lltt_left]" placeholder="Negative" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <!-- For VBI -->
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">For VBI (Vertebrobasilar Insufficiency)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[vbi_right]" placeholder="Negative / Dizziness" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[vbi_left]" placeholder="Negative" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200"></td>
+                                <td class="py-2 px-3 font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> IR (Internal Rotation)
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_ir_r]" placeholder="e.g. Reach to L5" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_ir_l]" placeholder="e.g. Reach to T8" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 font-medium">
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input type="text" name="assessment_data[rom_ir_notes]" placeholder="Stiffness noted" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <!-- LLD, Girth, Spinal Deformity, Osteopathic terms, C-Spine TOS -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-xs">
+            <!-- Card 4: SPECIAL TESTS (All tests from Image 1) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">LLD (Limb Length Discrepancy)</label>
-                        <input type="text" name="assessment_data[lld]" placeholder="Apparent / True: Equal" class="w-full px-3 py-2 rounded-lg border border-slate-200">
+                        <h4 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i> • SPECIAL TEST (विशेष नैदानिक परीक्षण - Image 1)
+                        </h4>
+                        <p class="text-[11px] text-slate-500">Shoulder • Knee • Hip • Spine • Cervical (Click to toggle -ve Negative / +ve Positive)</p>
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Muscle Girth Measurement</label>
-                        <input type="text" name="assessment_data[muscle_girth]" placeholder="R Thigh: 48cm | L Thigh: 47.5cm" class="w-full px-3 py-2 rounded-lg border border-slate-200">
+                    <span class="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Image 1 Standard
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    
+                    <!-- 1. Shoulder Tests -->
+                    <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
+                        <div class="flex items-center justify-between border-b border-blue-100 pb-2">
+                            <span class="font-black text-blue-900 uppercase text-[11px]">1. Shoulder (कंधा)</span>
+                            <span class="text-[10px] font-bold text-blue-600">Rotator / Impingement</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Drop arm:</label>
+                                <select name="assessment_data[st_drop_arm]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative (Normal)</option>
+                                    <option value="+ve Positive">+ve Positive (Tear / Rupture)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Impingement:</label>
+                                <select name="assessment_data[st_impingement]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative</option>
+                                    <option value="+ve Positive (Neer / Hawkins)">+ve Positive (Neer / Hawkins)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">C - Spine T.O.S. / Deficits</label>
-                        <input type="text" name="assessment_data[tos_deficits]" placeholder="TOS -ve, Sensory/Motor intact" class="w-full px-3 py-2 rounded-lg border border-slate-200">
+
+                    <!-- 2. Knee Tests -->
+                    <div class="p-4 rounded-xl border border-indigo-200 bg-indigo-50/30 space-y-3">
+                        <div class="flex items-center justify-between border-b border-indigo-100 pb-2">
+                            <span class="font-black text-indigo-900 uppercase text-[11px]">2. Knee (घुटना)</span>
+                            <span class="text-[10px] font-bold text-indigo-600">Cruciate / Meniscus</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Drawer ant. (Anterior Drawer):</label>
+                                <select name="assessment_data[st_drawer_ant]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative (ACL Intact)</option>
+                                    <option value="+ve Positive">+ve Positive (ACL Laxity)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">McMurray:</label>
+                                <select name="assessment_data[st_mcmurray]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative (Meniscus Intact)</option>
+                                    <option value="+ve Positive">+ve Positive (Meniscal Click/Pain)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="md:col-span-3">
-                        <label class="block font-bold text-slate-700 mb-1">Osteopathic Terms / Findings (AS / PI / BA / BP / PL / PR etc.)</label>
-                        <input type="text" name="assessment_data[osteopathic_terms]" placeholder="e.g. Sacral torsion, PI Ilium right, C2-C3 posterior rotation" class="w-full px-3 py-2 rounded-lg border border-slate-200">
+
+                    <!-- 3. Hip Tests -->
+                    <div class="p-4 rounded-xl border border-teal-200 bg-teal-50/30 space-y-3">
+                        <div class="flex items-center justify-between border-b border-teal-100 pb-2">
+                            <span class="font-black text-teal-900 uppercase text-[11px]">3. Hip (कूल्हा)</span>
+                            <span class="text-[10px] font-bold text-teal-600">SI Joint / Abductor</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">FABER (Patrick's test):</label>
+                                <select name="assessment_data[st_faber]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative</option>
+                                    <option value="+ve Positive (SI / Hip Pathology)">+ve Positive (SI / Hip Pathology)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Trendelenburg:</label>
+                                <select name="assessment_data[st_trendelenburg]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative (Gluteus Medius Normal)</option>
+                                    <option value="+ve Positive">+ve Positive (Abductor Weakness)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- 4. Spine Tests -->
+                    <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/30 space-y-3">
+                        <div class="flex items-center justify-between border-b border-amber-100 pb-2">
+                            <span class="font-black text-amber-900 uppercase text-[11px]">4. Spine (रीढ़ की हड्डी)</span>
+                            <span class="text-[10px] font-bold text-amber-600">Dural Tension</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">SLR (Straight Leg Raise):</label>
+                                <select name="assessment_data[st_slr]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative (80°-90° Normal)">-ve Negative (80°-90° Normal)</option>
+                                    <option value="+ve Positive (< 60° Radicular Pain)">+ve Positive (< 60° Radicular Pain)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Slump:</label>
+                                <select name="assessment_data[st_slump]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative</option>
+                                    <option value="+ve Positive (Neural Tension)">+ve Positive (Neural Tension)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Cervical Tests -->
+                    <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/30 space-y-3">
+                        <div class="flex items-center justify-between border-b border-rose-100 pb-2">
+                            <span class="font-black text-rose-900 uppercase text-[11px]">5. Cervical (गर्दन)</span>
+                            <span class="text-[10px] font-bold text-rose-600">Radiculopathy</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Compression:</label>
+                                <select name="assessment_data[st_cervical_compression]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative</option>
+                                    <option value="+ve Positive (Radicular Pain)">+ve Positive (Radicular Pain)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Spurling:</label>
+                                <select name="assessment_data[st_spurling]" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                                    <option value="-ve Negative">-ve Negative</option>
+                                    <option value="+ve Positive (Foraminal Compression)">+ve Positive (Foraminal Compression)</option>
+                                    <option value="Not Tested">Not Tested</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra Special Test Notes -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                        <span class="font-black text-slate-800 uppercase text-[11px] block">Additional Ortho Findings</span>
+                        <textarea name="assessment_data[special_test_notes]" rows="3" placeholder="Additional special test observations (e.g. Apley scratch test, Lachman test, Finkelstein, Ober test)..."
+                                  class="w-full px-2.5 py-2 text-xs rounded-lg border border-slate-200 bg-white"></textarea>
+                    </div>
+
                 </div>
             </div>
 
         </div>
 
         <!-- ============================================================== -->
-        <!-- SECTION B: NEUROLOGICAL ASSESSMENT CHART (PHOTO 1 & 3)          -->
+        <!-- SECTION B: NEUROLOGICAL ASSESSMENT (EXACT MATCH IMAGES 2 & 3)   -->
         <!-- ============================================================== -->
         <div id="neurologicalSection" class="space-y-6 hidden">
 
-            <!-- Card B1: Neuro History & Dominance -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <!-- Banner Header -->
+            <div class="bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 rounded-2xl p-5 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-lg">
+                        🧠
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black tracking-wide uppercase">NEUROLOGICAL ASSESSMENT</h3>
+                        <p class="text-xs text-purple-200">Prescription Sheets 2 & 3: History, Observation, Senses, Motor/Reflexes & Neuro-Rehabilitation Plan</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-bold bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
+                    <span>Clinical Chart: Neurological & Rehabilitation</span>
+                </div>
+            </div>
+
+            <!-- Card B1: Chief Complaint & Full History (Image 2) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
                 <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <i data-lucide="brain" class="w-4 h-4 text-purple-600"></i> Neurological Demographics & C/O
-                    </h3>
-                    <span class="text-xs font-mono font-bold text-purple-600">Neuro Page 1</span>
+                    <h4 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="clipboard" class="w-4 h-4 text-purple-600"></i> • Chief Complain & History (Image 2)
+                    </h4>
+                    <span class="text-[11px] font-mono text-purple-600 font-bold">Image 2: Top Section</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Dominant Side</label>
-                        <select name="assessment_data[dominant_side]" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 font-bold text-slate-800">
-                            <option value="Right (R)">Right (R)</option>
-                            <option value="Left (L)">Left (L)</option>
-                            <option value="Ambidextrous">Ambidextrous</option>
-                        </select>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-700 mb-1">C/o (Chief Complaint)</label>
-                        <input type="text" name="assessment_data[neuro_complaints]" placeholder="e.g. Sudden weakness in left upper and lower extremity, slurred speech..."
-                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
-                    </div>
+                <!-- Chief Complaint -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700">
+                        • Chief complain <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea name="assessment_data[neuro_chief_complaint]" rows="2" placeholder="e.g. Inability to move right arm and leg, deviation of mouth, difficulty walking since 10 days post stroke..."
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">H/o Conditions</label>
-                        <input type="text" name="assessment_data[neuro_ho]" placeholder="HT / DM / Thyroidism / CVA..."
-                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                <!-- History 4-Grid matching photo: past H/O, Surgical H/O, Family H/O, associate factors -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-purple-50/30 p-4 rounded-xl border border-purple-100">
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-purple-950">• past H/O:</label>
+                        <input type="text" name="assessment_data[neuro_past_ho]" placeholder="HTN, DM, CVA/Stroke, TIA, Seizures..."
+                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Level of Consciousness</label>
-                        <select name="assessment_data[level_of_consciousness]" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
-                            <option value="Conscious & Alert">Conscious & Alert</option>
-                            <option value="Drowsy / Lethargic">Drowsy / Lethargic</option>
-                            <option value="Stuporous">Stuporous</option>
-                            <option value="Comatose">Comatose</option>
-                        </select>
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-purple-950">• Surgical H/O:</label>
+                        <input type="text" name="assessment_data[neuro_surgical_ho]" placeholder="Craniotomy, Burr hole, Spine surgery..."
+                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">GCS Scale (E / V / M)</label>
-                        <input type="text" name="assessment_data[gcs_scale]" placeholder="E4 V5 M6 (Total: 15/15)"
-                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-mono font-bold text-purple-700">
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-purple-950">• Family H/O:</label>
+                        <input type="text" name="assessment_data[neuro_family_ho]" placeholder="Hereditary, Stroke, Parkinson's -ve / +ve..."
+                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-purple-950">• associate factors:</label>
+                        <input type="text" name="assessment_data[neuro_associate_factors]" placeholder="Dysphagia, Aphasia, Incontinence, Tremors..."
+                               class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-semibold">
                     </div>
                 </div>
             </div>
 
-            <!-- Card B2: Sensory & Motor Examination -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Card B2: Observation & External Appliance (Image 2) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <h4 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="eye" class="w-4 h-4 text-purple-600"></i> • Observation & External Appliance (Image 2)
+                    </h4>
+                    <span class="text-[11px] font-mono text-purple-600 font-bold">Posture • Gait • Deformity • Aids</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- posture -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• posture (मुद्रा):</label>
+                        <input type="text" name="assessment_data[neuro_posture]" placeholder="Hemiplegic posture, slumped sitting, asymmetry..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                    </div>
+
+                    <!-- Gait -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• Gait (चाल):</label>
+                        <input type="text" name="assessment_data[neuro_gait]" id="neuroGaitInput" placeholder="Hemiplegic / Circumductory / Ataxic / Scissoring..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                        <div class="flex flex-wrap gap-1 text-[10px]">
+                            <button type="button" onclick="document.getElementById('neuroGaitInput').value='Hemiplegic (Circumduction) gait'" class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-bold">Hemiplegic</button>
+                            <button type="button" onclick="document.getElementById('neuroGaitInput').value='Ataxic (Broad-based) gait'" class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-bold">Ataxic</button>
+                            <button type="button" onclick="document.getElementById('neuroGaitInput').value='Non-ambulatory (Wheelchair)'" class="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-bold">Wheelchair</button>
+                        </div>
+                    </div>
+
+                    <!-- Deformity -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• Deformity (विकृति):</label>
+                        <input type="text" name="assessment_data[neuro_deformity]" placeholder="Claw hand, Foot drop, Wrist flexion contracture..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                    </div>
+                </div>
+
+                <!-- External Appliance Sub-tree (Image 2) -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-black text-slate-900 uppercase tracking-wide block">
+                        • External appliance (बाहरी सहायक उपकरण):
+                    </span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <!-- Functional aids -->
+                        <div class="bg-white p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="font-bold text-blue-900 block flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                                functional aids - walking aids / catheter
+                            </span>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_functional_aids][]" value="Walking Cane / Stick" class="rounded text-blue-600">
+                                    <span>Walking Cane / Stick</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_functional_aids][]" value="Walker" class="rounded text-blue-600">
+                                    <span>Walker</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_functional_aids][]" value="Wheelchair" class="rounded text-blue-600">
+                                    <span>Wheelchair</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_functional_aids][]" value="Catheter" class="rounded text-blue-600">
+                                    <span>Catheter (Foley's)</span>
+                                </label>
+                            </div>
+                            <input type="text" name="assessment_data[neuro_functional_aids_notes]" placeholder="Additional functional aid details..."
+                                   class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                        </div>
+
+                        <!-- Protective aids -->
+                        <div class="bg-white p-3.5 rounded-lg border border-slate-200 space-y-2">
+                            <span class="font-bold text-purple-900 block flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                                protective aids - brace / prosthetics
+                            </span>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_protective_aids][]" value="AFO (Ankle Foot Orthosis)" class="rounded text-purple-600">
+                                    <span>AFO (Ankle Foot Orthosis)</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_protective_aids][]" value="Cock-up Splint" class="rounded text-purple-600">
+                                    <span>Cock-up / Hand Splint</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_protective_aids][]" value="Cervical Collar" class="rounded text-purple-600">
+                                    <span>Cervical Collar</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" name="assessment_data[neuro_protective_aids][]" value="Prosthetics" class="rounded text-purple-600">
+                                    <span>Prosthetics</span>
+                                </label>
+                            </div>
+                            <input type="text" name="assessment_data[neuro_protective_aids_notes]" placeholder="Brace specifications / wearing schedule..."
+                                   class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card B3: Examination (Consciousness, Orientation, Behaviour, Memory, Special Senses - Image 2) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <h4 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="brain-circuit" class="w-4 h-4 text-purple-600"></i> • Examination (Consciousness & Higher Functions - Image 2)
+                    </h4>
+                    <span class="text-[11px] font-mono text-purple-600 font-bold">Image 2: Bottom Section</span>
+                </div>
+
+                <!-- Consciousness Level (Alert, Lethargy, Confusion, Coma) -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">
+                        • consciousness level (चेतना का स्तर):
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer font-bold text-slate-800 hover:border-purple-300">
+                            <input type="radio" name="assessment_data[neuro_consciousness_level]" value="Alert" checked class="text-purple-600">
+                            <span>✅ Alert (जागृत)</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer font-bold text-slate-800 hover:border-purple-300">
+                            <input type="radio" name="assessment_data[neuro_consciousness_level]" value="Lethargy" class="text-purple-600">
+                            <span>💤 Lethargy (सुस्त)</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer font-bold text-slate-800 hover:border-purple-300">
+                            <input type="radio" name="assessment_data[neuro_consciousness_level]" value="Confusion" class="text-purple-600">
+                            <span>🌀 Confusion (भ्रमित)</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer font-bold text-slate-800 hover:border-purple-300">
+                            <input type="radio" name="assessment_data[neuro_consciousness_level]" value="Coma" class="text-purple-600">
+                            <span>🛑 Coma (अचेत)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Orientation, Behaviour, Memory -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• Orientation (समय, स्थान, व्यक्ति):</label>
+                        <input type="text" name="assessment_data[neuro_orientation]" placeholder="Oriented to Time, Place & Person (Intact)"
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• Behaviour (व्यवहार):</label>
+                        <input type="text" name="assessment_data[neuro_behaviour]" placeholder="Cooperative, Calm, Irritable, Agitated..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">• memory (स्मरण शक्ति):</label>
+                        <input type="text" name="assessment_data[neuro_memory]" placeholder="Immediate, Recent & Remote memory intact..."
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold">
+                    </div>
+                </div>
+
+                <!-- special sense (Vision, Hearing, Smell, Taste, Tactile) -->
+                <div class="p-4 bg-purple-50/40 rounded-xl border border-purple-200/70 space-y-3">
+                    <span class="text-xs font-black text-purple-950 uppercase tracking-wide block">
+                        • special sense (विशेष संवेदनाएं - Image 2):
+                    </span>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-xs">
+                        <div class="bg-white p-2.5 rounded-lg border border-purple-100 space-y-1">
+                            <span class="font-bold text-slate-700 text-[11px] block">👁️ Vision</span>
+                            <select name="assessment_data[neuro_sense_vision]" class="w-full px-2 py-1 text-xs rounded border border-slate-200 font-medium">
+                                <option value="Normal">Normal</option>
+                                <option value="Blurry / Diplopia">Blurry / Diplopia</option>
+                                <option value="Visual Field Deficit">Field Deficit</option>
+                                <option value="Impaired">Impaired</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-lg border border-purple-100 space-y-1">
+                            <span class="font-bold text-slate-700 text-[11px] block">👂 Hearing</span>
+                            <select name="assessment_data[neuro_sense_hearing]" class="w-full px-2 py-1 text-xs rounded border border-slate-200 font-medium">
+                                <option value="Normal">Normal</option>
+                                <option value="Impaired (Right)">Impaired (R)</option>
+                                <option value="Impaired (Left)">Impaired (L)</option>
+                                <option value="Tinnitus">Tinnitus</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-lg border border-purple-100 space-y-1">
+                            <span class="font-bold text-slate-700 text-[11px] block">👃 Smell</span>
+                            <select name="assessment_data[neuro_sense_smell]" class="w-full px-2 py-1 text-xs rounded border border-slate-200 font-medium">
+                                <option value="Normal">Normal</option>
+                                <option value="Anosmia">Anosmia (Loss)</option>
+                                <option value="Impaired">Impaired</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-lg border border-purple-100 space-y-1">
+                            <span class="font-bold text-slate-700 text-[11px] block">👅 Taste</span>
+                            <select name="assessment_data[neuro_sense_taste]" class="w-full px-2 py-1 text-xs rounded border border-slate-200 font-medium">
+                                <option value="Normal">Normal</option>
+                                <option value="Impaired">Impaired</option>
+                                <option value="Loss of Taste">Loss of Taste</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-lg border border-purple-100 space-y-1">
+                            <span class="font-bold text-slate-700 text-[11px] block">✋ Tactile</span>
+                            <select name="assessment_data[neuro_sense_tactile]" class="w-full px-2 py-1 text-xs rounded border border-slate-200 font-medium">
+                                <option value="Normal">Normal</option>
+                                <option value="Hypoesthesia (Reduced)">Hypoesthesia</option>
+                                <option value="Hyperesthesia">Hyperesthesia</option>
+                                <option value="Numb / Absent">Numb / Absent</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card B4: Sensory, Motor, Reflex, Cortical Reflex, Investigation, Treatment Plan (Image 3) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <h4 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-purple-600"></i> • Sensory, Motor, Reflex & Investigation (Image 3 - Page 2)
+                    </h4>
+                    <span class="text-[11px] font-mono text-purple-600 font-bold">Image 3 Standard</span>
+                </div>
+
                 <!-- Sensory Examination -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <i data-lucide="zap" class="w-4 h-4 text-purple-600"></i> Sensory Examination
-                    </h3>
-                    <div class="space-y-3 text-xs">
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Sensory Deficit:</label>
-                            <input type="text" name="assessment_data[sensory_deficit]" placeholder="Present / Absent / Hemisensory loss" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700">
+                        • Sensory examination (संवेदी परीक्षण):
+                    </label>
+                    <textarea name="assessment_data[neuro_sensory_exam]" rows="2" placeholder="Superficial sensations (Touch, Pain, Temp), Deep sensations (Proprioception, Vibration), Cortical sensations intact / impaired in affected side..."
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs"></textarea>
+                </div>
+
+                <!-- Motor Examination (ROM, MMT, TONE) -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-black text-slate-900 uppercase tracking-wide block">
+                        • Motor examination:
+                    </span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- ROM (Range of Motion):</label>
+                            <input type="text" name="assessment_data[neuro_motor_rom]" placeholder="Full / Restricted / Spastic resistance in flexors..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
                         </div>
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Superficial Sensations:</label>
-                            <input type="text" name="assessment_data[superficial_sensations]" placeholder="Pain, Touch, Temp intact" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- MMT (Grade 0 - 5):</label>
+                            <input type="text" name="assessment_data[neuro_motor_mmt]" placeholder="R: 5/5 | L: 2/5 (Shoulder 2/5, Hand 1/5)..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
                         </div>
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Deep Sensations:</label>
-                            <input type="text" name="assessment_data[deep_sensations]" placeholder="Proprioception, Vibration, Deep pain" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Cortical Sensations:</label>
-                            <input type="text" name="assessment_data[cortical_sensations]" placeholder="Stereognosis, 2-point discrimination" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Dermatome Involved:</label>
-                            <input type="text" name="assessment_data[dermatome_involved]" placeholder="e.g. C5-C6 / L4-L5 / None" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- TONE (मांसपेशियों का टोन):</label>
+                            <input type="text" name="assessment_data[neuro_motor_tone]" placeholder="Hypertonia / Spasticity Grade 1+ (Modified Ashworth) / Normal / Flaccid..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
                         </div>
                     </div>
                 </div>
 
-                <!-- Motor Examination & Reflexes -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <i data-lucide="shield" class="w-4 h-4 text-purple-600"></i> Motor Examination & Reflexes
-                    </h3>
-                    <div class="space-y-3 text-xs">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">MMT (R / L):</label>
-                                <input type="text" name="assessment_data[neuro_mmt]" placeholder="R: 5/5 | L: 3/5" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Tone (R / L):</label>
-                                <input type="text" name="assessment_data[neuro_tone]" placeholder="Normal / Spastic (Grade 1+)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200">
-                            </div>
+                <!-- Reflex (DTR & Synergic pattern) -->
+                <div class="p-4 bg-purple-50/40 rounded-xl border border-purple-200 space-y-3">
+                    <span class="text-xs font-black text-purple-950 uppercase tracking-wide block">
+                        • Reflex & Pattern:
+                    </span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-purple-900">- DTR (Deep Tendon Reflexes):</label>
+                            <input type="text" name="assessment_data[neuro_reflex_dtr]" placeholder="Biceps (+++ Exaggerated), Knee (+++), Ankle Clonus positive..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Muscle Girth:</label>
-                                <input type="text" name="assessment_data[neuro_girth]" placeholder="Symmetrical / Wasting" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Fasciculations:</label>
-                                <input type="text" name="assessment_data[neuro_fasciculations]" placeholder="Absent / Present in calf" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-600 mb-1">Myotome Involved:</label>
-                            <input type="text" name="assessment_data[myotome_involved]" placeholder="e.g. C7 wrist extensors, L5 extensor hallucis" class="w-full px-3 py-1.5 rounded-lg border border-slate-200">
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100">
-                            <div>
-                                <label class="block font-bold text-[10px] text-slate-500 uppercase">Superficial Ref.:</label>
-                                <input type="text" name="assessment_data[superficial_reflexes]" placeholder="Plantar flexor" class="w-full px-2 py-1 rounded border border-slate-200 text-xs">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-[10px] text-slate-500 uppercase">Deep Tendon (DTR):</label>
-                                <input type="text" name="assessment_data[deep_tendon_reflexes]" placeholder="Biceps ++, Knee ++" class="w-full px-2 py-1 rounded border border-slate-200 text-xs">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-[10px] text-slate-500 uppercase">Neonatal Ref.:</label>
-                                <input type="text" name="assessment_data[neonatal_reflexes]" placeholder="N/A" class="w-full px-2 py-1 rounded border border-slate-200 text-xs">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-purple-900">- pattern (Synergic Pattern):</label>
+                            <div class="flex flex-wrap gap-2 pt-0.5">
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 cursor-pointer">
+                                    <input type="checkbox" name="assessment_data[neuro_synergic_pattern][]" value="Flexors synergic pattern" class="rounded text-purple-600">
+                                    <span>Flexors synergic pattern</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-purple-200 font-bold text-purple-950 cursor-pointer">
+                                    <input type="checkbox" name="assessment_data[neuro_synergic_pattern][]" value="Extensor synergic pattern" class="rounded text-purple-600">
+                                    <span>Extensor synergic pattern</span>
+                                </label>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Card B3: Higher Mental Functions & Cranial Nerve Examination I - XII -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <i data-lucide="eye" class="w-4 h-4 text-purple-600"></i> Higher Mental & Cranial Nerve Examination (I - XII)
-                        </h3>
-                        <p class="text-xs text-slate-500">Record functional status and bilateral cranial nerve responses</p>
-                    </div>
-                    <span class="text-xs font-mono font-bold text-purple-600">Neuro Page 2</span>
-                </div>
-
-                <!-- Higher mental functional -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">Orientation:</label>
-                        <input type="text" name="assessment_data[orientation]" placeholder="Time / Place / Person: Intact" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">Alteration / Attn:</label>
-                        <input type="text" name="assessment_data[alteration]" placeholder="Attentive" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">Calculation:</label>
-                        <input type="text" name="assessment_data[calculation]" placeholder="Serial 7s normal" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">Speech:</label>
-                        <input type="text" name="assessment_data[speech]" placeholder="Clear / Dysarthria" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">Memory:</label>
-                        <input type="text" name="assessment_data[memory]" placeholder="Immediate / Recent intact" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
+                <!-- Cortical level reflex (Balance, Equilibrium, Coordination) -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-black text-slate-900 uppercase tracking-wide block">
+                        • Cortical level reflex:
+                    </span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- Balance (संतुलन):</label>
+                            <input type="text" name="assessment_data[neuro_cortical_balance]" placeholder="Static sitting balance intact, standing impaired, Berg scale..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- Equilibrium:</label>
+                            <input type="text" name="assessment_data[neuro_cortical_equilibrium]" placeholder="Equilibrium reactions delayed on affected side..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block font-bold text-slate-700">- Coordination:</label>
+                            <input type="text" name="assessment_data[neuro_cortical_coordination]" placeholder="Finger to nose dysmetria, heel to shin impaired..."
+                                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-semibold">
+                        </div>
                     </div>
                 </div>
 
-                <!-- Cranial Nerve Examination I - XII Table -->
-                <div class="overflow-x-auto text-xs">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-purple-50 text-purple-900 font-bold border-b border-purple-200 uppercase text-[10px]">
-                                <th class="py-2.5 px-3">Cranial Nerve</th>
-                                <th class="py-2.5 px-3 w-48 text-purple-800">Right (R)</th>
-                                <th class="py-2.5 px-3 w-48 text-purple-800">Left (L)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">I - Olfactory (Smell)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_1_r]" placeholder="Intact" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_1_l]" placeholder="Intact" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">II - Optic (Visual acuity & fields)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_2_r]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_2_l]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">III, IV, VI - Oculomotor, Trochlear, Abducens (Eye movements)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_346_r]" placeholder="Full movements, PERLA" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_346_l]" placeholder="Full movements, PERLA" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">V - Trigeminal (Facial sensation, jaw)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_5_r]" placeholder="Intact" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_5_l]" placeholder="Intact" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">VII - Facial (Facial expressions, taste)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_7_r]" placeholder="Normal / Deviation" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_7_l]" placeholder="Normal / Bell's palsy" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">VIII - Vestibulocochlear (Hearing & balance)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_8_r]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_8_l]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">IX, X - Glossopharyngeal, Vagus (Palate, gag, swallow)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_910_r]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_910_l]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">XI - Accessory (Sternocleidomastoid & trapezius)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_11_r]" placeholder="Normal shoulder shrug" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_11_l]" placeholder="Normal" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-3 font-bold text-slate-800">XII - Hypoglossal (Tongue movements)</td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_12_r]" placeholder="Central, no deviation" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                                <td class="py-2 px-3"><input type="text" name="assessment_data[cn_12_l]" placeholder="Central" class="w-full px-2 py-1 text-xs rounded border border-slate-200"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Advised Investigations -->
-                <div class="pt-4 border-t border-slate-100 space-y-2">
-                    <label class="block text-xs font-bold text-slate-700">Advised Investigations</label>
-                    <div class="flex flex-wrap gap-4 text-xs">
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="X-ray" class="rounded text-purple-600"> X-ray
+                <!-- Investigation (CT, MRI, EMG, NCV) -->
+                <div class="p-4 bg-indigo-50/40 rounded-xl border border-indigo-200 space-y-3">
+                    <span class="text-xs font-black text-indigo-950 uppercase tracking-wide block">
+                        • Investigation (जाँच - CT, MRI, EMG, NCV):
+                    </span>
+                    <div class="flex flex-wrap gap-3 text-xs">
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold text-indigo-950 cursor-pointer shadow-xs">
+                            <input type="checkbox" name="assessment_data[neuro_investigation][]" value="CT" class="rounded text-indigo-600">
+                            <span>🧠 CT Scan</span>
                         </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="CT Scan" class="rounded text-purple-600"> CT Scan
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold text-indigo-950 cursor-pointer shadow-xs">
+                            <input type="checkbox" name="assessment_data[neuro_investigation][]" value="MRI" class="rounded text-indigo-600">
+                            <span>🧲 MRI Brain / Spine</span>
                         </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="MRI" class="rounded text-purple-600"> MRI
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold text-indigo-950 cursor-pointer shadow-xs">
+                            <input type="checkbox" name="assessment_data[neuro_investigation][]" value="EMG" class="rounded text-indigo-600">
+                            <span>⚡ EMG</span>
                         </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="NCV" class="rounded text-purple-600"> NCV
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="EMG" class="rounded text-purple-600"> EMG
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="USG" class="rounded text-purple-600"> USG
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
-                            <input type="checkbox" name="assessment_data[investigations][]" value="Colour Doppler" class="rounded text-purple-600"> Colour Doppler
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 font-bold text-indigo-950 cursor-pointer shadow-xs">
+                            <input type="checkbox" name="assessment_data[neuro_investigation][]" value="NCV" class="rounded text-indigo-600">
+                            <span>📡 NCV (Nerve Conduction)</span>
                         </label>
                     </div>
-                    <input type="text" name="assessment_data[investigation_notes]" placeholder="Specific region / MRI Cervical Spine / NCV bilateral lower limbs findings..."
-                           class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 mt-2">
+                    <input type="text" name="assessment_data[neuro_investigation_notes]" placeholder="Key investigation findings (e.g. Infarct in Left MCA territory, NCV axonal neuropathy)..."
+                           class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white">
+                </div>
+
+                <!-- Treatment plan -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-800">
+                        • Treatment plan (पुनर्वास व उपचार योजना - Image 3):
+                    </label>
+                    <textarea name="assessment_data[neuro_treatment_plan]" rows="3" placeholder="Neurodevelopmental therapy (NDT), Bobath approach, PNF patterns, gait training, spasticity management, functional electrical stimulation..."
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium"></textarea>
                 </div>
 
             </div>
@@ -994,19 +1349,62 @@ function setAssessmentType(type) {
     }
 }
 
+// VAS Score Badge Updater
+function updateVasBadge(val) {
+    const badge = document.getElementById('vasScoreBadge');
+    if (!badge) return;
+    let label = 'No Pain';
+    let colorClass = 'bg-emerald-600';
+    if (val == 0) {
+        label = 'No Pain';
+        colorClass = 'bg-emerald-600';
+    } else if (val <= 3) {
+        label = 'Mild Pain';
+        colorClass = 'bg-blue-600';
+    } else if (val <= 6) {
+        label = 'Moderate Pain';
+        colorClass = 'bg-amber-600';
+    } else if (val <= 9) {
+        label = 'Severe Pain';
+        colorClass = 'bg-rose-600';
+    } else {
+        label = 'Worst Possible Pain';
+        colorClass = 'bg-red-800';
+    }
+    badge.className = `px-3 py-1 rounded-full text-white font-black text-sm shadow-sm ${colorClass}`;
+    badge.innerText = `${val} / 10 (${label})`;
+}
+
+// Quick Chip Appender for Inputs
+function appendInputVal(inputId, text) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.value.trim() === '') {
+        input.value = text;
+    } else if (!input.value.includes(text)) {
+        input.value += ', ' + text;
+    }
+}
+
 // Patient change handler
 function handlePatientChange(select) {
     const opt = select.options[select.selectedIndex];
     if (opt && opt.value) {
+        const text = opt.text;
         const age = opt.getAttribute('data-age');
         const gender = opt.getAttribute('data-gender');
         const clinicId = opt.getAttribute('data-clinic-id');
-        const occupation = opt.getAttribute('data-occupation') || '-';
+        const occupation = opt.getAttribute('data-occupation') || '';
         const address = opt.getAttribute('data-address') || '-';
 
-        document.getElementById('previewDemographics').innerText = `${age} yrs, ${gender}`;
-        document.getElementById('previewOccupation').innerText = occupation;
-        document.getElementById('previewAddress').innerText = address;
+        const demoElem = document.getElementById('previewDemographics');
+        if (demoElem) demoElem.innerText = `${text}`;
+
+        const occInput = document.getElementById('previewOccupationInput');
+        if (occInput) occInput.value = occupation;
+
+        const addrElem = document.getElementById('previewAddress');
+        if (addrElem) addrElem.innerText = address;
 
         if (clinicId) {
             const clinicSelect = document.getElementById('clinicSelect');

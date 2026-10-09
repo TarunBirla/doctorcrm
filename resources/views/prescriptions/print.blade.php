@@ -132,23 +132,29 @@
             </h2>
         </div>
 
-        <!-- Patient Demographics Table -->
+        <!-- Patient Demographics Table (Exact Match to Physical Assessment Sheet) -->
         <div class="border border-slate-300 rounded-xl overflow-hidden text-xs">
-            <div class="bg-slate-50 p-3 grid grid-cols-2 md:grid-cols-4 gap-3 border-b border-slate-200">
+            <div class="bg-slate-50 p-3 grid grid-cols-2 md:grid-cols-5 gap-3 border-b border-slate-200">
                 <div>
-                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Name (मरीज का नाम):</span>
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">NAME (मरीज का नाम):</span>
                     <strong class="text-slate-900 font-bold text-sm">{{ $prescription->patient->full_name }}</strong>
                 </div>
                 <div>
-                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Age / Sex (उम्र / लिंग):</span>
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">AGE / SEX (उम्र / लिंग):</span>
                     <span class="font-bold text-slate-800">{{ $prescription->patient->age }} Yrs / {{ $prescription->patient->gender }}</span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Occupation (व्यवसाय):</span>
-                    <span class="font-semibold text-slate-800">{{ $prescription->patient->occupation ?? 'N/A' }}</span>
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">AFFECTED SIDE:</span>
+                    <span class="font-black text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded text-[11px] inline-block">
+                        {{ $data['affected_side'] ?? 'Right (R)' }}
+                    </span>
                 </div>
                 <div>
-                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Date (दिनांक):</span>
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">OCCUPATION (व्यवसाय):</span>
+                    <span class="font-semibold text-slate-800">{{ $data['occupation'] ?? $prescription->patient->occupation ?? 'General' }}</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">DATE (दिनांक):</span>
                     <span class="font-bold text-slate-900 font-mono">{{ $prescription->prescription_date->format('d/m/Y') }}</span>
                 </div>
             </div>
@@ -157,7 +163,7 @@
                     <span class="text-slate-400 font-bold uppercase text-[10px]">Address:</span>
                     <span class="text-slate-700 font-medium">{{ $prescription->patient->address ?? '-' }}, {{ $prescription->patient->city }}</span>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-4">
                     <div>
                         <span class="text-slate-400 font-bold uppercase text-[10px]">Patient ID:</span>
                         <span class="font-mono font-bold text-blue-800">{{ $prescription->patient->patient_id }}</span>
@@ -180,150 +186,192 @@
         <!-- ASSESSMENT DETAILS (TYPE 1: MUSCULOSKELETAL)                   -->
         <!-- ============================================================== -->
         @if(!$isNeuro)
-            <div class="space-y-4 text-xs">
+            <div class="space-y-3.5 text-xs">
                 
-                <!-- Complaints & Vitals -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-200 rounded-xl p-4 bg-slate-50/30">
-                    <div class="space-y-2">
-                        <p><strong>C/O:</strong> <span class="text-slate-700">{{ $data['chief_complaints'] ?? 'General pain and restricted movement' }}</span></p>
-                        <p><strong>H/O:</strong> 
-                            <span class="text-slate-700">
-                                @if(!empty($data['ho_conditions']))
-                                    {{ implode(', ', (array)$data['ho_conditions']) }}
-                                @else
-                                    None reported
-                                @endif
-                            </span>
-                        </p>
-                        <p><strong>Family History:</strong> <span class="text-slate-700">{{ $data['family_history'] ?? '-ve' }}</span></p>
-                        <p><strong>Personal History:</strong> <span class="text-slate-700">{{ $data['personal_history'] ?? '-' }}</span></p>
-                        <p><strong>Present Medical History:</strong> <span class="text-slate-700">{{ $data['present_history'] ?? '-' }}</span></p>
+                <!-- 1. CHIEF COMPLAINT, DURATION, PAIN AGGRAVATION, ASSOCIATE FACTORS, PAST HISTORY -->
+                <div class="border border-slate-300 rounded-xl p-3.5 bg-slate-50/40 space-y-2.5">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-2">
+                            <strong class="text-slate-800 uppercase text-[10px] block">• CHIEF COMPLAINT:</strong>
+                            <p class="font-bold text-slate-900 mt-0.5">{{ $data['chief_complaint'] ?? $data['chief_complaints'] ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-slate-800 uppercase text-[10px] block">• DURATION:</strong>
+                            <span class="font-bold text-slate-900 mt-0.5 block">{{ $data['duration'] ?? '-' }}</span>
+                        </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <!-- Vitals Table -->
-                        <div class="bg-white p-2.5 rounded-lg border border-slate-200">
-                            <span class="font-bold text-[10px] text-slate-400 uppercase block mb-1.5">Vitalsign:</span>
-                            <div class="grid grid-cols-4 gap-2 text-center text-[11px]">
-                                <div class="bg-slate-50 p-1.5 rounded">
-                                    <span class="text-[9px] text-slate-400 block font-bold">HR (/min)</span>
-                                    <strong class="text-slate-800">{{ $data['vitals_hr'] ?? '72' }}</strong>
-                                </div>
-                                <div class="bg-slate-50 p-1.5 rounded">
-                                    <span class="text-[9px] text-slate-400 block font-bold">RR (/min)</span>
-                                    <strong class="text-slate-800">{{ $data['vitals_rr'] ?? '18' }}</strong>
-                                </div>
-                                <div class="bg-slate-50 p-1.5 rounded">
-                                    <span class="text-[9px] text-slate-400 block font-bold">Temp</span>
-                                    <strong class="text-slate-800">{{ $data['vitals_temp'] ?? '98.4°F' }}</strong>
-                                </div>
-                                <div class="bg-slate-50 p-1.5 rounded">
-                                    <span class="text-[9px] text-slate-400 block font-bold">BP</span>
-                                    <strong class="text-slate-800">{{ $data['vitals_bp'] ?? '120/80' }}</strong>
-                                </div>
+                    <!-- PAIN AGGRAVATION + VAS SCALE -->
+                    <div class="p-2.5 bg-amber-50/70 rounded-lg border border-amber-200 grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                            <strong class="text-amber-950 uppercase text-[10px] block">• PAIN aggravation - day / night / activities:</strong>
+                            <div class="flex flex-wrap gap-1 mt-0.5">
+                                @forelse((array)($data['pain_aggravation'] ?? []) as $pa)
+                                    <span class="px-2 py-0.5 bg-amber-600 text-white rounded font-bold text-[10px]">✓ {{ $pa }}</span>
+                                @empty
+                                    <span class="text-slate-400">Not recorded</span>
+                                @endforelse
                             </div>
+                            @if(!empty($data['pain_aggravation_activities']))
+                                <p class="text-amber-900 text-[10px] mt-1">{{ $data['pain_aggravation_activities'] }}</p>
+                            @endif
                         </div>
-
-                        <!-- VAS PAIN SCALE -->
-                        <div class="bg-amber-50/50 p-2.5 rounded-lg border border-amber-200/60">
-                            <div class="flex items-center justify-between text-[11px]">
-                                <strong class="text-amber-900 font-bold">Pain (VAS Scale):</strong>
-                                <span class="font-black px-2 py-0.5 rounded bg-amber-600 text-white text-xs">
-                                    {{ $data['vas_pain_score'] ?? '40' }} / 70
+                        <div>
+                            <strong class="text-amber-950 uppercase text-[10px] block">+ VAS Scale (0 - 10):</strong>
+                            @php
+                                $vasScore = $data['vas_scale'] ?? (isset($data['vas_pain_score']) ? round($data['vas_pain_score']/7) : 4);
+                            @endphp
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-2.5 py-0.5 rounded bg-amber-700 text-white font-black text-xs">Score: {{ $vasScore }} / 10</span>
+                                <span class="text-slate-600 text-[10px]">
+                                    ({{ $vasScore <= 3 ? 'Mild' : ($vasScore <= 6 ? 'Moderate' : 'Severe') }})
                                 </span>
                             </div>
-                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-1.5">
-                                <div class="bg-amber-500 h-full" style="width: {{ min(100, (($data['vas_pain_score'] ?? 40) / 70) * 100) }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- ASSOCIATE FACTORS & PAST HISTORY -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] pt-1">
+                        <div>
+                            <strong class="text-slate-800 uppercase text-[10px] block">• Associate factors:</strong>
+                            <div class="flex flex-wrap gap-1 mt-0.5">
+                                @forelse((array)($data['associate_factors'] ?? []) as $af)
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-900 rounded font-bold text-[10px]">⚡ {{ $af }}</span>
+                                @empty
+                                    <span class="text-slate-400">Nil</span>
+                                @endforelse
                             </div>
-                            <div class="flex justify-between text-[9px] text-slate-400 mt-1">
-                                <span>0 (No pain)</span>
-                                <span>35 (Moderate)</span>
-                                <span>70 (Severe)</span>
-                            </div>
+                            @if(!empty($data['associate_factors_notes']))
+                                <span class="text-slate-600 text-[10px] block mt-0.5">({{ $data['associate_factors_notes'] }})</span>
+                            @endif
+                        </div>
+                        <div>
+                            <strong class="text-slate-800 uppercase text-[10px] block">• PAST history:</strong>
+                            <p class="text-slate-800 mt-0.5">{{ $data['past_history'] ?? 'None reported' }}</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- On Look & Palpation 2-Column Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-200 rounded-xl p-4">
-                    <!-- On look (observation) -->
-                    <div class="space-y-1.5 text-[11px]">
-                        <strong class="block text-slate-900 text-xs uppercase border-b border-slate-200 pb-1">On look (observation)</strong>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Gait:</span> <span class="col-span-2 font-semibold">{{ $data['gait'] ?? 'Antalgic' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Body Built:</span> <span class="col-span-2 font-semibold">{{ $data['body_built'] ?? 'Normal' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Posture:</span> <span class="col-span-2 font-semibold">{{ $data['posture'] ?? 'Mild kyphosis' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Facial exp.:</span> <span class="col-span-2 font-semibold">{{ $data['facial_expression'] ?? 'Distressed with pain' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Deformity:</span> <span class="col-span-2 font-semibold">{{ $data['deformity'] ?? 'None' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Muscle:</span> <span class="col-span-2 font-semibold">{{ $data['muscle_state'] ?? 'Normal' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Foot Deformity:</span> <span class="col-span-2 font-semibold">{{ $data['foot_deformity'] ?? 'Normal' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Skin color:</span> <span class="col-span-2 font-semibold">{{ $data['skin_color'] ?? 'Normal' }}</span></div>
+                <!-- 2. OBSERVATION & ADVICE & MMT -->
+                <div class="border border-slate-300 rounded-xl p-3 bg-white space-y-2 text-[11px]">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• Posture:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['observation_posture'] ?? $data['posture'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• Tenderness:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['observation_tenderness'] ?? $data['tenderness'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• GAIT:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['observation_gait'] ?? $data['gait'] ?? 'Normal' }}</span>
+                        </div>
                     </div>
 
-                    <!-- On Palpation -->
-                    <div class="space-y-1.5 text-[11px]">
-                        <strong class="block text-slate-900 text-xs uppercase border-b border-slate-200 pb-1">On Palpation</strong>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Crepitus:</span> <span class="col-span-2 font-semibold">{{ $data['crepitus'] ?? 'Absent' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Temp:</span> <span class="col-span-2 font-semibold">{{ $data['palpation_temp'] ?? 'Normal' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Tenderness:</span> <span class="col-span-2 font-semibold">{{ $data['tenderness'] ?? 'Grade II localized' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Bony Contour:</span> <span class="col-span-2 font-semibold">{{ $data['bony_contour'] ?? 'Intact' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Musspasm:</span> <span class="col-span-2 font-semibold text-rose-800">{{ $data['muscle_spasm'] ?? 'Present' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Rigidity:</span> <span class="col-span-2 font-semibold">{{ $data['rigidity'] ?? 'Nil' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Balance/Prop.:</span> <span class="col-span-2 font-semibold">{{ $data['balance_proprioception'] ?? 'Normal' }}</span></div>
-                        <div class="grid grid-cols-3"><span class="text-slate-500 font-bold">Vestibular:</span> <span class="col-span-2 font-semibold">{{ $data['vestibular_exam'] ?? 'Normal' }}</span></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• Advice (X-ray, MRI):</strong>
+                            <div class="flex flex-wrap gap-1 mt-0.5">
+                                @forelse((array)($data['advice_imaging'] ?? []) as $adv)
+                                    <span class="px-2 py-0.5 bg-slate-800 text-white rounded font-bold text-[10px]">{{ $adv }}</span>
+                                @empty
+                                    <span class="text-slate-400">None</span>
+                                @endforelse
+                            </div>
+                            @if(!empty($data['advice_notes']))
+                                <span class="text-slate-600 text-[10px] block mt-0.5">({{ $data['advice_notes'] }})</span>
+                            @endif
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• MMT:</strong>
+                            <span class="text-slate-900 font-bold">R: {{ $data['mmt_right'] ?? '-' }} | L: {{ $data['mmt_left'] ?? '-' }}</span>
+                            @if(!empty($data['mmt_notes']))
+                                <span class="text-slate-600 text-[10px] block">({{ $data['mmt_notes'] }})</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                <!-- Bilateral Examination Table (R vs L) -->
-                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <!-- 3. RANGE OF MOTION (Flexion, Abduction, Extension, ER, IR) -->
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
                     <table class="w-full text-left text-[11px]">
-                        <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                        <thead class="bg-slate-100 font-bold text-slate-700 uppercase text-[10px]">
                             <tr>
-                                <th class="p-2 pl-3">On Examination Parameter</th>
-                                <th class="p-2 w-48 text-blue-900">Right (R)</th>
-                                <th class="p-2 w-48 text-indigo-900">Left (L)</th>
+                                <th class="p-1.5 pl-3">• RANGE OF MOTION</th>
+                                <th class="p-1.5 w-36 text-blue-900">Right (R)</th>
+                                <th class="p-1.5 w-36 text-indigo-900">Left (L)</th>
+                                <th class="p-1.5">Notes</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr>
-                                <td class="p-2 pl-3 font-bold">ROM (Range of Motion)</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['rom_right'] ?? 'Full' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['rom_left'] ?? 'Full' }}</td>
+                                <td class="p-1.5 pl-3 font-bold">Flexion</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_flexion_r'] ?? $data['rom_right'] ?? '-' }}</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_flexion_l'] ?? $data['rom_left'] ?? '-' }}</td>
+                                <td class="p-1.5 text-slate-500">{{ $data['rom_flexion_notes'] ?? '-' }}</td>
                             </tr>
                             <tr>
-                                <td class="p-2 pl-3 font-bold">MMT Grade (0 - 5)</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['mmt_right'] ?? 'Grade 5/5' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['mmt_left'] ?? 'Grade 5/5' }}</td>
+                                <td class="p-1.5 pl-3 font-bold">Abduction</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_abduction_r'] ?? '-' }}</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_abduction_l'] ?? '-' }}</td>
+                                <td class="p-1.5 text-slate-500">{{ $data['rom_abduction_notes'] ?? '-' }}</td>
                             </tr>
                             <tr>
-                                <td class="p-2 pl-3 font-bold">Co-ordination (UL / LL)</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['coord_ul_right'] ?? 'Normal' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['coord_ul_left'] ?? 'Normal' }}</td>
+                                <td class="p-1.5 pl-3 font-bold">Extension</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_extension_r'] ?? '-' }}</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_extension_l'] ?? '-' }}</td>
+                                <td class="p-1.5 text-slate-500">{{ $data['rom_extension_notes'] ?? '-' }}</td>
                             </tr>
                             <tr>
-                                <td class="p-2 pl-3 font-bold">Special Tests (SLR / Faber / etc.)</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['special_tests_right'] ?? 'Negative' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['special_tests_left'] ?? 'Negative' }}</td>
+                                <td class="p-1.5 pl-3 font-bold">ER (External Rotation)</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_er_r'] ?? '-' }}</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_er_l'] ?? '-' }}</td>
+                                <td class="p-1.5 text-slate-500">{{ $data['rom_er_notes'] ?? '-' }}</td>
                             </tr>
                             <tr>
-                                <td class="p-2 pl-3 font-bold">Neural Tension (ULTT / LLTT)</td>
-                                <td class="p-2 font-semibold text-slate-800">ULTT: {{ $data['ultt_right'] ?? '-ve' }} | LLTT: {{ $data['lltt_right'] ?? '-ve' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">ULTT: {{ $data['ultt_left'] ?? '-ve' }} | LLTT: {{ $data['lltt_left'] ?? '-ve' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-2 pl-3 font-bold">For VBI / C-Spine TOS</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['vbi_right'] ?? 'Negative' }}</td>
-                                <td class="p-2 font-semibold text-slate-800">{{ $data['vbi_left'] ?? 'Negative' }}</td>
+                                <td class="p-1.5 pl-3 font-bold">IR (Internal Rotation)</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_ir_r'] ?? '-' }}</td>
+                                <td class="p-1.5 font-semibold">{{ $data['rom_ir_l'] ?? '-' }}</td>
+                                <td class="p-1.5 text-slate-500">{{ $data['rom_ir_notes'] ?? '-' }}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Osteopathic terms & LLD -->
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div><strong>LLD (Limb Length):</strong> {{ $data['lld'] ?? 'Equal' }}</div>
-                    <div><strong>Muscle Girth:</strong> {{ $data['muscle_girth'] ?? 'Symmetrical' }}</div>
-                    <div><strong>TOS Deficits:</strong> {{ $data['tos_deficits'] ?? 'None' }}</div>
-                    <div><strong>Osteopathic Findings:</strong> {{ $data['osteopathic_terms'] ?? 'Normal alignment' }}</div>
+                <!-- 4. SPECIAL TEST (Image 1) -->
+                <div class="border border-slate-300 rounded-xl p-3 bg-slate-50/30 text-[11px] space-y-2">
+                    <strong class="text-slate-900 uppercase text-[10px] block">• SPECIAL TEST:</strong>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <div class="p-2 bg-white rounded border border-slate-200">
+                            <span class="font-bold text-slate-700 block text-[10px] uppercase">Shoulder:</span>
+                            <div>Drop arm: <strong>{{ $data['st_drop_arm'] ?? '-ve' }}</strong></div>
+                            <div>Impingement: <strong>{{ $data['st_impingement'] ?? '-ve' }}</strong></div>
+                        </div>
+                        <div class="p-2 bg-white rounded border border-slate-200">
+                            <span class="font-bold text-slate-700 block text-[10px] uppercase">Knee:</span>
+                            <div>Drawer ant.: <strong>{{ $data['st_drawer_ant'] ?? '-ve' }}</strong></div>
+                            <div>McMurray: <strong>{{ $data['st_mcmurray'] ?? '-ve' }}</strong></div>
+                        </div>
+                        <div class="p-2 bg-white rounded border border-slate-200">
+                            <span class="font-bold text-slate-700 block text-[10px] uppercase">Hip:</span>
+                            <div>FABER: <strong>{{ $data['st_faber'] ?? '-ve' }}</strong></div>
+                            <div>Trendelenburg: <strong>{{ $data['st_trendelenburg'] ?? '-ve' }}</strong></div>
+                        </div>
+                        <div class="p-2 bg-white rounded border border-slate-200">
+                            <span class="font-bold text-slate-700 block text-[10px] uppercase">Spine:</span>
+                            <div>SLR: <strong>{{ $data['st_slr'] ?? '-ve' }}</strong></div>
+                            <div>Slump: <strong>{{ $data['st_slump'] ?? '-ve' }}</strong></div>
+                        </div>
+                        <div class="p-2 bg-white rounded border border-slate-200">
+                            <span class="font-bold text-slate-700 block text-[10px] uppercase">Cervical:</span>
+                            <div>Compression: <strong>{{ $data['st_cervical_compression'] ?? '-ve' }}</strong></div>
+                            <div>Spurling: <strong>{{ $data['st_spurling'] ?? '-ve' }}</strong></div>
+                        </div>
+                    </div>
+                    @if(!empty($data['special_test_notes']))
+                        <p class="text-slate-600 text-[10px]">Notes: {{ $data['special_test_notes'] }}</p>
+                    @endif
                 </div>
 
             </div>
@@ -332,133 +380,181 @@
         <!-- ASSESSMENT DETAILS (TYPE 2: NEUROLOGICAL)                      -->
         <!-- ============================================================== -->
         @else
-            <div class="space-y-4 text-xs">
+            <div class="space-y-3.5 text-xs">
                 
-                <!-- Neuro Overview -->
-                <div class="border border-purple-200 rounded-xl p-4 bg-purple-50/30 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- 1. CHIEF COMPLAINT & FULL HISTORY (Image 2 - Page 1) -->
+                <div class="border border-purple-300 rounded-xl p-3.5 bg-purple-50/30 space-y-2">
                     <div>
-                        <span class="text-slate-400 block text-[10px] font-bold uppercase">Dominant Side:</span>
-                        <strong class="text-purple-950 font-black text-sm">{{ $data['dominant_side'] ?? 'Right (R)' }}</strong>
+                        <strong class="text-purple-950 uppercase text-[10px] block">• Chief complain:</strong>
+                        <p class="font-bold text-slate-900 mt-0.5">{{ $data['neuro_chief_complaint'] ?? $data['neuro_complaints'] ?? '-' }}</p>
                     </div>
-                    <div>
-                        <span class="text-slate-400 block text-[10px] font-bold uppercase">Consciousness Level:</span>
-                        <strong class="text-slate-800 font-bold">{{ $data['level_of_consciousness'] ?? 'Alert & Conscious' }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block text-[10px] font-bold uppercase">GCS Scale (E / V / M):</span>
-                        <strong class="font-mono text-purple-900 font-black text-sm">{{ $data['gcs_scale'] ?? '15 / 15' }}</strong>
-                    </div>
-                    <div class="md:col-span-3 pt-1 border-t border-purple-100 flex items-start gap-4">
-                        <p><strong>C/o:</strong> <span class="text-slate-700">{{ $data['neuro_complaints'] ?? 'Neurological deficits noted' }}</span></p>
-                        <p><strong>H/o:</strong> <span class="text-slate-700">{{ $data['neuro_ho'] ?? 'HT / DM' }}</span></p>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1 border-t border-purple-100 text-[11px]">
+                        <div>
+                            <strong class="text-purple-900 block text-[10px]">• past H/O:</strong>
+                            <span class="text-slate-800">{{ $data['neuro_past_ho'] ?? $data['neuro_ho'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-900 block text-[10px]">• Surgical H/O:</strong>
+                            <span class="text-slate-800">{{ $data['neuro_surgical_ho'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-900 block text-[10px]">• Family H/O:</strong>
+                            <span class="text-slate-800">{{ $data['neuro_family_ho'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-900 block text-[10px]">• associate factors:</strong>
+                            <span class="text-slate-800">{{ $data['neuro_associate_factors'] ?? '-' }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Sensory & Motor Exam Tables -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 2. OBSERVATION & EXTERNAL APPLIANCE (Image 2 - Page 1) -->
+                <div class="border border-slate-300 rounded-xl p-3 bg-white space-y-2 text-[11px]">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• posture:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['neuro_posture'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• Gait:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['neuro_gait'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• Deformity:</strong>
+                            <span class="font-semibold text-slate-900">{{ $data['neuro_deformity'] ?? '-' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="p-2 bg-slate-50 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• functional aids (walking aids / catheter):</strong>
+                            <span class="text-slate-900 font-semibold">{{ implode(', ', (array)($data['neuro_functional_aids'] ?? [])) ?: 'None' }}</span>
+                            @if(!empty($data['neuro_functional_aids_notes']))
+                                <span class="text-slate-500 text-[10px]"> ({{ $data['neuro_functional_aids_notes'] }})</span>
+                            @endif
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 uppercase text-[10px] block">• protective aids (brace / prosthetics):</strong>
+                            <span class="text-slate-900 font-semibold">{{ implode(', ', (array)($data['neuro_protective_aids'] ?? [])) ?: 'None' }}</span>
+                            @if(!empty($data['neuro_protective_aids_notes']))
+                                <span class="text-slate-500 text-[10px]"> ({{ $data['neuro_protective_aids_notes'] }})</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. EXAMINATION: CONSCIOUSNESS & HIGHER FUNCTIONS & SPECIAL SENSES (Image 2) -->
+                <div class="border border-purple-300 rounded-xl p-3 bg-purple-50/20 space-y-2 text-[11px]">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                            <strong class="text-purple-950 uppercase text-[10px] block">• conciousness level:</strong>
+                            <span class="px-2 py-0.5 rounded bg-purple-800 text-white font-bold text-[10px]">
+                                {{ $data['neuro_consciousness_level'] ?? $data['level_of_consciousness'] ?? 'Alert' }}
+                            </span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-950 uppercase text-[10px] block">• Orientation:</strong>
+                            <span class="text-slate-800 font-semibold">{{ $data['neuro_orientation'] ?? 'Intact' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-950 uppercase text-[10px] block">• Behaviour:</strong>
+                            <span class="text-slate-800 font-semibold">{{ $data['neuro_behaviour'] ?? 'Cooperative' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-950 uppercase text-[10px] block">• memory:</strong>
+                            <span class="text-slate-800 font-semibold">{{ $data['neuro_memory'] ?? 'Intact' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- special sense -->
+                    <div class="p-2 bg-white rounded-lg border border-purple-100 text-[10px]">
+                        <strong class="text-purple-900 uppercase block mb-1">• special sense:</strong>
+                        <div class="grid grid-cols-5 gap-1.5 text-center">
+                            <div class="bg-slate-50 p-1 rounded">Vision: <strong>{{ $data['neuro_sense_vision'] ?? 'Normal' }}</strong></div>
+                            <div class="bg-slate-50 p-1 rounded">Hearing: <strong>{{ $data['neuro_sense_hearing'] ?? 'Normal' }}</strong></div>
+                            <div class="bg-slate-50 p-1 rounded">Smell: <strong>{{ $data['neuro_sense_smell'] ?? 'Normal' }}</strong></div>
+                            <div class="bg-slate-50 p-1 rounded">Taste: <strong>{{ $data['neuro_sense_taste'] ?? 'Normal' }}</strong></div>
+                            <div class="bg-slate-50 p-1 rounded">Tactile: <strong>{{ $data['neuro_sense_tactile'] ?? 'Normal' }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. SENSORY, MOTOR, REFLEX & CORTICAL (Image 3 - Page 2) -->
+                <div class="border border-slate-300 rounded-xl p-3 bg-white space-y-2 text-[11px]">
                     <!-- Sensory -->
-                    <div class="border border-slate-200 rounded-xl p-3.5 space-y-2 text-[11px]">
-                        <strong class="block text-purple-900 text-xs uppercase border-b border-slate-200 pb-1 font-black">Sensory Examination</strong>
-                        <div><strong>Deficit:</strong> {{ $data['sensory_deficit'] ?? 'No hemisensory loss' }}</div>
-                        <div><strong>Superficial (Touch/Pain/Temp):</strong> {{ $data['superficial_sensations'] ?? 'Intact' }}</div>
-                        <div><strong>Deep (Proprioception/Vibration):</strong> {{ $data['deep_sensations'] ?? 'Intact' }}</div>
-                        <div><strong>Cortical (Stereognosis):</strong> {{ $data['cortical_sensations'] ?? 'Intact' }}</div>
-                        <div><strong>Dermatome Involved:</strong> {{ $data['dermatome_involved'] ?? 'None' }}</div>
+                    <div>
+                        <strong class="text-slate-800 uppercase text-[10px] block">• Sensory examination:</strong>
+                        <p class="text-slate-800 mt-0.5">{{ $data['neuro_sensory_exam'] ?? $data['sensory_deficit'] ?? 'Superficial & deep sensations intact' }}</p>
                     </div>
 
-                    <!-- Motor & Reflexes -->
-                    <div class="border border-slate-200 rounded-xl p-3.5 space-y-2 text-[11px]">
-                        <strong class="block text-purple-900 text-xs uppercase border-b border-slate-200 pb-1 font-black">Motor Examination & Reflexes</strong>
-                        <div><strong>MMT (R / L):</strong> {{ $data['neuro_mmt'] ?? 'R: 5/5 | L: 5/5' }}</div>
-                        <div><strong>Tone:</strong> {{ $data['neuro_tone'] ?? 'Normal tone' }}</div>
-                        <div><strong>Muscle Girth & Fasciculations:</strong> {{ $data['neuro_girth'] ?? 'Symmetric' }}, {{ $data['neuro_fasciculations'] ?? 'Absent' }}</div>
-                        <div><strong>Deep Tendon Reflexes (DTR):</strong> {{ $data['deep_tendon_reflexes'] ?? '++ Normal' }}</div>
-                        <div><strong>Superficial & Neonatal Reflexes:</strong> {{ $data['superficial_reflexes'] ?? 'Plantar flexor' }}</div>
+                    <!-- Motor (ROM, MMT, TONE) -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 border-t border-slate-100">
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Motor - ROM:</strong>
+                            <span class="font-semibold">{{ $data['neuro_motor_rom'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Motor - MMT:</strong>
+                            <span class="font-semibold">{{ $data['neuro_motor_mmt'] ?? $data['neuro_mmt'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Motor - TONE:</strong>
+                            <span class="font-semibold">{{ $data['neuro_motor_tone'] ?? $data['neuro_tone'] ?? '-' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Reflex (DTR & Pattern) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                        <div>
+                            <strong class="text-purple-900 text-[10px] block">• Reflex - DTR:</strong>
+                            <span class="font-semibold text-slate-800">{{ $data['neuro_reflex_dtr'] ?? $data['deep_tendon_reflexes'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-purple-900 text-[10px] block">• pattern:</strong>
+                            <span class="font-semibold text-slate-800">{{ implode(', ', (array)($data['neuro_synergic_pattern'] ?? [])) ?: 'None' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Cortical Level Reflex -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 border-t border-slate-100">
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Cortical - Balance:</strong>
+                            <span class="font-semibold">{{ $data['neuro_cortical_balance'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Cortical - Equilibrium:</strong>
+                            <span class="font-semibold">{{ $data['neuro_cortical_equilibrium'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <strong class="text-slate-700 text-[10px] block">• Cortical - Coordination:</strong>
+                            <span class="font-semibold">{{ $data['neuro_cortical_coordination'] ?? '-' }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Higher Mental Functions -->
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <div><strong>Orientation:</strong> {{ $data['orientation'] ?? 'Time/Place/Person Intact' }}</div>
-                    <div><strong>Attention:</strong> {{ $data['alteration'] ?? 'Normal' }}</div>
-                    <div><strong>Calculation:</strong> {{ $data['calculation'] ?? 'Normal' }}</div>
-                    <div><strong>Speech:</strong> {{ $data['speech'] ?? 'Clear & Fluent' }}</div>
-                    <div><strong>Memory:</strong> {{ $data['memory'] ?? 'Intact' }}</div>
-                </div>
-
-                <!-- Cranial Nerve Examination I to XII Table -->
-                <div class="border border-purple-200 rounded-xl overflow-hidden">
-                    <table class="w-full text-left text-[11px]">
-                        <thead class="bg-purple-100 text-purple-900 font-bold uppercase text-[10px]">
-                            <tr>
-                                <th class="p-2 pl-3">Cranial Nerve Examination (I - XII)</th>
-                                <th class="p-2 w-40">Right (R)</th>
-                                <th class="p-2 w-40">Left (L)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">I - Olfactory (Smell)</td>
-                                <td class="p-1.5">{{ $data['cn_1_r'] ?? 'Intact' }}</td>
-                                <td class="p-1.5">{{ $data['cn_1_l'] ?? 'Intact' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">II - Optic (Acuity / Fields)</td>
-                                <td class="p-1.5">{{ $data['cn_2_r'] ?? 'Normal' }}</td>
-                                <td class="p-1.5">{{ $data['cn_2_l'] ?? 'Normal' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">III, IV, VI - Oculomotor, Trochlear, Abducens (Eye Movements)</td>
-                                <td class="p-1.5">{{ $data['cn_346_r'] ?? 'Full' }}</td>
-                                <td class="p-1.5">{{ $data['cn_346_l'] ?? 'Full' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">V - Trigeminal (Sensation & Jaw)</td>
-                                <td class="p-1.5">{{ $data['cn_5_r'] ?? 'Intact' }}</td>
-                                <td class="p-1.5">{{ $data['cn_5_l'] ?? 'Intact' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">VII - Facial (Facial Symmetries)</td>
-                                <td class="p-1.5">{{ $data['cn_7_r'] ?? 'Normal' }}</td>
-                                <td class="p-1.5">{{ $data['cn_7_l'] ?? 'Normal' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">VIII - Vestibulocochlear (Acoustic / Balance)</td>
-                                <td class="p-1.5">{{ $data['cn_8_r'] ?? 'Normal' }}</td>
-                                <td class="p-1.5">{{ $data['cn_8_l'] ?? 'Normal' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">IX, X - Glossopharyngeal, Vagus (Palate / Swallow)</td>
-                                <td class="p-1.5">{{ $data['cn_910_r'] ?? 'Normal' }}</td>
-                                <td class="p-1.5">{{ $data['cn_910_l'] ?? 'Normal' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">XI - Spinal Accessory (Trapezius / Shrug)</td>
-                                <td class="p-1.5">{{ $data['cn_11_r'] ?? 'Normal' }}</td>
-                                <td class="p-1.5">{{ $data['cn_11_l'] ?? 'Normal' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="p-1.5 pl-3 font-bold">XII - Hypoglossal (Tongue Protrusion)</td>
-                                <td class="p-1.5">{{ $data['cn_12_r'] ?? 'Central' }}</td>
-                                <td class="p-1.5">{{ $data['cn_12_l'] ?? 'Central' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Advised Investigations -->
-                <div class="p-3 bg-purple-50/50 rounded-xl border border-purple-200 text-[11px]">
-                    <strong>Advised Investigations:</strong>
-                    <span class="font-semibold text-purple-900">
-                        @if(!empty($data['investigations']))
-                            {{ implode(', ', (array)$data['investigations']) }}
-                        @else
-                            MRI Brain / Spine, NCV as indicated
+                <!-- 5. INVESTIGATION & TREATMENT PLAN (Image 3 - Page 2) -->
+                <div class="border border-purple-300 rounded-xl p-3 bg-purple-50/20 space-y-2 text-[11px]">
+                    <div>
+                        <strong class="text-purple-950 uppercase text-[10px] block">• Investigation (CT, MRI, EMG, NCV):</strong>
+                        <div class="flex flex-wrap gap-1.5 mt-0.5">
+                            @forelse((array)($data['neuro_investigation'] ?? $data['investigations'] ?? []) as $inv)
+                                <span class="px-2 py-0.5 bg-indigo-700 text-white rounded font-bold text-[10px]">{{ $inv }}</span>
+                            @empty
+                                <span class="text-slate-400">None indicated</span>
+                            @endforelse
+                        </div>
+                        @if(!empty($data['neuro_investigation_notes']) || !empty($data['investigation_notes']))
+                            <p class="text-slate-700 text-[10px] mt-1">{{ $data['neuro_investigation_notes'] ?? $data['investigation_notes'] }}</p>
                         @endif
-                    </span>
-                    @if(!empty($data['investigation_notes']))
-                        <p class="text-slate-600 mt-0.5">Notes: {{ $data['investigation_notes'] }}</p>
-                    @endif
+                    </div>
+
+                    <div class="pt-1 border-t border-purple-100">
+                        <strong class="text-slate-900 uppercase text-[10px] block">• Treatment plan (Image 3):</strong>
+                        <p class="text-slate-800 font-semibold mt-0.5">
+                            {{ $data['neuro_treatment_plan'] ?? $prescription->treatment_plan ?? 'Physiotherapy Neuro-Rehabilitation Protocol' }}
+                        </p>
+                    </div>
                 </div>
 
             </div>

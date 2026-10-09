@@ -189,7 +189,7 @@ class PrescriptionController extends Controller
             'doctor_id' => $validated['doctor_id'],
             'visit_date' => $validated['prescription_date'],
             'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
-            'chief_complaint' => $request->input('assessment_data.chief_complaints') ?? 'Physiotherapy Assessment & Consultation',
+            'chief_complaint' => $request->input('assessment_data.chief_complaint') ?? $request->input('assessment_data.chief_complaints') ?? 'Physiotherapy Assessment & Consultation',
             'diagnosis_summary' => $validated['diagnosis_summary'],
             'treatment_plan' => $validated['advice'] ?? 'Physiotherapy protocol initialized',
             'follow_up_date' => $validated['follow_up_date'] ?? null,
