@@ -98,10 +98,18 @@
         <div class="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2 text-xs">
                 
-                <a href="{{ route('consultations.create', ['patient_id' => $patient->id]) }}" 
+                @php
+                    $todayOrNextApt = $patient->appointments->where('status', 'scheduled')
+                        ->filter(fn($a) => $a->appointment_date && $a->appointment_date->toDateString() === now()->toDateString())
+                        ->first()
+                        ?? $patient->appointments->where('status', 'scheduled')
+                            ->sortBy('appointment_date')
+                            ->first();
+                @endphp
+                <a href="{{ $todayOrNextApt ? route('consultations.create', ['appointment_id' => $todayOrNextApt->id]) : route('consultations.create', ['patient_id' => $patient->id]) }}" 
                    class="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs">
                     <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
-                    <span>Start Consultation</span>
+                    <span>Start Consultation {{ $todayOrNextApt ? '(' . ($todayOrNextApt->appointment_time ?? 'Session') . ')' : '' }}</span>
                 </a>
 
                 <button onclick="openModal('quickAppointmentModal')" 
@@ -305,6 +313,7 @@
                                 <th class="p-3">Reason</th>
                                 <th class="p-3">Payment</th>
                                 <th class="p-3">Status</th>
+                                <th class="p-3 pr-5 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -318,13 +327,27 @@
                                     <td class="p-3 font-bold text-slate-800">₹{{ number_format($apt->consultation_fee, 0) }} ({{ ucfirst($apt->payment_status) }})</td>
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize 
-                                            {{ $apt->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($apt->status === 'in_consultation' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700') }}">
+                                            {{ $apt->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($apt->status === 'in_consultation' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">
                                             {{ $apt->status }}
                                         </span>
                                     </td>
+                                    <td class="p-3 pr-5 text-right">
+                                        @if($apt->status !== 'completed')
+                                            <a href="{{ route('consultations.create', ['appointment_id' => $apt->id]) }}" 
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                                                <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
+                                                <span>Start Consultation</span>
+                                            </a>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
+                                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                                <span>Completed</span>
+                                            </span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="p-8 text-center text-slate-400">No appointment records found.</td></tr>
+                                <tr><td colspan="8" class="p-8 text-center text-slate-400">No appointment records found.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

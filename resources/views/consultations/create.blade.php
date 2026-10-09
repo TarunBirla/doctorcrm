@@ -645,33 +645,111 @@
         }
     }
 
+    const previousExercisesData = @json($previousVisit && $previousVisit->prescriptions->isNotEmpty() ? ($previousVisit->prescriptions->first()->prescribed_exercises ?? []) : []);
+
     function calcBMI() {
         const w = parseFloat(document.getElementById('v_weight').value);
-        const h = parseFloat(document.getElementById('v_height').value);
+        let h = parseFloat(document.getElementById('v_height').value);
         const bmiEl = document.getElementById('calculatedBmi');
         if (w > 0 && h > 0) {
-            const hM = h / 100;
-            const bmi = (w / (hM * hM)).toFixed(1);
-            bmiEl.innerText = bmi + (bmi < 18.5 ? ' (Underweight)' : (bmi > 25 ? ' (Overweight)' : ' (Normal)'));
-        } else {
-            bmiEl.innerText = '-';
+            let hM = h;
+            if (h < 3.0) {
+                hM = h; // in meters
+            } else if (h >= 3.0 && h <= 8.5) {
+                hM = h * 0.3048; // in feet
+            } else {
+                hM = h / 100.0; // in cm
+            }
+            if (hM > 0.4) {
+                const bmi = (w / (hM * hM)).toFixed(1);
+                bmiEl.innerText = bmi + (bmi < 18.5 ? ' (Underweight)' : (bmi > 25 ? ' (Overweight)' : ' (Normal)'));
+                return;
+            }
         }
+        bmiEl.innerText = '-';
     }
 
     function copyPreviousVisitData() {
         const pDiag = document.getElementById('prevDiagText');
         const pComp = document.getElementById('prevComplaintText');
         const pTreat = document.getElementById('prevTreatmentText');
-        if (pDiag && pDiag.innerText) {
-            document.getElementById('diagnosis_summary').value = pDiag.innerText;
+        let copied = false;
+
+        if (pDiag && pDiag.innerText.trim()) {
+            document.getElementById('diagnosis_summary').value = pDiag.innerText.trim();
+            copied = true;
         }
-        if (pComp && pComp.innerText) {
-            document.getElementById('chief_complaint').value = 'Revisit review: ' + pComp.innerText;
+        if (pComp && pComp.innerText.trim()) {
+            document.getElementById('chief_complaint').value = pComp.innerText.trim();
+            copied = true;
         }
-        if (pTreat && pTreat.innerText) {
-            document.getElementById('treatment_plan').value = pTreat.innerText;
+        if (pTreat && pTreat.innerText.trim()) {
+            document.getElementById('treatment_plan').value = pTreat.innerText.trim();
+            copied = true;
         }
-        alert('Previous visit clinical data copied into current consultation!');
+
+        // Copy previous prescribed exercises into table
+        if (previousExercisesData && previousExercisesData.length > 0) {
+            const tbody = document.getElementById('consultExerciseRowsContainer');
+            tbody.innerHTML = '';
+            consultExIndex = 0;
+
+            previousExercisesData.forEach(ex => {
+                const tr = document.createElement('tr');
+                tr.className = 'consult-ex-row border-b border-slate-100 hover:bg-slate-50/50';
+
+                // Find matching exercise in library
+                const matchedIdx = exerciseCatalog.findIndex(e => e.name && e.name.toLowerCase() === (ex.name || '').toLowerCase());
+
+                tr.innerHTML = `
+                    <td class="py-2 px-3">
+                        <div class="space-y-1.5">
+                            <select class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50/40 font-bold text-slate-800 focus:outline-none focus:border-emerald-600 ex-dropdown" onchange="onExerciseChange(this)">
+                                ${getExerciseOptionsHtml(matchedIdx)}
+                            </select>
+                            <input type="text" name="prescribed_exercises[${consultExIndex}][name]" value="${escapeHtml(ex.name || '')}" placeholder="Exercise Name" class="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-200 font-bold outline-none focus:border-emerald-500 bg-white ex-name-input">
+                        </div>
+                    </td>
+                    <td class="py-2 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${consultExIndex}][target]" value="${escapeHtml(ex.target || 'General')}" placeholder="Area" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-target-input">
+                    </td>
+                    <td class="py-2 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${consultExIndex}][sets]" value="${escapeHtml(ex.sets || '3 Sets')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-sets-input">
+                    </td>
+                    <td class="py-2 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${consultExIndex}][reps]" value="${escapeHtml(ex.reps || '10 Reps')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-reps-input">
+                    </td>
+                    <td class="py-2 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${consultExIndex}][duration]" value="${escapeHtml(ex.duration || '5 sec hold')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-duration-input">
+                    </td>
+                    <td class="py-2 px-3 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${consultExIndex}][instructions]" value="${escapeHtml(ex.instructions || '')}" placeholder="Directions" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-instructions-input">
+                    </td>
+                    <td class="py-2 px-2 text-center align-top pt-2.5">
+                        <button type="button" onclick="this.closest('.consult-ex-row').remove()" title="Delete Row" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                consultExIndex++;
+            });
+            lucide.createIcons();
+            copied = true;
+        }
+
+        const btn = document.querySelector('button[onclick="copyPreviousVisitData()"]');
+        if (btn) {
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = '✓ Copied!';
+            btn.classList.add('bg-emerald-600', 'text-white');
+            btn.classList.remove('text-blue-700', 'bg-blue-50');
+            setTimeout(() => {
+                btn.innerHTML = oldHtml;
+                btn.classList.remove('bg-emerald-600', 'text-white');
+                btn.classList.add('text-blue-700', 'bg-blue-50');
+            }, 2500);
+        }
     }
 </script>
 @endpush

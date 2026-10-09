@@ -208,9 +208,6 @@
                                     <a href="{{ route('patients.show', $patient->id) }}" title="Open Patient CRM" class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-lg transition">
                                         <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                                     </a>
-                                    <a href="{{ route('consultations.create', ['patient_id' => $patient->id]) }}" title="Start Consultation" class="p-1.5 bg-slate-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition">
-                                        <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
-                                    </a>
                                     <a href="{{ route('patients.edit', $patient->id) }}" title="Edit Details" class="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-200 rounded-lg transition">
                                         <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                                     </a>

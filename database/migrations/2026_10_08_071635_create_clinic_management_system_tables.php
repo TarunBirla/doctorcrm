@@ -241,7 +241,7 @@ return new class extends Migration
             $table->integer('pulse')->nullable();
             $table->decimal('temperature', 4, 1)->nullable();
             $table->integer('spo2')->nullable();
-            $table->decimal('bmi', 4, 1)->nullable();
+            $table->decimal('bmi', 8, 2)->nullable();
             $table->integer('pain_level')->nullable(); // 0 to 10
             $table->text('symptoms_assessment')->nullable();
             $table->text('treatment_response')->nullable();

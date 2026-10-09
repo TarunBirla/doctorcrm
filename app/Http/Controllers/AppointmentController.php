@@ -196,34 +196,48 @@ class AppointmentController extends Controller
         $categoryObj = \App\Models\TreatmentCategory::find($validated['category_id']);
         $categoryName = $categoryObj ? $categoryObj->name : 'Physiotherapy Session';
 
-        $appointmentNo = Appointment::generateAppointmentNo();
-        $tokenNumber = Appointment::nextTokenForDate($validated['appointment_date'], $validated['doctor_id']);
+        $currentDate = \Carbon\Carbon::parse($validated['appointment_date']);
+        $createdAppointments = [];
+        $sessionNum = 1;
 
-        $appointment = Appointment::create([
-            'appointment_no' => $appointmentNo,
-            'patient_id' => $validated['patient_id'],
-            'doctor_id' => $validated['doctor_id'],
-            'clinic_id' => $validated['clinic_id'],
-            'category_id' => $validated['category_id'],
-            'appointment_date' => $validated['appointment_date'],
-            'treatment_days' => $treatmentDays,
-            'daily_fee' => $dailyFee,
-            'appointment_time' => $request->input('appointment_time') ?? 'Session',
-            'appointment_type' => $validated['appointment_type'] ?? 'new',
-            'token_number' => $tokenNumber,
-            'reason' => $validated['reason'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'consultation_fee' => $totalFee,
-            'payment_status' => 'unpaid',
-            'status' => 'scheduled',
-        ]);
+        while (count($createdAppointments) < $treatmentDays) {
+            if (!$currentDate->isSunday()) {
+                $dateStr = $currentDate->format('Y-m-d');
+                $appointmentNo = Appointment::generateAppointmentNo();
+                $tokenNumber = Appointment::nextTokenForDate($dateStr, $validated['doctor_id']);
+
+                $apt = Appointment::create([
+                    'appointment_no' => $appointmentNo,
+                    'patient_id' => $validated['patient_id'],
+                    'doctor_id' => $validated['doctor_id'],
+                    'clinic_id' => $validated['clinic_id'],
+                    'category_id' => $validated['category_id'],
+                    'appointment_date' => $dateStr,
+                    'treatment_days' => 1,
+                    'daily_fee' => $dailyFee,
+                    'appointment_time' => $request->input('appointment_time') ?? "Session {$sessionNum}",
+                    'appointment_type' => ($sessionNum === 1) ? ($validated['appointment_type'] ?? 'new') : 'follow_up',
+                    'token_number' => $tokenNumber,
+                    'reason' => ($sessionNum === 1) ? ($validated['reason'] ?? "Session 1") : "Session {$sessionNum} - " . ($validated['reason'] ?? ''),
+                    'notes' => $validated['notes'] ?? null,
+                    'consultation_fee' => $dailyFee,
+                    'payment_status' => 'unpaid',
+                    'status' => 'scheduled',
+                ]);
+                $createdAppointments[] = $apt;
+                $sessionNum++;
+            }
+            $currentDate->addDay();
+        }
+
+        $appointment = $createdAppointments[0] ?? null;
 
         // Auto-generate invoice for physiotherapy session package
         $invoiceNo = Invoice::generateInvoiceNo();
         $invoice = Invoice::create([
             'invoice_no' => $invoiceNo,
             'patient_id' => $appointment->patient_id,
-            'appointment_id' => $appointment->id,
+            'appointment_id' => $appointment ? $appointment->id : null,
             'doctor_id' => $appointment->doctor_id,
             'invoice_date' => $appointment->appointment_date,
             'subtotal' => $totalFee,
@@ -233,7 +247,7 @@ class AppointmentController extends Controller
             'paid_amount' => 0.00,
             'due_amount' => $totalFee,
             'payment_status' => 'unpaid',
-            'notes' => "Physiotherapy package: {$categoryName} for {$treatmentDays} days (₹" . number_format($dailyFee, 2) . "/day)",
+            'notes' => "Physiotherapy package: {$categoryName} for {$treatmentDays} days (excluding Sundays) (₹" . number_format($dailyFee, 2) . "/day)",
         ]);
 
         InvoiceItem::create([
@@ -244,10 +258,10 @@ class AppointmentController extends Controller
             'total' => $totalFee,
         ]);
 
-        AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-day physiotherapy appointment for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee})");
+        AuditLog::record('Appointment Package Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-session physiotherapy package for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee})");
 
         return redirect()->route('appointments.index', ['date' => $appointment->appointment_date->toDateString()])
-            ->with('success', "Appointment package ({$treatmentDays} days) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . " at {$appointment->clinic?->name}.");
+            ->with('success', "Appointment package ({$treatmentDays} sessions excluding Sundays) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . " at {$appointment->clinic?->name}.");
     }
 
     public function edit($id)

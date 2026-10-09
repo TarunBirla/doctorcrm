@@ -167,11 +167,30 @@ class ConsultationController extends Controller
         $patient = Patient::findOrFail($validated['patient_id']);
         $doctor = Doctor::findOrFail($validated['doctor_id']);
 
-        // Calculate BMI if weight & height provided
+        // Smart height normalization & safe BMI calculation
         $bmi = null;
-        if (!empty($validated['weight']) && !empty($validated['height']) && $validated['height'] > 0) {
-            $heightInMeters = $validated['height'] / 100.0;
-            $bmi = round($validated['weight'] / ($heightInMeters * $heightInMeters), 1);
+        if (!empty($validated['weight']) && !empty($validated['height']) && (float)$validated['height'] > 0) {
+            $h = (float) $validated['height'];
+            $w = (float) $validated['weight'];
+
+            if ($h > 0 && $h < 3.0) {
+                // Entered in meters (e.g. 1.72 m)
+                $heightInMeters = $h;
+            } elseif ($h >= 3.0 && $h <= 8.5) {
+                // Entered in feet (e.g. 5.8 ft) -> 1 ft = 0.3048 m
+                $heightInMeters = $h * 0.3048;
+            } else {
+                // Entered in cm (e.g. 172 cm)
+                $heightInMeters = $h / 100.0;
+            }
+
+            if ($heightInMeters > 0.4 && $w > 1.0) {
+                $calcBmi = round($w / ($heightInMeters * $heightInMeters), 1);
+                // Clamp within realistic human limits so database column never overflows
+                if ($calcBmi >= 5.0 && $calcBmi <= 150.0) {
+                    $bmi = $calcBmi;
+                }
+            }
         }
 
         $vitals = [
@@ -318,12 +337,25 @@ class ConsultationController extends Controller
             }
         }
 
-        // 5. Update Appointment to Completed if linked
+        // 5. Update Appointment to Completed if linked or scheduled for today
         if (!empty($validated['appointment_id'])) {
             $apt = Appointment::find($validated['appointment_id']);
             if ($apt) {
                 $apt->status = 'completed';
                 $apt->save();
+            }
+        } else {
+            // Check if patient has a scheduled appointment for visit date and complete it
+            $scheduledApt = Appointment::where('patient_id', $patient->id)
+                ->whereDate('appointment_date', $validated['visit_date'])
+                ->where('status', 'scheduled')
+                ->first();
+            if ($scheduledApt) {
+                $scheduledApt->status = 'completed';
+                $scheduledApt->save();
+                if (!$visit->appointment_id) {
+                    $visit->update(['appointment_id' => $scheduledApt->id]);
+                }
             }
         }
 
