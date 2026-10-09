@@ -14,7 +14,10 @@ class Appointment extends Model
         'patient_id',
         'doctor_id',
         'clinic_id',
+        'category_id',
         'appointment_date',
+        'treatment_days',
+        'daily_fee',
         'appointment_time',
         'end_time',
         'appointment_type',
@@ -29,6 +32,8 @@ class Appointment extends Model
 
     protected $casts = [
         'appointment_date' => 'date',
+        'treatment_days' => 'integer',
+        'daily_fee' => 'decimal:2',
         'consultation_fee' => 'decimal:2',
         'waiting_since' => 'datetime',
     ];
@@ -62,6 +67,11 @@ class Appointment extends Model
     public function clinic()
     {
         return $this->belongsTo(Clinic::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(TreatmentCategory::class, 'category_id');
     }
 
     public function visit()

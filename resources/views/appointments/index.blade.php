@@ -133,13 +133,25 @@
                             </td>
                             <td class="p-3">
                                 <span class="font-semibold text-slate-800 block">{{ $apt->appointment_date->format('d M Y') }}</span>
-                                <span class="text-xs text-slate-500">{{ $apt->appointment_time }}</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="text-[10px] px-1.5 py-0.2 rounded font-bold {{ $apt->treatment_days > 1 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600' }}">
+                                        {{ $apt->treatment_days ?? 1 }} Day{{ ($apt->treatment_days ?? 1) > 1 ? 's' : '' }}
+                                    </span>
+                                    @if($apt->clinic)
+                                        <span class="text-[10px] text-slate-500 font-semibold">• {{ $apt->clinic->name }}</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="p-3">
                                 <a href="{{ route('patients.show', $apt->patient_id) }}" class="font-bold text-slate-900 hover:text-blue-700 block">
                                     {{ $apt->patient->full_name }}
                                 </a>
-                                <span class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->mobile }}</span>
+                                <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }}</span>
+                                    @if($apt->category)
+                                        <span class="text-[9px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200">{{ $apt->category->name }}</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="p-3">
                                 <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase 
@@ -151,10 +163,13 @@
                                 </span>
                             </td>
                             <td class="p-3 text-slate-600 max-w-xs truncate">
-                                {{ $apt->reason ?? 'General Consultation' }}
+                                {{ $apt->reason ?? 'Physiotherapy Treatment' }}
                             </td>
-                            <td class="p-3 font-bold text-slate-800">
-                                ₹{{ number_format($apt->consultation_fee, 2) }}
+                            <td class="p-3">
+                                <div class="font-bold text-slate-900">₹{{ number_format($apt->consultation_fee, 2) }}</div>
+                                @if(($apt->treatment_days ?? 1) > 1)
+                                    <span class="text-[10px] text-slate-400 block font-semibold">₹{{ number_format($apt->daily_fee ?? ($apt->consultation_fee / $apt->treatment_days), 0) }} × {{ $apt->treatment_days }}d</span>
+                                @endif
                             </td>
                             <td class="p-3">
                                 @if($apt->payment_status === 'paid')

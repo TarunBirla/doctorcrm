@@ -38,6 +38,8 @@ class RoleMenuPermission extends Model
                 'medical_reports' => true,
                 'progress' => true,
                 'followups' => true,
+                'exercises' => true,
+                'categories' => true,
                 'availability' => true,
                 'billing' => false,
                 'dues' => false,

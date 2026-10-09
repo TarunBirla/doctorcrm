@@ -108,15 +108,18 @@
                         <div class="space-y-1.5 mt-1.5 overflow-y-auto max-h-20 text-[10px]">
                             @foreach($dayAppts->take(3) as $a)
                                 <a href="{{ route('patients.show', $a->patient_id) }}" 
-                                   title="{{ date('h:i A', strtotime($a->appointment_time)) }} - {{ $a->patient?->full_name }} ({{ ucfirst($a->status) }})"
+                                   title="{{ $a->patient?->full_name }} ({{ $a->clinic?->name ?? 'Clinic' }} - {{ $a->treatment_days ?? 1 }} Days)"
                                    class="block px-2 py-1 rounded-lg truncate font-semibold transition hover:opacity-95 shadow-2xs
                                     @if($a->status === 'completed') bg-emerald-50 text-emerald-800 border border-emerald-200
                                     @elseif($a->status === 'waiting') bg-amber-50 text-amber-800 border border-amber-200
                                     @elseif($a->status === 'in_consultation') bg-blue-100 text-blue-900 border border-blue-300
                                     @elseif($a->status === 'confirmed') bg-indigo-50 text-indigo-800 border border-indigo-200
                                     @else bg-slate-100 text-slate-700 border border-slate-200 @endif">
-                                    <span class="font-bold text-slate-900">{{ date('h:i A', strtotime($a->appointment_time)) }}</span>
+                                    <span class="font-bold text-slate-900">#{{ $a->token_number }}</span>
                                     <span class="ml-1 text-slate-800 font-semibold">{{ $a->patient?->full_name ?? 'Patient' }}</span>
+                                    @if(($a->treatment_days ?? 1) > 1)
+                                        <span class="text-[9px] px-1 py-0.2 rounded bg-indigo-100 text-indigo-700 font-bold ml-0.5">{{ $a->treatment_days }}d</span>
+                                    @endif
                                 </a>
                             @endforeach
                             @if($dayAppts->count() > 3)
@@ -136,8 +139,13 @@
                                 #{{ $a->token_number }}
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">{{ $a->patient?->full_name }}</h4>
-                                <span class="text-slate-500">{{ \Carbon\Carbon::parse($a->appointment_date)->format('d M Y') }} at <strong>{{ date('h:i A', strtotime($a->appointment_time)) }}</strong> • Type: {{ ucfirst($a->appointment_type) }}</span>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-slate-900 text-sm">{{ $a->patient?->full_name }}</h4>
+                                    @if($a->category)
+                                        <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded">{{ $a->category->name }}</span>
+                                    @endif
+                                </div>
+                                <span class="text-slate-500 font-semibold">{{ \Carbon\Carbon::parse($a->appointment_date)->format('d M Y') }} • {{ $a->clinic?->name ?? 'Clinic' }} • <strong>{{ $a->treatment_days ?? 1 }} Day(s) Package</strong> • ₹{{ number_format($a->consultation_fee, 2) }}</span>
                             </div>
                         </div>
 

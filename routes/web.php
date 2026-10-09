@@ -25,6 +25,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClinicController;
 use App\Http\Controllers\SlotManagementController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExerciseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -111,6 +113,10 @@ Route::post('/progress', [PatientProgressController::class, 'store'])->name('pro
 // Follow-ups
 Route::get('/follow-ups', [FollowUpController::class, 'index'])->name('followups.index');
 Route::post('/follow-ups', [FollowUpController::class, 'store'])->name('followups.store');
+
+// Physiotherapy: Treatment Categories & Exercises Library
+Route::resource('categories', CategoryController::class);
+Route::resource('exercises', ExerciseController::class);
 Route::post('/follow-ups/{id}/status', [FollowUpController::class, 'updateStatus'])->name('followups.status');
 
 // Billing, Invoices & Due Payments

@@ -127,12 +127,14 @@ class AppointmentController extends Controller
             $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
         }
 
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
         $preselectedPatientId = $request->get('patient_id');
         $preselectedClinicId = $request->get('clinic_id');
+        $preselectedCategoryId = $request->get('category_id');
         $preselectedDate = $request->get('date', now()->toDateString());
-        $preselectedTime = $request->get('time');
 
-        return view('appointments.create', compact('doctors', 'patients', 'clinics', 'loggedInDoctor', 'preselectedPatientId', 'preselectedClinicId', 'preselectedDate', 'preselectedTime'));
+        return view('appointments.create', compact('doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor', 'preselectedPatientId', 'preselectedClinicId', 'preselectedCategoryId', 'preselectedDate'));
     }
 
     public function store(Request $request)
@@ -144,15 +146,17 @@ class AppointmentController extends Controller
         }
 
         $validated = $request->validate([
-            'patient_id' => 'required|exists:patients,id',
             'clinic_id' => 'required|exists:clinics,id',
+            'category_id' => 'required|exists:treatment_categories,id',
+            'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'required|exists:doctors,id',
             'appointment_date' => 'required|date',
-            'appointment_time' => 'required|string',
-            'appointment_type' => 'required|in:new,follow_up,revisit,emergency',
+            'treatment_days' => 'required|integer|min:1|max:365',
+            'daily_fee' => 'nullable|numeric|min:0',
+            'consultation_fee' => 'nullable|numeric|min:0',
+            'appointment_type' => 'nullable|in:new,follow_up,revisit,emergency',
             'reason' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
-            'consultation_fee' => 'required|numeric|min:0',
         ]);
 
         // Security check: Doctor cannot book for another doctor's patients
@@ -165,24 +169,14 @@ class AppointmentController extends Controller
             $validated['doctor_id'] = $loggedInDoctor->id;
         }
 
-        // Slot availability check: Check if doctor already has an active appointment at this exact slot & clinic
-        $time24 = date('H:i', strtotime($validated['appointment_time']));
-        $slotOccupied = Appointment::where('doctor_id', $validated['doctor_id'])
-            ->where('clinic_id', $validated['clinic_id'])
-            ->whereDate('appointment_date', $validated['appointment_date'])
-            ->whereNotIn('status', ['cancelled'])
-            ->get()
-            ->first(function ($apt) use ($time24) {
-                return date('H:i', strtotime($apt->appointment_time)) === $time24;
-            });
+        // Days-based fee calculation: Total Fee = Daily Fee * Treatment Days
+        $clinicObj = Clinic::find($validated['clinic_id']);
+        $dailyFee = (float) ($validated['daily_fee'] ?? $validated['consultation_fee'] ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00));
+        $treatmentDays = (int) $validated['treatment_days'];
+        $totalFee = $dailyFee * $treatmentDays;
 
-        if ($slotOccupied && $validated['appointment_type'] !== 'emergency') {
-            $doc = Doctor::find($validated['doctor_id']);
-            $clinicObj = Clinic::find($validated['clinic_id']);
-            return back()->withInput()->withErrors([
-                'appointment_time' => "This slot ({$validated['appointment_time']}) is already booked for Dr. {$doc->name} at {$clinicObj->name}. Please pick another available slot."
-            ]);
-        }
+        $categoryObj = \App\Models\TreatmentCategory::find($validated['category_id']);
+        $categoryName = $categoryObj ? $categoryObj->name : 'Physiotherapy Session';
 
         $appointmentNo = Appointment::generateAppointmentNo();
         $tokenNumber = Appointment::nextTokenForDate($validated['appointment_date'], $validated['doctor_id']);
@@ -192,18 +186,21 @@ class AppointmentController extends Controller
             'patient_id' => $validated['patient_id'],
             'doctor_id' => $validated['doctor_id'],
             'clinic_id' => $validated['clinic_id'],
+            'category_id' => $validated['category_id'],
             'appointment_date' => $validated['appointment_date'],
-            'appointment_time' => $validated['appointment_time'],
-            'appointment_type' => $validated['appointment_type'],
+            'treatment_days' => $treatmentDays,
+            'daily_fee' => $dailyFee,
+            'appointment_time' => $request->input('appointment_time') ?? 'Session',
+            'appointment_type' => $validated['appointment_type'] ?? 'new',
             'token_number' => $tokenNumber,
             'reason' => $validated['reason'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'consultation_fee' => $validated['consultation_fee'] ?? 800.00,
+            'consultation_fee' => $totalFee,
             'payment_status' => 'unpaid',
             'status' => 'scheduled',
         ]);
 
-        // Auto-generate invoice for consultation fee
+        // Auto-generate invoice for physiotherapy session package
         $invoiceNo = Invoice::generateInvoiceNo();
         $invoice = Invoice::create([
             'invoice_no' => $invoiceNo,
@@ -211,28 +208,28 @@ class AppointmentController extends Controller
             'appointment_id' => $appointment->id,
             'doctor_id' => $appointment->doctor_id,
             'invoice_date' => $appointment->appointment_date,
-            'subtotal' => $appointment->consultation_fee,
+            'subtotal' => $totalFee,
             'discount' => 0.00,
             'additional_charges' => 0.00,
-            'total_amount' => $appointment->consultation_fee,
+            'total_amount' => $totalFee,
             'paid_amount' => 0.00,
-            'due_amount' => $appointment->consultation_fee,
+            'due_amount' => $totalFee,
             'payment_status' => 'unpaid',
-            'notes' => 'Generated automatically for appointment ' . $appointment->appointment_no,
+            'notes' => "Physiotherapy package: {$categoryName} for {$treatmentDays} days (₹" . number_format($dailyFee, 2) . "/day)",
         ]);
 
         InvoiceItem::create([
             'invoice_id' => $invoice->id,
-            'item_description' => ucfirst($appointment->appointment_type) . ' Consultation Fee',
-            'quantity' => 1,
-            'unit_price' => $appointment->consultation_fee,
-            'total' => $appointment->consultation_fee,
+            'item_description' => "{$categoryName} ({$treatmentDays} Days Treatment Package)",
+            'quantity' => $treatmentDays,
+            'unit_price' => $dailyFee,
+            'total' => $totalFee,
         ]);
 
-        AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Created appointment for {$appointment->patient->full_name} on {$appointment->appointment_date->format('d M Y')} (Token #{$tokenNumber})");
+        AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-day physiotherapy appointment for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee})");
 
         return redirect()->route('appointments.index', ['date' => $appointment->appointment_date->toDateString()])
-            ->with('success', "Appointment booked successfully! Token #{$tokenNumber} assigned at {$appointment->clinic?->name}.");
+            ->with('success', "Appointment package ({$treatmentDays} days) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . " at {$appointment->clinic?->name}.");
     }
 
     public function updateStatus(Request $request, $id)
@@ -299,7 +296,7 @@ class AppointmentController extends Controller
             $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
         }
 
-        $query = Appointment::with(['patient', 'doctor']);
+        $query = Appointment::with(['patient', 'doctor', 'clinic', 'category']);
 
         if ($loggedInDoctor) {
             $query->where('doctor_id', $loggedInDoctor->id);
@@ -311,7 +308,7 @@ class AppointmentController extends Controller
         if ($view === 'day') {
             $appointments = (clone $query)
                 ->whereDate('appointment_date', $carbonDate->toDateString())
-                ->orderBy('appointment_time', 'asc')
+                ->orderBy('token_number', 'asc')
                 ->get();
         } elseif ($view === 'week') {
             $startWeek = (clone $carbonDate)->startOfWeek();
@@ -319,7 +316,7 @@ class AppointmentController extends Controller
             $appointments = (clone $query)
                 ->whereDate('appointment_date', '>=', $startWeek->toDateString())
                 ->whereDate('appointment_date', '<=', $endWeek->toDateString())
-                ->orderBy('appointment_time', 'asc')
+                ->orderBy('token_number', 'asc')
                 ->get();
         } else {
             // Month
@@ -328,7 +325,7 @@ class AppointmentController extends Controller
             $appointments = (clone $query)
                 ->whereDate('appointment_date', '>=', $startMonth->toDateString())
                 ->whereDate('appointment_date', '<=', $endMonth->toDateString())
-                ->orderBy('appointment_time', 'asc')
+                ->orderBy('token_number', 'asc')
                 ->get();
         }
 
@@ -341,7 +338,15 @@ class AppointmentController extends Controller
             ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
             : Patient::orderBy('first_name')->get();
 
-        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'loggedInDoctor'));
+        $clinics = $loggedInDoctor
+            ? ($loggedInDoctor->clinics()->where('is_active', true)->get()->isNotEmpty()
+                ? $loggedInDoctor->clinics()->where('is_active', true)->get()
+                : Clinic::where('is_active', true)->get())
+            : Clinic::where('is_active', true)->get();
+
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
+        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor'));
     }
 
     public function getDoctorSlots(Request $request)

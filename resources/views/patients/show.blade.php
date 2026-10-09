@@ -44,10 +44,25 @@
                         </span>
                     </div>
 
-                    @if($patient->medicalHistory && $patient->medicalHistory->allergies)
-                        <div class="mt-2 text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 inline-flex items-center gap-1.5">
-                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-                            <span>Allergies: {{ $patient->medicalHistory->allergies }}</span>
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                        @if($patient->category)
+                            <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-flex items-center gap-1.5">
+                                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                                <span>Therapy: {{ $patient->category->name }}</span>
+                            </span>
+                        @endif
+                        @if($patient->clinic)
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5">
+                                <i data-lucide="building-2" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span>Clinic: {{ $patient->clinic->name }}</span>
+                            </span>
+                        @endif
+                    </div>
+
+                    @if($patient->description)
+                        <div class="mt-2 text-xs font-semibold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                            <span class="font-bold text-slate-900 shrink-0">Complaint:</span>
+                            <span class="truncate">{{ $patient->description }}</span>
                         </div>
                     @endif
                 </div>

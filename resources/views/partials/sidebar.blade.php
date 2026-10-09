@@ -7,6 +7,19 @@
     ];
     $todayQueueCount = \App\Models\Appointment::where('appointment_date', now()->toDateString())->whereIn('status', ['waiting', 'in_consultation'])->count();
     $dueCount = \App\Models\Invoice::whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->count();
+
+    $doctorClinics = collect();
+    if ($currentRole === 'doctor' && auth()->check()) {
+        $loggedInDoctorObj = \App\Models\Doctor::where('user_id', auth()->id())->first();
+        if ($loggedInDoctorObj) {
+            $clinicIds = \Illuminate\Support\Facades\DB::table('doctor_clinics')
+                ->where('doctor_id', $loggedInDoctorObj->id)
+                ->pluck('clinic_id')
+                ->merge(\App\Models\Clinic::where('doctor_id', $loggedInDoctorObj->id)->pluck('id'))
+                ->unique();
+            $doctorClinics = \App\Models\Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get();
+        }
+    }
 @endphp
 
 <aside class="w-64 bg-white border-r border-slate-200/90 flex flex-col shrink-0 min-h-screen select-none no-print">
@@ -112,10 +125,31 @@
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'clinics'))
                 <a href="{{ route('clinics.index') }}" 
-                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('clinics.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                    <i data-lucide="building-2" class="w-4 h-4 {{ request()->routeIs('clinics.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
-                    <span>{{ $currentRole === 'doctor' ? 'My Practice Clinics' : 'Clinics & Branches' }}</span>
+                   class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('clinics.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="building-2" class="w-4 h-4 {{ request()->routeIs('clinics.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                        <span>{{ $currentRole === 'doctor' ? 'My Practice Clinics' : 'Clinics & Branches' }}</span>
+                    </div>
+                    @if($doctorClinics->isNotEmpty())
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">{{ $doctorClinics->count() }}</span>
+                    @endif
                 </a>
+
+                @if($currentRole === 'doctor' && $doctorClinics->isNotEmpty())
+                <div class="pl-7 pr-2 py-1 space-y-1">
+                    @foreach($doctorClinics as $docClinic)
+                    <a href="{{ route('appointments.index', ['clinic_id' => $docClinic->id]) }}" 
+                       class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-600 hover:bg-blue-50/70 hover:text-blue-800 transition group"
+                       title="{{ $docClinic->name }} ({{ $docClinic->city ?? 'Clinic' }})">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="truncate">{{ $docClinic->name }}</span>
+                        </div>
+                        <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 text-slate-500 font-bold shrink-0 group-hover:bg-blue-100 group-hover:text-blue-700">{{ $docClinic->city ?? 'Clinic' }}</span>
+                    </a>
+                    @endforeach
+                </div>
+                @endif
                 @endif
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))
@@ -129,10 +163,12 @@
         </div>
         @endif
 
-        <!-- CLINICAL CARE -->
+        <!-- CLINICAL CARE / PHYSIOTHERAPY -->
         @php
             $hasClinicalSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'exercises') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'categories') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'medical_reports') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'progress') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'followups');
@@ -140,7 +176,7 @@
         @if($hasClinicalSection)
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                Clinical Care
+                Clinical Care & Therapy
             </div>
             <div class="space-y-1">
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations'))
@@ -148,6 +184,25 @@
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('consultations.*') || request()->routeIs('visits.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="stethoscope" class="w-4 h-4 {{ request()->routeIs('consultations.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Consultations & Visits</span>
+                </a>
+                @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'exercises'))
+                <a href="{{ route('exercises.index') }}" 
+                   class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('exercises.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="dumbbell" class="w-4 h-4 {{ request()->routeIs('exercises.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                        <span>Exercises Library</span>
+                    </div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Rehab</span>
+                </a>
+                @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'categories'))
+                <a href="{{ route('categories.index') }}" 
+                   class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('categories.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i data-lucide="layers" class="w-4 h-4 {{ request()->routeIs('categories.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                    <span>Manage Categories</span>
                 </a>
                 @endif
 

@@ -17,6 +17,7 @@
         $modalDoctors = \App\Models\Doctor::active()->get();
         $modalClinics = \App\Models\Clinic::where('is_active', true)->get();
     }
+    $modalCategories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
     $nextPatientId = \App\Models\Patient::generatePatientId();
 @endphp
 
@@ -27,18 +28,18 @@
             <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
             <input type="text" id="globalSearchInput" oninput="handleLiveSearch(this.value)" 
                    placeholder="Search patient by name, ID (PAT-000001), phone, appointment, or invoice..." 
-                   class="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 bg-transparent">
-            <button onclick="closeGlobalSearch()" class="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-100">
+                   class="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 bg-transparent font-semibold">
+            <button onclick="closeGlobalSearch()" class="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-100 font-bold">
                 ESC
             </button>
         </div>
-        <div id="globalSearchResults" class="p-4 max-h-96 overflow-y-auto text-xs">
+        <div id="globalSearchResults" class="p-4 max-h-96 overflow-y-auto text-xs font-semibold">
             <p class="text-xs text-slate-400 text-center py-6">Type to search records across the clinic...</p>
         </div>
     </div>
 </div>
 
-<!-- 2. QUICK APPOINTMENT BOOKING MODAL -->
+<!-- 2. QUICK APPOINTMENT BOOKING MODAL (PHYSIOTHERAPY PACKAGE BASED) -->
 <div id="quickAppointmentModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 md:p-6">
     <div class="bg-white w-full md:w-[60%] max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto mx-auto">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -47,8 +48,8 @@
                     <i data-lucide="calendar-plus" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-sm">Book New Appointment</h3>
-                    <p class="text-[11px] text-slate-500">Select clinic, doctor, date and pick an available live slot</p>
+                    <h3 class="font-bold text-slate-900 text-sm">Book Physiotherapy Appointment</h3>
+                    <p class="text-[11px] text-slate-500 font-semibold">Clinic & Category-based Session Booking with Auto Fee (Daily Fee × Days)</p>
                 </div>
             </div>
             <button onclick="closeModal('quickAppointmentModal')" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
@@ -63,12 +64,12 @@
                 <!-- Patient Selection -->
                 <div class="md:col-span-2">
                     <div class="flex items-center justify-between mb-1">
-                        <label class="block font-semibold text-slate-700">Select Patient *</label>
-                        <a href="#" onclick="closeModal('quickAppointmentModal'); openModal('quickPatientModal');" class="text-[11px] text-blue-600 font-semibold hover:underline">
+                        <label class="block font-bold text-slate-700">Select Patient *</label>
+                        <a href="#" onclick="closeModal('quickAppointmentModal'); openModal('quickPatientModal');" class="text-[11px] text-blue-600 font-bold hover:underline">
                             + Register new patient
                         </a>
                     </div>
-                    <select name="patient_id" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <select name="patient_id" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         <option value="">-- Choose registered patient --</option>
                         @foreach($modalPatients as $p)
                             <option value="{{ $p->id }}">{{ $p->full_name }} ({{ $p->patient_id }} • {{ $p->mobile }})</option>
@@ -76,79 +77,94 @@
                     </select>
                 </div>
 
-                <!-- Clinic & Doctor -->
+                <!-- Clinic & Category -->
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Select Clinic *</label>
-                    <select name="clinic_id" id="modalClinicSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <label class="block font-bold text-slate-700 mb-1">Select Practice Clinic *</label>
+                    <select name="clinic_id" id="modalClinicSelect" required onchange="handleModalClinicChange()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         @foreach($modalClinics as $mc)
-                            <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}">{{ $mc->name }} ({{ $mc->city }})</option>
+                            <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}">{{ $mc->name }} ({{ $mc->city ?? 'Clinic' }})</option>
                         @endforeach
                     </select>
                 </div>
+
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Doctor *</label>
-                    <select name="doctor_id" id="modalDoctorSelect" required onchange="fetchModalDoctorSlots()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <label class="block font-bold text-slate-700 mb-1">Treatment Category *</label>
+                    <select name="category_id" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
+                        <option value="">-- Choose Therapy Category --</option>
+                        @foreach($modalCategories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Doctor -->
+                @if($modalRole === 'super_admin')
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Doctor *</label>
+                    <select name="doctor_id" id="modalDoctorSelect" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         @foreach($modalDoctors as $doc)
-                            <option value="{{ $doc->id }}" {{ ($modalLoggedInDoctor && $modalLoggedInDoctor->id === $doc->id) ? 'selected' : '' }}>
-                                {{ $doc->name }} ({{ $doc->specialization }})
-                            </option>
+                            <option value="{{ $doc->id }}">{{ $doc->name }} ({{ $doc->specialization }})</option>
                         @endforeach
                     </select>
                 </div>
+                @else
+                <input type="hidden" name="doctor_id" value="{{ $modalLoggedInDoctor ? $modalLoggedInDoctor->id : ($modalDoctors->first()?->id ?? 1) }}">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Consulting Doctor</label>
+                    <div class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100 font-bold text-slate-700">
+                        {{ $modalLoggedInDoctor ? $modalLoggedInDoctor->name : 'OPD Doctor' }}
+                    </div>
+                </div>
+                @endif
 
-                <!-- Type & Fee -->
+                <!-- Start Date -->
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Appointment Type *</label>
-                    <select name="appointment_type" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                        <option value="new">New Consultation</option>
-                        <option value="follow_up">Follow-up</option>
-                        <option value="revisit">Revisit</option>
-                        <option value="emergency">Emergency</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Consultation Fee (₹) *</label>
-                    <input type="number" name="consultation_fee" value="800" min="0" required
-                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold">
-                </div>
-
-                <!-- Date & Selected Time -->
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Appointment Date *</label>
-                    <input type="date" name="appointment_date" id="modalDateSelect" value="{{ now()->toDateString() }}" required onchange="fetchModalDoctorSlots()"
-                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Time Slot * <span id="modalSelectedSlotBadge" class="text-blue-600 font-bold ml-1"></span></label>
-                    <input type="time" name="appointment_time" id="modalTimeInput" value="10:00" required
-                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold">
+                    <label class="block font-bold text-slate-700 mb-1">Start Date *</label>
+                    <input type="date" name="appointment_date" id="modalDateSelect" value="{{ now()->toDateString() }}" min="{{ now()->toDateString() }}" required
+                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                 </div>
 
-                <!-- Dynamic Live Slots Grid (Full width) -->
-                <div class="md:col-span-2">
-                    <div id="modalSlotContainer" class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                                <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-600"></i> Live Available Clinic Slots:
-                            </span>
-                            <span id="modalSlotStatusText" class="text-[10px] text-slate-500">Pick doctor & clinic to load</span>
-                        </div>
-                        <div id="modalSlotsGrid" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                            <span class="text-[11px] text-slate-400 italic">Select doctor, clinic & date above to load live availability.</span>
-                        </div>
+                <!-- Treatment Days -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Treatment Duration (Days) *</label>
+                    <input type="number" name="treatment_days" id="modalTreatmentDays" value="5" min="1" max="180" required oninput="calculateModalTotalFee()"
+                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-blue-700">
+                </div>
+
+                <!-- Daily Fee -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Daily / Per-Session Fee (₹) *</label>
+                    <input type="number" step="0.01" name="daily_fee" id="modalDailyFee" value="{{ $modalClinics->first()?->consultation_fee ?? 800 }}" min="0" required oninput="calculateModalTotalFee()"
+                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-800">
+                </div>
+
+                <!-- LIVE AUTO FEE CALCULATION BANNER -->
+                <div class="md:col-span-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50/60 rounded-xl border border-blue-200 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-500 block">Auto Calculated Amount</span>
+                        <span id="modalFeeFormula" class="text-xs font-bold text-slate-800">₹800 × 5 Days</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] uppercase font-bold text-emerald-700 block">Total Package Fee</span>
+                        <div id="modalTotalFeeDisplay" class="text-lg font-black text-emerald-700 tracking-tight">₹4,000.00</div>
                     </div>
                 </div>
 
-                <!-- Reason & Notes -->
+                <!-- Appointment Type & Symptoms -->
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Reason / Symptoms</label>
-                    <input type="text" name="reason" placeholder="e.g. Knee pain, regular checkup..."
-                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <label class="block font-bold text-slate-700 mb-1">Appointment Type *</label>
+                    <select name="appointment_type" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
+                        <option value="new">New Assessment & Session</option>
+                        <option value="follow_up">Ongoing Session</option>
+                        <option value="revisit">Periodic Revisit</option>
+                        <option value="emergency">Acute Pain Emergency</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Internal Notes (Optional)</label>
-                    <input type="text" name="notes" placeholder="Special clinical instructions..."
-                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <label class="block font-bold text-slate-700 mb-1">Chief Complaint / Condition</label>
+                    <input type="text" name="reason" placeholder="e.g. Cervical pain, post-op knee stiffness..."
+                           class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                 </div>
             </div>
 
@@ -156,7 +172,7 @@
                 <button type="button" onclick="closeModal('quickAppointmentModal')" class="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition">
                     Cancel
                 </button>
-                <button type="submit" class="px-5 py-2.5 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition shadow-sm">
+                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-sm">
                     Confirm & Generate Token
                 </button>
             </div>
@@ -173,8 +189,8 @@
                     <i data-lucide="user-plus" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-sm">Quick Patient Registration</h3>
-                    <p class="text-[11px] text-slate-400">Unique ID: <strong class="text-blue-700 font-mono">{{ $nextPatientId }}</strong></p>
+                    <h3 class="font-bold text-slate-900 text-sm">Quick Patient Intake</h3>
+                    <p class="text-[11px] text-slate-400 font-semibold">Assigned ID: <strong class="text-blue-700 font-mono">{{ $nextPatientId }}</strong></p>
                 </div>
             </div>
             <button onclick="closeModal('quickPatientModal')" class="text-slate-400 hover:text-slate-600">
@@ -184,23 +200,47 @@
 
         <form action="{{ route('patients.store') }}" method="POST" class="p-6 space-y-4 text-xs">
             @csrf
+
+            <!-- Clinic & Category Selection -->
+            <div class="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Select Clinic *</label>
+                    <select name="clinic_id" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold text-slate-800 outline-none">
+                        @foreach($modalClinics as $mc)
+                            <option value="{{ $mc->id }}">{{ $mc->name }} ({{ $mc->city ?? 'Clinic' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Treatment Category *</label>
+                    <select name="category_id" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold text-slate-800 outline-none">
+                        <option value="">Select Category</option>
+                        @foreach($modalCategories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <!-- Name -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">First Name *</label>
                     <input type="text" name="first_name" required placeholder="e.g. Ramesh"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Last Name *</label>
                     <input type="text" name="last_name" required placeholder="e.g. Gupta"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold">
                 </div>
             </div>
 
+            <!-- Demographics -->
             <div class="grid grid-cols-3 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Gender *</label>
-                    <select name="gender" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                    <select name="gender" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold">
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                         <option value="Other">Other</option>
@@ -209,58 +249,55 @@
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Age (Years) *</label>
                     <input type="number" name="age" required min="0" max="120" placeholder="e.g. 42"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold">
                 </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Blood Group</label>
-                    <select name="blood_group" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                        <option value="">Unknown</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Mobile Phone *</label>
                     <input type="text" name="mobile" required placeholder="10 digit number"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Emergency Contact & Phone</label>
-                    <input type="text" name="emergency_contact" placeholder="Spouse / Parent (98XXXXXXXX)"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
+                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold">
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Known Allergies</label>
-                    <input type="text" name="allergies" placeholder="e.g. Penicillin, Sulfa, Dust"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Existing Conditions</label>
-                    <input type="text" name="conditions" placeholder="e.g. Diabetes, Hypertension"
-                           class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none">
-                </div>
+            <!-- Chief Complaint / Description -->
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Chief Complaint & Symptoms *</label>
+                <textarea name="description" rows="2" required placeholder="Describe pain site, symptoms, duration, diagnosis..."
+                          class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800"></textarea>
             </div>
 
             <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button type="button" onclick="closeModal('quickPatientModal')" class="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">
                     Cancel
                 </button>
-                <button type="submit" class="px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold">
+                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-sm">
                     Save & Open Patient Profile
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+function handleModalClinicChange() {
+    const clinicSelect = document.getElementById('modalClinicSelect');
+    const dailyFeeInput = document.getElementById('modalDailyFee');
+    if (clinicSelect && dailyFeeInput) {
+        const opt = clinicSelect.options[clinicSelect.selectedIndex];
+        if (opt && opt.dataset.fee) {
+            dailyFeeInput.value = parseFloat(opt.dataset.fee).toFixed(2);
+        }
+    }
+    calculateModalTotalFee();
+}
+
+function calculateModalTotalFee() {
+    const days = parseFloat(document.getElementById('modalTreatmentDays')?.value) || 1;
+    const dailyFee = parseFloat(document.getElementById('modalDailyFee')?.value) || 0;
+    const total = days * dailyFee;
+
+    const formulaEl = document.getElementById('modalFeeFormula');
+    const displayEl = document.getElementById('modalTotalFeeDisplay');
+    if (formulaEl) formulaEl.innerText = `₹${dailyFee.toLocaleString('en-IN')} daily × ${days} Days`;
+    if (displayEl) displayEl.innerText = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+}
+</script>

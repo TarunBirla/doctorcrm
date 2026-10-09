@@ -11,6 +11,8 @@ class Patient extends Model
 
     protected $fillable = [
         'doctor_id',
+        'clinic_id',
+        'category_id',
         'created_by_user_id',
         'patient_id',
         'first_name',
@@ -33,6 +35,7 @@ class Patient extends Model
         'profile_photo',
         'referral_source',
         'notes',
+        'description',
     ];
 
     protected $casts = [
@@ -55,6 +58,16 @@ class Patient extends Model
     public function doctor()
     {
         return $this->belongsTo(Doctor::class);
+    }
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(TreatmentCategory::class, 'category_id');
     }
 
     public function creator()

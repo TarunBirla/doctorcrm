@@ -108,7 +108,9 @@ class PatientController extends Controller
             $doctors = Doctor::active()->orderBy('name')->get();
         }
 
-        return view('patients.create', compact('nextId', 'clinics', 'doctors', 'loggedInDoctor', 'currentRole'));
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+
+        return view('patients.create', compact('nextId', 'clinics', 'doctors', 'loggedInDoctor', 'currentRole', 'categories'));
     }
 
     public function store(Request $request)
@@ -122,6 +124,9 @@ class PatientController extends Controller
             'mobile' => 'required|string|max:20',
             'alt_mobile' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
+            'clinic_id' => 'required|exists:clinics,id',
+            'category_id' => 'required|exists:treatment_categories,id',
+            'description' => 'required|string',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
@@ -132,20 +137,11 @@ class PatientController extends Controller
             'emergency_phone' => 'nullable|string|max:20',
             'referral_source' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
-            // Medical history fields
-            'conditions' => 'nullable|string',
-            'allergies' => 'nullable|string',
-            'surgeries' => 'nullable|string',
-            'family_history' => 'nullable|string',
-            'current_medications' => 'nullable|string',
-            // Optional instant booking validation
+            // Optional instant booking validation (days based)
             'book_appointment' => 'nullable|boolean',
-            'clinic_id' => 'required_if:book_appointment,1|nullable|exists:clinics,id',
             'appointment_date' => 'required_if:book_appointment,1|nullable|date',
-            'appointment_time' => 'required_if:book_appointment,1|nullable|string',
-            'appointment_type' => 'nullable|in:new,follow_up,revisit,emergency',
+            'treatment_days' => 'required_if:book_appointment,1|nullable|integer|min:1|max:365',
             'consultation_fee' => 'nullable|numeric|min:0',
-            'appointment_reason' => 'nullable|string|max:255',
             'doctor_id' => 'nullable|exists:doctors,id',
         ]);
 
@@ -163,6 +159,9 @@ class PatientController extends Controller
         $patient = Patient::create([
             'patient_id' => $patientId,
             'doctor_id' => $assignedDoctorId,
+            'clinic_id' => $validated['clinic_id'],
+            'category_id' => $validated['category_id'],
+            'description' => $validated['description'],
             'created_by_user_id' => auth()->id(),
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
@@ -184,45 +183,22 @@ class PatientController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        PatientMedicalHistory::create([
-            'patient_id' => $patient->id,
-            'conditions' => $validated['conditions'] ?? null,
-            'allergies' => $validated['allergies'] ?? null,
-            'surgeries' => $validated['surgeries'] ?? null,
-            'family_history' => $validated['family_history'] ?? null,
-            'current_medications' => $validated['current_medications'] ?? null,
-            'notes' => 'Initial medical history recorded during registration.',
-        ]);
-
         AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id}) under Doctor #{$assignedDoctorId}");
 
-        // OPTIONAL: Instant Appointment Booking Flow
-        if ($request->boolean('book_appointment') && $request->filled('clinic_id') && $request->filled('appointment_date') && $request->filled('appointment_time')) {
+        // OPTIONAL: Instant Appointment Booking Flow (Session & Days Package based, No hourly slot needed)
+        if ($request->boolean('book_appointment') && $request->filled('appointment_date')) {
             $clinicId = $validated['clinic_id'];
             $appDate = $validated['appointment_date'];
-            $appTime = $validated['appointment_time'];
-            $appType = $validated['appointment_type'] ?? 'new';
-            $reason = $validated['appointment_reason'] ?? 'First Consultation';
+            $treatmentDays = (int) ($request->input('treatment_days') ?? 1);
+            if ($treatmentDays < 1) $treatmentDays = 1;
 
-            // Resolve Fee
+            // Resolve Daily Fee & Total Package Fee
             $clinicObj = \App\Models\Clinic::find($clinicId);
-            $fee = $validated['consultation_fee'] ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00);
+            $dailyFee = (float) ($request->input('consultation_fee') ?? ($clinicObj ? $clinicObj->consultation_fee : 800.00));
+            $totalFee = $dailyFee * $treatmentDays;
 
-            // Double Booking Verification
-            $time24 = date('H:i', strtotime($appTime));
-            $slotOccupied = \App\Models\Appointment::where('doctor_id', $assignedDoctorId)
-                ->where('clinic_id', $clinicId)
-                ->whereDate('appointment_date', $appDate)
-                ->whereNotIn('status', ['cancelled'])
-                ->get()
-                ->first(function ($apt) use ($time24) {
-                    return date('H:i', strtotime($apt->appointment_time)) === $time24;
-                });
-
-            if ($slotOccupied && $appType !== 'emergency') {
-                return redirect()->route('patients.show', $patient->id)
-                    ->with('warning', "Patient {$patient->full_name} registered, but the appointment slot {$appTime} was already booked. Please book appointment from the patient profile.");
-            }
+            $categoryObj = \App\Models\TreatmentCategory::find($validated['category_id']);
+            $categoryName = $categoryObj ? $categoryObj->name : 'Physiotherapy Treatment';
 
             $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
             $tokenNumber = \App\Models\Appointment::nextTokenForDate($appDate, $assignedDoctorId);
@@ -232,12 +208,15 @@ class PatientController extends Controller
                 'patient_id' => $patient->id,
                 'doctor_id' => $assignedDoctorId,
                 'clinic_id' => $clinicId,
+                'category_id' => $validated['category_id'],
                 'appointment_date' => $appDate,
-                'appointment_time' => $appTime,
-                'appointment_type' => $appType,
+                'treatment_days' => $treatmentDays,
+                'daily_fee' => $dailyFee,
+                'appointment_time' => 'Session',
+                'appointment_type' => 'new',
                 'token_number' => $tokenNumber,
-                'reason' => $reason,
-                'consultation_fee' => $fee,
+                'reason' => $validated['description'],
+                'consultation_fee' => $totalFee,
                 'payment_status' => 'unpaid',
                 'status' => 'scheduled',
             ]);
@@ -250,28 +229,26 @@ class PatientController extends Controller
                 'appointment_id' => $appointment->id,
                 'doctor_id' => $assignedDoctorId,
                 'invoice_date' => $appDate,
-                'subtotal' => $fee,
+                'subtotal' => $totalFee,
                 'discount' => 0.00,
                 'additional_charges' => 0.00,
-                'total_amount' => $fee,
+                'total_amount' => $totalFee,
                 'paid_amount' => 0.00,
-                'due_amount' => $fee,
+                'due_amount' => $totalFee,
                 'payment_status' => 'unpaid',
-                'notes' => 'Generated automatically for appointment ' . $appointment->appointment_no,
+                'notes' => "Physiotherapy treatment package for {$treatmentDays} days - {$categoryName}",
             ]);
 
             \App\Models\InvoiceItem::create([
                 'invoice_id' => $invoice->id,
-                'item_description' => ucfirst($appType) . ' Consultation Fee',
-                'quantity' => 1,
-                'unit_price' => $fee,
-                'total' => $fee,
+                'item_description' => "{$categoryName} ({$treatmentDays} Days Package)",
+                'quantity' => $treatmentDays,
+                'unit_price' => $dailyFee,
+                'total' => $totalFee,
             ]);
 
-            AuditLog::record('Appointment Created', 'Appointment', $appointment->appointment_no, "Auto-created appointment #{$appointmentNo} during patient registration for {$patient->full_name}");
-
             return redirect()->route('patients.show', $patient->id)
-                ->with('success', "Patient {$patient->full_name} registered & Appointment #{$appointment->appointment_no} (Token #{$tokenNumber}) booked at {$clinicObj->name} successfully!");
+                ->with('success', "Patient {$patient->full_name} registered and {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Fee: ₹" . number_format($totalFee, 2));
         }
 
         return redirect()->route('patients.show', $patient->id)
@@ -420,7 +397,9 @@ class PatientController extends Controller
     {
         $patient = Patient::findOrFail($id);
         $this->authorizePatientAccess($patient);
-        return view('patients.edit', compact('patient'));
+        $clinics = \App\Models\Clinic::where('is_active', true)->get();
+        $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
+        return view('patients.edit', compact('patient', 'clinics', 'categories'));
     }
 
     public function update(Request $request, $id)
@@ -437,6 +416,9 @@ class PatientController extends Controller
             'mobile' => 'required|string|max:20',
             'alt_mobile' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
+            'clinic_id' => 'nullable|exists:clinics,id',
+            'category_id' => 'nullable|exists:treatment_categories,id',
+            'description' => 'nullable|string',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',

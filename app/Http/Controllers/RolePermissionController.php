@@ -26,6 +26,8 @@ class RolePermissionController extends Controller
             'medical_reports' => ['title' => 'Medical Reports Catalog', 'description' => 'Diagnostic lab attachments, previews & downloads', 'icon' => 'clipboard-list'],
             'progress' => ['title' => 'Patient Progress Tracker', 'description' => 'Vitals trend charts (Weight, BP, Pulse) over time', 'icon' => 'trending-up'],
             'followups' => ['title' => 'Follow-up Scheduler', 'description' => 'Upcoming, missed and scheduled patient reviews', 'icon' => 'alarm-clock'],
+            'exercises' => ['title' => 'Exercises Library', 'description' => 'Physiotherapy exercise library with steps, sets & reps', 'icon' => 'activity'],
+            'categories' => ['title' => 'Treatment Categories', 'description' => 'Physiotherapy treatment categories and protocols', 'icon' => 'layers'],
             'availability' => ['title' => 'Doctor Availability & Slots', 'description' => 'Consulting hours, daily slot durations & OPD limits', 'icon' => 'clock-4'],
             'billing' => ['title' => 'Invoices & Billing', 'description' => 'Invoice generation, itemized charges & discounts', 'icon' => 'receipt'],
             'dues' => ['title' => 'Due Payments Collection', 'description' => 'Outstanding dues tracker & partial payment collector', 'icon' => 'wallet'],
@@ -60,7 +62,7 @@ class RolePermissionController extends Controller
         $menuKeys = [
             'dashboard', 'queue', 'appointments', 'calendar', 'clinics', 'slots', 'patients',
             'consultations', 'prescriptions', 'medical_reports', 'progress',
-            'followups', 'availability', 'billing', 'dues', 'payments', 'expenses', 'reports'
+            'followups', 'exercises', 'categories', 'availability', 'billing', 'dues', 'payments', 'expenses', 'reports'
         ];
 
         $roles = ['doctor', 'receptionist'];
