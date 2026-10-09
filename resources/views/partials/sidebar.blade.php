@@ -136,13 +136,13 @@
                 </a>
                 @endif
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))
                 <a href="{{ route('slots.manage') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('slots.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="calendar-clock" class="w-4 h-4 {{ request()->routeIs('slots.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Slot & Schedule Manager</span>
                 </a>
-                @endif
+                @endif -->
             </div>
         </div>
         @endif
@@ -183,7 +183,7 @@
                 </a>
                 @endif
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'videos'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'videos'))
                 <a href="{{ route('videos.index') }}" 
                    class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('videos.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <div class="flex items-center gap-3">
@@ -192,7 +192,7 @@
                     </div>
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">Rehab TV</span>
                 </a>
-                @endif
+                @endif -->
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'categories'))
                 <a href="{{ route('categories.index') }}" 
@@ -218,29 +218,29 @@
                 </a>
                 @endif
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'progress'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'progress'))
                 <a href="{{ route('progress.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('progress.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="trending-up" class="w-4 h-4 {{ request()->routeIs('progress.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Patient Progress Tracker</span>
                 </a>
-                @endif
+                @endif -->
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'followups'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'followups'))
                 <a href="{{ route('followups.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('followups.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="alarm-clock" class="w-4 h-4 {{ request()->routeIs('followups.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Follow-ups</span>
                 </a>
-                @endif
+                @endif -->
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'availability'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'availability'))
                 <a href="{{ route('settings.availability') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('settings.availability') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="clock-4" class="w-4 h-4 {{ request()->routeIs('settings.availability') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>{{ $currentRole === 'doctor' ? 'My Availability & Slots' : 'Doctor Availability' }}</span>
                 </a>
-                @endif
+                @endif -->
             </div>
         </div>
         @endif

@@ -115,7 +115,7 @@
                     1-Click Auto Fill Demo Roles
                 </span>
 
-                <div class="grid grid-cols-3 gap-2">
+                <!-- <div class="grid grid-cols-3 gap-2">
                     <button type="button" onclick="fillRole('admin@carepoint.com')"
                             class="p-2 rounded-xl border border-slate-200 hover:border-primary/40 hover:bg-slate-50 text-center transition group">
                         <span class="text-xs font-bold text-slate-800 block group-hover:text-primary">Admin</span>
@@ -133,13 +133,13 @@
                         <span class="text-xs font-bold text-slate-800 block group-hover:text-primary">Staff</span>
                         <span class="text-[10px] text-slate-400 block">Reception Desk</span>
                     </button>
-                </div>
+                </div> -->
             </div>
         </div>
 
         <!-- Footer -->
         <div class="text-center text-xs text-slate-400 space-y-1">
-            <p>© {{ date('Y') }} PhysioPii Clinic Management. All rights reserved.</p>
+            <p>© {{ date('Y') }} SDPC  Management. All rights reserved.</p>
         </div>
     </div>
 

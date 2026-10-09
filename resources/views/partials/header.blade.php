@@ -97,7 +97,7 @@
         </div> -->
 
         <!-- NOTIFICATION BELL WITH COUNTER -->
-        <div class="relative">
+        <!-- <div class="relative">
             <button onclick="document.getElementById('notificationMenu').classList.toggle('hidden')" 
                     class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl border border-transparent hover:border-slate-200 transition">
                 <i data-lucide="bell" class="w-4 h-4"></i>
@@ -106,7 +106,6 @@
                 </span>
             </button>
 
-            <!-- Notifications Dropdown -->
             <div id="notificationMenu" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-fade-in text-xs">
                 <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                     <span class="font-bold text-slate-800">Clinic Alerts & Notices</span>
@@ -129,7 +128,7 @@
                     @endforelse
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- USER PROFILE BADGE & DROPDOWN -->
         <div class="relative">
