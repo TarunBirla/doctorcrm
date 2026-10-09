@@ -575,7 +575,16 @@ class AppointmentController extends Controller
         $query = Appointment::with(['patient', 'doctor', 'clinic', 'category']);
 
         if ($loggedInDoctor) {
-            $query->where('doctor_id', $loggedInDoctor->id);
+            $doctorClinicIds = $loggedInDoctor->clinics()->pluck('clinics.id')
+                ->merge($loggedInDoctor->ownedClinics()->pluck('id'))
+                ->unique()->filter()->toArray();
+
+            $query->where(function ($q) use ($loggedInDoctor, $doctorClinicIds) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+                if (!empty($doctorClinicIds)) {
+                    $q->orWhereIn('clinic_id', $doctorClinicIds);
+                }
+            });
         } elseif ($currentRole === 'doctor') {
             $query->whereRaw('1 = 0');
         }
@@ -590,34 +599,51 @@ class AppointmentController extends Controller
             $query->where('category_id', $categoryId);
         }
 
-        // Fetch appointments for month or week
+        // Fetch appointments accounting for multi-day physiotherapy packages
         if ($view === 'day') {
+            $targetDateStr = $carbonDate->toDateString();
             $appointments = (clone $query)
-                ->whereDate('appointment_date', $carbonDate->toDateString())
+                ->whereDate('appointment_date', '<=', $targetDateStr)
+                ->whereDate('appointment_date', '>=', (clone $carbonDate)->subDays(90)->toDateString())
                 ->orderBy('token_number', 'asc')
-                ->get();
+                ->get()
+                ->filter(function ($a) use ($targetDateStr) {
+                    $start = Carbon::parse($a->appointment_date)->startOfDay();
+                    $days = max(1, (int) ($a->treatment_days ?? 1));
+                    $end = (clone $start)->addDays($days - 1)->endOfDay();
+                    $check = Carbon::parse($targetDateStr);
+                    return $check->between($start, $end);
+                });
         } elseif ($view === 'week') {
             $startWeek = (clone $carbonDate)->startOfWeek();
             $endWeek = (clone $carbonDate)->endOfWeek();
             $appointments = (clone $query)
-                ->whereDate('appointment_date', '>=', $startWeek->toDateString())
                 ->whereDate('appointment_date', '<=', $endWeek->toDateString())
+                ->whereDate('appointment_date', '>=', (clone $startWeek)->subDays(90)->toDateString())
                 ->orderBy('token_number', 'asc')
-                ->get();
+                ->get()
+                ->filter(function ($a) use ($startWeek, $endWeek) {
+                    $start = Carbon::parse($a->appointment_date)->startOfDay();
+                    $days = max(1, (int) ($a->treatment_days ?? 1));
+                    $end = (clone $start)->addDays($days - 1)->endOfDay();
+                    return $end->gte($startWeek) && $start->lte($endWeek);
+                });
         } else {
-            // Month
+            // Month View
             $startMonth = (clone $carbonDate)->startOfMonth();
             $endMonth = (clone $carbonDate)->endOfMonth();
             $appointments = (clone $query)
-                ->whereDate('appointment_date', '>=', $startMonth->toDateString())
                 ->whereDate('appointment_date', '<=', $endMonth->toDateString())
+                ->whereDate('appointment_date', '>=', (clone $startMonth)->subDays(90)->toDateString())
                 ->orderBy('token_number', 'asc')
-                ->get();
+                ->get()
+                ->filter(function ($a) use ($startMonth, $endMonth) {
+                    $start = Carbon::parse($a->appointment_date)->startOfDay();
+                    $days = max(1, (int) ($a->treatment_days ?? 1));
+                    $end = (clone $start)->addDays($days - 1)->endOfDay();
+                    return $end->gte($startMonth) && $start->lte($endMonth);
+                });
         }
-
-        $appointmentsByDate = $appointments->groupBy(function ($appt) {
-            return $appt->appointment_date ? Carbon::parse($appt->appointment_date)->format('Y-m-d') : '';
-        });
 
         $doctors = Doctor::active()->get();
         $patients = $loggedInDoctor 
@@ -632,7 +658,7 @@ class AppointmentController extends Controller
 
         $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
 
-        return view('appointments.calendar', compact('appointments', 'appointmentsByDate', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor', 'clinicId', 'categoryId'));
+        return view('appointments.calendar', compact('appointments', 'view', 'selectedDate', 'carbonDate', 'doctors', 'patients', 'clinics', 'categories', 'loggedInDoctor', 'clinicId', 'categoryId'));
     }
 
     public function getDoctorSlots(Request $request)

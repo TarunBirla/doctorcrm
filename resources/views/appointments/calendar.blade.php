@@ -58,27 +58,39 @@
         </div>
 
         <!-- Clinic & Category Filters -->
-        <form method="GET" action="{{ route('calendar.index') }}" class="flex items-center gap-2 text-xs">
+        <form method="GET" action="{{ route('calendar.index') }}" class="flex flex-wrap items-center gap-2 text-xs">
             <input type="hidden" name="view" value="{{ $view }}">
             <input type="hidden" name="date" value="{{ $selectedDate }}">
             
-            <select name="clinic_id" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-semibold outline-none focus:bg-white focus:border-blue-500">
-                <option value="">All Practice Clinics</option>
-                @foreach($clinics as $cl)
-                    <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
-                        {{ $cl->name }}
-                    </option>
-                @endforeach
-            </select>
+            <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i>
+                <select name="clinic_id" onchange="this.form.submit()" class="bg-transparent text-slate-800 font-bold outline-none cursor-pointer">
+                    <option value="">All Practice Clinics</option>
+                    @foreach($clinics as $cl)
+                        <option value="{{ $cl->id }}" {{ (string) request('clinic_id', $clinicId ?? '') === (string) $cl->id ? 'selected' : '' }}>
+                            {{ $cl->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-            <select name="category_id" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-semibold outline-none focus:bg-white focus:border-blue-500">
-                <option value="">All Categories</option>
-                @foreach($categories as $cg)
-                    <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
-                        {{ $cg->name }}
-                    </option>
-                @endforeach
-            </select>
+            <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <i data-lucide="activity" class="w-4 h-4 text-indigo-600"></i>
+                <select name="category_id" onchange="this.form.submit()" class="bg-transparent text-slate-800 font-bold outline-none cursor-pointer">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $cg)
+                        <option value="{{ $cg->id }}" {{ (string) request('category_id', $categoryId ?? '') === (string) $cg->id ? 'selected' : '' }}>
+                            {{ $cg->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            @if(!empty($clinicId) || !empty($categoryId))
+                <a href="?view={{ $view }}&date={{ $selectedDate }}" class="text-xs text-rose-600 hover:underline font-bold px-2 py-1">
+                    Clear Filter
+                </a>
+            @endif
         </form>
 
         <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-sm">
@@ -113,7 +125,13 @@
                 @for($d = 1; $d <= $daysInMonth; $d++)
                     @php
                         $curDate = $carbonDate->copy()->day($d)->toDateString();
-                        $dayAppts = isset($appointmentsByDate) ? $appointmentsByDate->get($curDate, collect()) : $appointments->filter(fn($x) => \Carbon\Carbon::parse($x->appointment_date)->toDateString() === $curDate);
+                        $dayAppts = $appointments->filter(function ($a) use ($curDate) {
+                            $start = \Carbon\Carbon::parse($a->appointment_date)->startOfDay();
+                            $days = max(1, (int) ($a->treatment_days ?? 1));
+                            $end = (clone $start)->addDays($days - 1)->endOfDay();
+                            $check = \Carbon\Carbon::parse($curDate);
+                            return $check->between($start, $end);
+                        });
                         $isToday = $curDate === now()->toDateString();
                     @endphp
                     <div class="min-h-[120px] rounded-xl border {{ $isToday ? 'border-blue-500 bg-blue-50/20 shadow-xs ring-1 ring-blue-500/30' : 'border-slate-200 bg-white' }} p-2.5 flex flex-col justify-between hover:border-slate-300 transition">
@@ -123,16 +141,21 @@
                             </span>
                             @if($dayAppts->count() > 0)
                                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                                    {{ $dayAppts->count() }} {{ Str::plural('Appt', $dayAppts->count()) }}
+                                    {{ $dayAppts->count() }} {{ Str::plural('Session', $dayAppts->count()) }}
                                 </span>
                             @endif
                         </div>
 
                         <!-- Appt Pills -->
-                        <div class="space-y-1.5 mt-1.5 overflow-y-auto max-h-20 text-[10px]">
-                            @foreach($dayAppts->take(3) as $a)
+                        <div class="space-y-1.5 mt-1.5 overflow-y-auto max-h-24 text-[10px]">
+                            @foreach($dayAppts->take(4) as $a)
+                                @php
+                                    $startDay = \Carbon\Carbon::parse($a->appointment_date)->startOfDay();
+                                    $checkDay = \Carbon\Carbon::parse($curDate)->startOfDay();
+                                    $dayNum = $startDay->diffInDays($checkDay) + 1;
+                                @endphp
                                 <a href="{{ route('patients.show', $a->patient_id) }}" 
-                                   title="{{ $a->patient?->full_name }} ({{ $a->clinic?->name ?? 'Clinic' }} - {{ $a->treatment_days ?? 1 }} Days)"
+                                   title="{{ $a->patient?->full_name }} ({{ $a->clinic?->name ?? 'Clinic' }} - Day {{ $dayNum }}/{{ $a->treatment_days ?? 1 }})"
                                    class="block px-2 py-1 rounded-lg truncate font-semibold transition hover:opacity-95 shadow-2xs
                                     @if($a->status === 'completed') bg-emerald-50 text-emerald-800 border border-emerald-200
                                     @elseif($a->status === 'waiting') bg-amber-50 text-amber-800 border border-amber-200
@@ -142,12 +165,12 @@
                                     <span class="font-bold text-slate-900">#{{ $a->token_number }}</span>
                                     <span class="ml-1 text-slate-800 font-semibold">{{ $a->patient?->full_name ?? 'Patient' }}</span>
                                     @if(($a->treatment_days ?? 1) > 1)
-                                        <span class="text-[9px] px-1 py-0.2 rounded bg-indigo-100 text-indigo-700 font-bold ml-0.5">{{ $a->treatment_days }}d</span>
+                                        <span class="text-[9px] px-1 py-0.2 rounded bg-indigo-100 text-indigo-700 font-bold ml-0.5">D{{ $dayNum }}/{{ $a->treatment_days }}</span>
                                     @endif
                                 </a>
                             @endforeach
-                            @if($dayAppts->count() > 3)
-                                <span class="text-[9px] text-blue-600 font-bold block text-center bg-blue-50/70 rounded py-0.5">+{{ $dayAppts->count() - 3 }} more</span>
+                            @if($dayAppts->count() > 4)
+                                <span class="text-[9px] text-blue-600 font-bold block text-center bg-blue-50/70 rounded py-0.5">+{{ $dayAppts->count() - 4 }} more</span>
                             @endif
                         </div>
                     </div>

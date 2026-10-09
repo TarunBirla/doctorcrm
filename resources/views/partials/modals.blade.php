@@ -63,11 +63,8 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Patient Selection -->
                 <div class="md:col-span-2">
-                    <div class="flex items-center justify-between mb-1">
+                    <div class="mb-1">
                         <label class="block font-bold text-slate-700">Select Patient *</label>
-                        <a href="#" onclick="closeModal('quickAppointmentModal'); openModal('quickPatientModal');" class="text-[11px] text-blue-600 font-bold hover:underline">
-                            + Register new patient
-                        </a>
                     </div>
                     <select name="patient_id" id="modalPatientSelect" onchange="handleModalPatientChange()" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         <option value="">-- Choose registered patient --</option>

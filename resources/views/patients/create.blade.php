@@ -158,8 +158,8 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">City & State</label>
                         <div class="flex gap-2">
-                            <input type="text" name="city" value="{{ old('city', 'Gurugram') }}" placeholder="City" class="w-1/2 px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none">
-                            <input type="text" name="state" value="{{ old('state', 'Haryana') }}" placeholder="State" class="w-1/2 px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none">
+                            <input type="text" name="city" value="{{ old('city', $clinics->first()?->city ?? 'Indore') }}" placeholder="City" class="w-1/2 px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none">
+                            <input type="text" name="state" value="{{ old('state', $clinics->first()?->state ?? 'Madhya Pradesh') }}" placeholder="State" class="w-1/2 px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none">
                         </div>
                     </div>
                 </div>

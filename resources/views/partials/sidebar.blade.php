@@ -152,6 +152,7 @@
             $hasClinicalSection = \App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'exercises') ||
+                                  \App\Models\RoleMenuPermission::canAccess($currentRole, 'videos') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'categories') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'medical_reports') ||
                                   \App\Models\RoleMenuPermission::canAccess($currentRole, 'progress') ||
@@ -179,6 +180,17 @@
                         <span>Exercises Library</span>
                     </div>
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Rehab</span>
+                </a>
+                @endif
+
+                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'videos'))
+                <a href="{{ route('videos.index') }}" 
+                   class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('videos.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="video" class="w-4 h-4 {{ request()->routeIs('videos.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                        <span>Manage Videos</span>
+                    </div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">Rehab TV</span>
                 </a>
                 @endif
 

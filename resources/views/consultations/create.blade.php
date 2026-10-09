@@ -81,7 +81,7 @@
                 </div>
 
                 <!-- PREVIOUS VISIT INTELLIGENT REVISIT CARRY-FORWARD -->
-                @if($previousVisit)
+                @if(!empty($previousVisit))
                     <div class="card-custom p-5 bg-white space-y-3 border-blue-200">
                         <div class="flex items-center justify-between">
                             <h4 class="font-bold text-xs uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
@@ -219,7 +219,7 @@
                                class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 font-bold text-slate-900 outline-none text-xs">
                         <div class="flex flex-wrap items-center gap-1.5 mt-2">
                             <span class="text-[10px] text-slate-400">Quick add:</span>
-                            @foreach($diagnosesCatalog->take(5) as $dc)
+                            @foreach(($diagnosesCatalog ?? collect())->take(5) as $dc)
                                 <button type="button" onclick="setDiagnosis('{{ $dc->name }}')" class="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-[10px] text-slate-600 transition">
                                     + {{ $dc->name }}
                                 </button>
@@ -240,12 +240,134 @@
                     </div>
                 </div>
 
-                <!-- PRESCRIPTION MEDICATION BUILDER -->
+                <!-- PHYSIOTHERAPY REHABILITATION & EXERCISE PROTOCOL BUILDER -->
+                <div class="card-custom p-6 bg-white space-y-5 border-l-4 border-l-emerald-600">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="p-1 rounded-lg bg-emerald-100 text-emerald-800">
+                                    <i data-lucide="dumbbell" class="w-4 h-4"></i>
+                                </span>
+                                <h3 class="font-bold text-slate-900 text-sm">Physiotherapy Rehabilitation Protocol</h3>
+                                <span class="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                                    Physiotherapist Core
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Prescribe targeted therapeutic exercises, treatment days, and modalities</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs">
+                            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl">
+                                <span class="font-semibold text-slate-600">Protocol:</span>
+                                <select name="assessment_type" class="bg-transparent font-bold text-slate-800 outline-none text-xs">
+                                    <option value="musculoskeletal">🦴 Musculoskeletal</option>
+                                    <option value="neurological">🧠 Neurological</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl">
+                                <span class="font-semibold text-slate-600">Duration:</span>
+                                <input type="number" name="treatment_days" value="7" min="1" max="180" class="w-12 bg-transparent text-center font-bold text-blue-700 outline-none text-xs">
+                                <span class="font-bold text-slate-500">Days</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modalities Checkboxes -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">Prescribed Modalities / Electrotherapy</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs">
+                            @php
+                                $cModalities = ['IFT', 'TENS', 'Ultrasound (US)', 'Spinal Traction', 'Moist Heat', 'Cryo Pack', 'Cupping', 'Dry Needling', 'Mobilization', 'Chiropractic', 'SWD', 'Laser'];
+                            @endphp
+                            @foreach($cModalities as $cMod)
+                                <label class="p-2 rounded-xl border border-slate-200 hover:border-emerald-500 cursor-pointer flex items-center gap-1.5 bg-slate-50/50 hover:bg-emerald-50/40 transition">
+                                    <input type="checkbox" name="consultation_modalities[]" value="{{ $cMod }}" onchange="updateConsultModalities()" class="rounded text-emerald-600">
+                                    <span class="font-semibold text-slate-700 text-[11px]">{{ $cMod }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <input type="hidden" name="modalities" id="consultModalitiesHidden" value="">
+                    </div>
+
+                    <!-- Exercises Quick-Add from Library -->
+                    <div class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <span class="font-bold text-emerald-950 flex items-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Insert Exercise from Library
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <select id="consultExSelect" class="px-3 py-1.5 rounded-lg border border-emerald-200 bg-white text-xs font-semibold outline-none">
+                                <option value="">-- Choose Exercise --</option>
+                                @foreach($exercises as $ex)
+                                    <option value="{{ $ex->id }}" 
+                                            data-name="{{ $ex->name }}"
+                                            data-target="{{ $ex->target_body_part ?? 'General' }}"
+                                            data-sets="{{ $ex->sets ?? '3 Sets' }}"
+                                            data-reps="{{ $ex->reps ?? '10 Reps' }}"
+                                            data-duration="{{ $ex->duration ?? '5 sec hold' }}"
+                                            data-instructions="{{ $ex->instructions }}">
+                                        {{ $ex->name }} ({{ $ex->target_body_part ?? 'General' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="button" onclick="insertConsultExercise()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs transition">
+                                + Add Exercise
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Prescribed Exercises Table -->
+                    <div class="overflow-x-auto text-xs">
+                        <table class="w-full text-left" id="consultExerciseTable">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200 text-[10px]">
+                                    <th class="py-2.5 px-3">Exercise Name</th>
+                                    <th class="py-2.5 px-2 w-32">Target Area</th>
+                                    <th class="py-2.5 px-2 w-24">Sets</th>
+                                    <th class="py-2.5 px-2 w-24">Reps</th>
+                                    <th class="py-2.5 px-2 w-28">Hold / Duration</th>
+                                    <th class="py-2.5 px-3">Instructions</th>
+                                    <th class="py-2.5 px-2 w-10 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100" id="consultExerciseRowsContainer">
+                                <tr class="consult-ex-row">
+                                    <td class="py-2 px-3">
+                                        <input type="text" name="prescribed_exercises[0][name]" value="Chin Tucks & Deep Cervical Retraction" placeholder="Exercise Name" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 font-bold outline-none focus:border-emerald-500">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="text" name="prescribed_exercises[0][target]" value="Cervical Spine" placeholder="Area" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="text" name="prescribed_exercises[0][sets]" value="3 Sets" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="text" name="prescribed_exercises[0][reps]" value="10 Reps" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="text" name="prescribed_exercises[0][duration]" value="5 sec hold" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                                    </td>
+                                    <td class="py-2 px-3">
+                                        <input type="text" name="prescribed_exercises[0][instructions]" value="Maintain upright posture, gently tuck chin straight back." placeholder="Directions" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        <button type="button" onclick="this.closest('.consult-ex-row').remove()" class="text-slate-400 hover:text-rose-600 transition p-1">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" onclick="addCustomConsultExercise()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> + Add Custom Exercise Row
+                    </button>
+                </div>
+
+                <!-- PRESCRIPTION MEDICATION BUILDER (OPTIONAL) -->
                 <div class="card-custom p-6 bg-white space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div>
-                            <h3 class="font-bold text-slate-900 text-sm">Rx Medication Prescription</h3>
-                            <p class="text-xs text-slate-400">Add medications with dosage, frequency, and food timings</p>
+                            <h3 class="font-bold text-slate-900 text-sm">Rx Medication Prescription (Optional)</h3>
+                            <p class="text-xs text-slate-400">Add pain relief gels, muscle relaxants, or vitamins if prescribed</p>
                         </div>
                         <button type="button" onclick="addMedicineRow()" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 flex items-center gap-1">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -258,8 +380,8 @@
                         <div class="p-3.5 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-2.5 medicine-row">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-2 text-xs">
                                 <div class="md:col-span-4">
-                                    <label class="text-[10px] font-semibold text-slate-500 block mb-1">Medicine Name *</label>
-                                    <input type="text" name="medicines[0][name]" placeholder="e.g. Tab Paracetamol 650mg" required class="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl bg-white outline-none font-bold">
+                                    <label class="text-[10px] font-semibold text-slate-500 block mb-1">Medicine Name</label>
+                                    <input type="text" name="medicines[0][name]" placeholder="e.g. Tab Paracetamol 650mg / Gel (Optional)" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl bg-white outline-none font-bold">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="text-[10px] font-semibold text-slate-500 block mb-1">Dosage</label>
@@ -388,6 +510,85 @@
         container.appendChild(div);
         lucide.createIcons();
         medIndex++;
+    }
+
+    let consultExIndex = 1;
+    function insertConsultExercise() {
+        const sel = document.getElementById('consultExerciseSelect');
+        if (!sel || !sel.value) return;
+        const opt = sel.options[sel.selectedIndex];
+        const name = opt.getAttribute('data-name') || '';
+        const target = opt.getAttribute('data-target') || 'General';
+        const sets = opt.getAttribute('data-sets') || '3 Sets';
+        const reps = opt.getAttribute('data-reps') || '10 Reps';
+        const duration = opt.getAttribute('data-duration') || '5 sec hold';
+        const instructions = opt.getAttribute('data-instructions') || '';
+
+        const tbody = document.getElementById('consultExerciseRowsContainer');
+        const tr = document.createElement('tr');
+        tr.className = 'consult-ex-row';
+        tr.innerHTML = `
+            <td class="py-2 px-3">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][name]" value="${name.replace(/"/g, '&quot;')}" placeholder="Exercise Name" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 font-bold outline-none focus:border-emerald-500">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][target]" value="${target.replace(/"/g, '&quot;')}" placeholder="Area" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][sets]" value="${sets.replace(/"/g, '&quot;')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][reps]" value="${reps.replace(/"/g, '&quot;')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][duration]" value="${duration.replace(/"/g, '&quot;')}" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-3">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][instructions]" value="${instructions.replace(/"/g, '&quot;')}" placeholder="Directions" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2 text-center">
+                <button type="button" onclick="this.closest('.consult-ex-row').remove()" class="text-slate-400 hover:text-rose-600 transition p-1">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        lucide.createIcons();
+        consultExIndex++;
+    }
+
+    function addCustomConsultExercise() {
+        const tbody = document.getElementById('consultExerciseRowsContainer');
+        const tr = document.createElement('tr');
+        tr.className = 'consult-ex-row';
+        tr.innerHTML = `
+            <td class="py-2 px-3">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][name]" value="" placeholder="e.g. Scapular Squeeze / Lumbar Extension" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 font-bold outline-none focus:border-emerald-500">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][target]" value="General" placeholder="Area" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][sets]" value="3 Sets" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][reps]" value="10 Reps" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][duration]" value="5 sec hold" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-3">
+                <input type="text" name="prescribed_exercises[${consultExIndex}][instructions]" value="" placeholder="Directions" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+            </td>
+            <td class="py-2 px-2 text-center">
+                <button type="button" onclick="this.closest('.consult-ex-row').remove()" class="text-slate-400 hover:text-rose-600 transition p-1">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        lucide.createIcons();
+        consultExIndex++;
     }
 
     function setDiagnosis(name) {

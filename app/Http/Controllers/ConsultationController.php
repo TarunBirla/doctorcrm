@@ -114,9 +114,11 @@ class ConsultationController extends Controller
 
         $diagnosesCatalog = Diagnosis::orderBy('name')->get();
         $doctors = Doctor::all();
+        $exercises = \App\Models\Exercise::where('is_active', true)->with('category')->orderBy('name')->get();
+        $categories = \App\Models\TreatmentCategory::where('is_active', true)->orderBy('name')->get();
 
         return view('consultations.create', compact(
-            'patient', 'appointment', 'doctor', 'previousVisit', 'diagnosesCatalog', 'doctors'
+            'patient', 'appointment', 'doctor', 'previousVisit', 'diagnosesCatalog', 'doctors', 'exercises', 'categories'
         ));
     }
 
@@ -145,7 +147,7 @@ class ConsultationController extends Controller
             'pain_level' => 'nullable|integer|min:0|max:10',
             // Prescription medicines arrays
             'medicines' => 'nullable|array',
-            'medicines.*.name' => 'required_with:medicines|string',
+            'medicines.*.name' => 'nullable|string',
             'medicines.*.dosage' => 'nullable|string',
             'medicines.*.frequency' => 'nullable|string',
             'medicines.*.duration' => 'nullable|string',
@@ -153,6 +155,11 @@ class ConsultationController extends Controller
             'medicines.*.timing' => 'nullable|string',
             'medicines.*.instructions' => 'nullable|string',
             'advice' => 'nullable|string',
+            // Physiotherapy parameters
+            'prescribed_exercises' => 'nullable|array',
+            'modalities' => 'nullable|string',
+            'treatment_days' => 'nullable|integer|min:1',
+            'assessment_type' => 'nullable|string',
             // Diagnoses array
             'diagnoses' => 'nullable|array',
         ]);
@@ -234,33 +241,64 @@ class ConsultationController extends Controller
             'doctor_notes' => $validated['clinical_notes'] ?? null,
         ]);
 
-        // 4. Save Prescription
+        // 4. Save Physiotherapy & Medication Prescription
+        $prescribedExercises = $request->input('prescribed_exercises', []);
+        $modalities = $request->input('modalities');
+        $hasMeds = false;
+        if (!empty($validated['medicines'])) {
+            foreach ($validated['medicines'] as $med) {
+                if (!empty($med['name'])) {
+                    $hasMeds = true;
+                    break;
+                }
+            }
+        }
+
+        // Resolve Clinic ID for prescription
+        $clinicId = $patient->clinic_id;
+        if (!empty($validated['appointment_id'])) {
+            $apt = Appointment::find($validated['appointment_id']);
+            if ($apt && $apt->clinic_id) {
+                $clinicId = $apt->clinic_id;
+            }
+        }
+        if (!$clinicId) {
+            $clinicId = $doctor->clinics()->first()?->id ?? \App\Models\Clinic::first()?->id;
+        }
+
         $prescription = null;
-        if (!empty($validated['medicines']) && count($validated['medicines']) > 0) {
+        if (!empty($prescribedExercises) || !empty($modalities) || $hasMeds || !empty($validated['treatment_plan'])) {
             $prescriptionNo = Prescription::generatePrescriptionNo();
             $prescription = Prescription::create([
                 'prescription_no' => $prescriptionNo,
                 'visit_id' => $visit->id,
                 'patient_id' => $patient->id,
                 'doctor_id' => $doctor->id,
+                'clinic_id' => $clinicId,
                 'prescription_date' => $validated['visit_date'],
-                'diagnosis_summary' => $validated['diagnosis_summary'] ?? 'Clinical examination',
-                'advice' => $validated['advice'] ?? 'Follow dosage timings strictly.',
+                'assessment_type' => $request->input('assessment_type', 'musculoskeletal'),
+                'prescribed_exercises' => $prescribedExercises,
+                'modalities' => $modalities,
+                'treatment_days' => $request->input('treatment_days', 7),
+                'diagnosis_summary' => $validated['diagnosis_summary'] ?? 'Physiotherapy Rehabilitation Protocol',
+                'advice' => $validated['advice'] ?? $validated['treatment_plan'] ?? 'Follow prescribed exercises and posture guidelines.',
                 'follow_up_date' => $validated['follow_up_date'] ?? null,
             ]);
 
-            foreach ($validated['medicines'] as $med) {
-                if (!empty($med['name'])) {
-                    PrescriptionItem::create([
-                        'prescription_id' => $prescription->id,
-                        'medicine_name' => $med['name'],
-                        'dosage' => $med['dosage'] ?? '',
-                        'frequency' => $med['frequency'] ?? '1-0-1',
-                        'duration' => $med['duration'] ?? '5 Days',
-                        'route' => $med['route'] ?? 'Oral',
-                        'timing' => $med['timing'] ?? 'After Food',
-                        'instructions' => $med['instructions'] ?? '',
-                    ]);
+            if ($hasMeds) {
+                foreach ($validated['medicines'] as $med) {
+                    if (!empty($med['name'])) {
+                        PrescriptionItem::create([
+                            'prescription_id' => $prescription->id,
+                            'medicine_name' => $med['name'],
+                            'dosage' => $med['dosage'] ?? '',
+                            'frequency' => $med['frequency'] ?? '1-0-1',
+                            'duration' => $med['duration'] ?? '5 Days',
+                            'route' => $med['route'] ?? 'Oral',
+                            'timing' => $med['timing'] ?? 'After Food',
+                            'instructions' => $med['instructions'] ?? '',
+                        ]);
+                    }
                 }
             }
         }

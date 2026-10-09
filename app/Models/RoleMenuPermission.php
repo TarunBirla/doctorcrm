@@ -39,6 +39,7 @@ class RoleMenuPermission extends Model
                 'progress' => true,
                 'followups' => true,
                 'exercises' => true,
+                'videos' => true,
                 'categories' => true,
                 'availability' => true,
                 'billing' => false,

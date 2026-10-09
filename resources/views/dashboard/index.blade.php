@@ -124,11 +124,11 @@
     <div class="card-custom p-4 bg-white flex flex-wrap items-center gap-3">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">QUICK ACTIONS:</span>
         
-        <button onclick="openModal('quickPatientModal')" 
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 text-blue-800 text-xs font-semibold transition">
+        <a href="{{ route('patients.create') }}" 
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 text-blue-800 text-xs font-semibold transition">
             <i data-lucide="user-plus" class="w-3.5 h-3.5 text-blue-600"></i>
             <span>Register Patient</span>
-        </button>
+        </a>
 
         <button onclick="openModal('quickAppointmentModal')" 
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/70 text-indigo-800 text-xs font-semibold transition">

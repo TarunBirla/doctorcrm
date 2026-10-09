@@ -27,6 +27,7 @@ use App\Http\Controllers\SlotManagementController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\DoctorVideoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +56,7 @@ Route::get('/switch-role/{role}', [RoleController::class, 'switchRole'])->name('
 
 // Public Landing Page (https://crm.physiopii.in/)
 Route::get('/', [LandingPageController::class, 'index'])->name('landing');
+Route::get('/videos/watch/{token}', [DoctorVideoController::class, 'publicShare'])->name('videos.public');
 
 // Dashboard & Global Search (CRM Portal)
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -119,6 +121,7 @@ Route::post('/follow-ups', [FollowUpController::class, 'store'])->name('followup
 // Physiotherapy: Treatment Categories & Exercises Library
 Route::resource('categories', CategoryController::class);
 Route::resource('exercises', ExerciseController::class);
+Route::resource('videos', DoctorVideoController::class);
 Route::post('/follow-ups/{id}/status', [FollowUpController::class, 'updateStatus'])->name('followups.status');
 
 // Billing, Invoices & Due Payments
