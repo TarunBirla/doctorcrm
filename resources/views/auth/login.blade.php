@@ -111,9 +111,9 @@
 
             <!-- 1-Click Quick Demo Login Credentials -->
             <div class="pt-4 border-t border-slate-100 space-y-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block text-center">
+                <!-- <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block text-center">
                     1-Click Auto Fill Demo Roles
-                </span>
+                </span> -->
 
                 <!-- <div class="grid grid-cols-3 gap-2">
                     <button type="button" onclick="fillRole('admin@carepoint.com')"
