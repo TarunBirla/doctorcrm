@@ -325,6 +325,9 @@ class PatientController extends Controller
     {
         $patient = Patient::with([
             'medicalHistory',
+            'appointments' => function ($q) {
+                $q->orderBy('appointment_date', 'asc')->orderBy('id', 'asc');
+            },
             'appointments.doctor',
             'visits.doctor',
             'visits.diagnoses',

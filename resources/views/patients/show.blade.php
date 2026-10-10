@@ -317,7 +317,9 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse($patient->appointments as $apt)
+                            @forelse($patient->appointments->sortBy(function($a) {
+                                return $a->appointment_date->format('Y-m-d') . '_' . str_pad($a->id, 8, '0', STR_PAD_LEFT);
+                            }) as $apt)
                                 <tr class="hover:bg-slate-50">
                                     <td class="p-3 pl-5 font-bold text-slate-900">{{ $apt->appointment_no }} (Token #{{ $apt->token_number }})</td>
                                     <td class="p-3 font-semibold">{{ $apt->appointment_date->format('d M Y') }} at {{ $apt->appointment_time }}</td>

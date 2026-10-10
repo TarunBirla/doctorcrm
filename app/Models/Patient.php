@@ -89,7 +89,7 @@ class Patient extends Model
 
     public function appointments()
     {
-        return $this->hasMany(Appointment::class)->orderBy('appointment_date', 'desc')->orderBy('appointment_time', 'desc');
+        return $this->hasMany(Appointment::class)->orderBy('appointment_date', 'asc')->orderBy('id', 'asc');
     }
 
     public function visits()
