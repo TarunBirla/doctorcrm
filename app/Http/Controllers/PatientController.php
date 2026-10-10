@@ -345,6 +345,12 @@ class PatientController extends Controller
 
         $this->authorizePatientAccess($patient);
 
+        // Auto-sync appointment payment status from patient's paid invoices
+        foreach ($patient->invoices as $inv) {
+            $inv->syncAppointmentsPaymentStatus();
+        }
+        $patient->load(['appointments.doctor', 'appointments.invoice']);
+
         $activeTab = $request->get('tab', 'overview');
         $doctors = Doctor::all();
 

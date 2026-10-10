@@ -186,6 +186,35 @@
                     <input type="text" name="reason" placeholder="e.g. Cervical pain, post-op knee stiffness..."
                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                 </div>
+
+                <!-- Payment Collection At Booking -->
+                <div class="md:col-span-2 p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="payment_collected" value="1" id="modalPaymentCollectedCheckbox" onchange="toggleModalPaymentOptions(this)" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-xs font-black text-emerald-950">Collect Payment Now (Paid Upfront)</span>
+                        </label>
+                        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full">
+                            Marks all package sessions as Paid
+                        </span>
+                    </div>
+
+                    <div id="modalPaymentFields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-200/60">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1 text-[11px]">Payment Method *</label>
+                            <select name="payment_method" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white outline-none font-semibold text-slate-800 text-xs">
+                                <option value="Cash">Cash Counter</option>
+                                <option value="UPI">UPI / GPay / PhonePe</option>
+                                <option value="Card">Card Swipe</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1 text-[11px]">Payment Reference</label>
+                            <input type="text" name="payment_notes" placeholder="Receipt / Txn Ref (optional)" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white outline-none font-semibold text-slate-800 text-xs">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -370,5 +399,16 @@ function calculateModalTotalFee() {
     const displayEl = document.getElementById('modalTotalFeeDisplay');
     if (formulaEl) formulaEl.innerText = `₹${dailyFee.toLocaleString('en-IN')} daily × ${days} Days`;
     if (displayEl) displayEl.innerText = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+}
+
+function toggleModalPaymentOptions(chk) {
+    const fields = document.getElementById('modalPaymentFields');
+    if (fields) {
+        if (chk.checked) {
+            fields.classList.remove('hidden');
+        } else {
+            fields.classList.add('hidden');
+        }
+    }
 }
 </script>

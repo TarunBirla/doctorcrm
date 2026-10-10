@@ -15,6 +15,7 @@ class Appointment extends Model
         'doctor_id',
         'clinic_id',
         'category_id',
+        'invoice_id',
         'appointment_date',
         'treatment_days',
         'daily_fee',
@@ -121,7 +122,17 @@ class Appointment extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class);
+        return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
+
+    public function primaryInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'appointment_id');
+    }
+
+    public function getResolvedInvoiceAttribute()
+    {
+        return $this->invoice ?? $this->primaryInvoice;
     }
 
     public function scopeToday($query)

@@ -325,8 +325,25 @@
                                     <td class="p-3 font-semibold">{{ $apt->appointment_date->format('d M Y') }} at {{ $apt->appointment_time }}</td>
                                     <td class="p-3 text-slate-700">{{ $apt->doctor ? $apt->doctor->name : '-' }}</td>
                                     <td class="p-3 uppercase text-[10px] font-bold text-slate-500">{{ $apt->appointment_type }}</td>
-                                    <td class="p-3 text-slate-600">{{ $apt->reason ?? '-' }}</td>
-                                    <td class="p-3 font-bold text-slate-800">₹{{ number_format($apt->consultation_fee, 0) }} ({{ ucfirst($apt->payment_status) }})</td>
+                                    <td class="p-3">
+                                        <div class="font-bold text-slate-800 text-xs">₹{{ number_format($apt->consultation_fee, 0) }}</div>
+                                        @if($apt->payment_status === 'paid')
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-0.5">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                Paid
+                                            </span>
+                                        @elseif($apt->payment_status === 'partially_paid')
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                Partial Due
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 mt-0.5">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                Unpaid
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize 
                                             {{ $apt->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($apt->status === 'in_consultation' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">

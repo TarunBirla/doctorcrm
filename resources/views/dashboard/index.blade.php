@@ -138,11 +138,11 @@
             <span>New Appointment</span>
         </button>
 
-        <a href="{{ route('prescriptions.create') }}" 
+        <!-- <a href="{{ route('prescriptions.create') }}" 
            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold transition">
             <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-emerald-600"></i>
             <span>Start Consultation</span>
-        </a>
+        </a> -->
 
         <a href="{{ route('invoices.create') }}" 
            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 text-xs font-semibold transition">

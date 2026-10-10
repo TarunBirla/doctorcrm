@@ -88,6 +88,11 @@ class Invoice extends Model
         return $this->hasMany(PaymentTransaction::class)->orderBy('payment_date', 'asc');
     }
 
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'invoice_id');
+    }
+
     public function recalculate(): void
     {
         // 1. Calculate subtotal from items if present
@@ -125,10 +130,73 @@ class Invoice extends Model
 
         $this->save();
 
-        // Also update the linked appointment's payment status if present
-        if ($this->appointment) {
-            $this->appointment->payment_status = $this->payment_status;
-            $this->appointment->save();
+        // Sync all appointments covered by this invoice
+        $this->syncAppointmentsPaymentStatus();
+    }
+
+    public function syncAppointmentsPaymentStatus(): void
+    {
+        // 1. If appointments are explicitly linked via invoice_id
+        $appointments = $this->appointments()->get();
+
+        // 2. Fallback: If not linked via invoice_id, check primary appointment and package siblings
+        if ($appointments->isEmpty() && $this->appointment_id) {
+            $primaryAppt = Appointment::find($this->appointment_id);
+            if ($primaryAppt) {
+                // Link this invoice to the primary appointment if column exists
+                if (\Illuminate\Support\Facades\Schema::hasColumn('appointments', 'invoice_id') && !$primaryAppt->invoice_id) {
+                    $primaryAppt->update(['invoice_id' => $this->id]);
+                }
+
+                // Find package sibling appointments created around the same time for this patient & category
+                $siblings = Appointment::where('patient_id', $primaryAppt->patient_id)
+                    ->where('category_id', $primaryAppt->category_id)
+                    ->whereBetween('created_at', [
+                        $primaryAppt->created_at->copy()->subMinutes(15),
+                        $primaryAppt->created_at->copy()->addMinutes(15)
+                    ])
+                    ->get();
+
+                if (\Illuminate\Support\Facades\Schema::hasColumn('appointments', 'invoice_id')) {
+                    foreach ($siblings as $sib) {
+                        if (!$sib->invoice_id) {
+                            $sib->update(['invoice_id' => $this->id]);
+                        }
+                    }
+                }
+                $appointments = $siblings;
+            }
+        }
+
+        if ($appointments->isEmpty()) {
+            if ($this->appointment) {
+                $this->appointment->update(['payment_status' => $this->payment_status]);
+            }
+            return;
+        }
+
+        // Apply payment status across the appointments
+        if ($this->payment_status === 'paid' || $this->due_amount <= 0.001) {
+            foreach ($appointments as $apt) {
+                $apt->update(['payment_status' => 'paid']);
+            }
+        } elseif ($this->payment_status === 'unpaid' || $this->paid_amount <= 0.001) {
+            foreach ($appointments as $apt) {
+                $apt->update(['payment_status' => 'unpaid']);
+            }
+        } else {
+            // Partially paid: allocate paid sessions
+            $dailyFee = (float) ($appointments->first()?->daily_fee ?? $appointments->first()?->consultation_fee ?? 500);
+            $paidCount = ($dailyFee > 0) ? (int) floor($this->paid_amount / $dailyFee) : 0;
+            
+            $sorted = $appointments->sortBy('appointment_date')->values();
+            foreach ($sorted as $idx => $apt) {
+                if ($idx < $paidCount) {
+                    $apt->update(['payment_status' => 'paid']);
+                } else {
+                    $apt->update(['payment_status' => 'unpaid']);
+                }
+            }
         }
     }
 }

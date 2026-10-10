@@ -200,6 +200,11 @@ class AppointmentController extends Controller
         $createdAppointments = [];
         $sessionNum = 1;
 
+        // Check if payment was collected upfront at booking
+        $isPaidUpfront = $request->boolean('payment_collected') || ($request->input('payment_status') === 'paid');
+        $paymentMethod = $request->input('payment_method', 'Cash');
+        $initialPaymentStatus = $isPaidUpfront ? 'paid' : 'unpaid';
+
         while (count($createdAppointments) < $treatmentDays) {
             if (!$currentDate->isSunday()) {
                 $dateStr = $currentDate->format('Y-m-d');
@@ -221,7 +226,7 @@ class AppointmentController extends Controller
                     'reason' => ($sessionNum === 1) ? ($validated['reason'] ?? "Session 1") : "Session {$sessionNum} - " . ($validated['reason'] ?? ''),
                     'notes' => $validated['notes'] ?? null,
                     'consultation_fee' => $dailyFee,
-                    'payment_status' => 'unpaid',
+                    'payment_status' => $initialPaymentStatus,
                     'status' => 'scheduled',
                 ]);
                 $createdAppointments[] = $apt;
@@ -244,11 +249,21 @@ class AppointmentController extends Controller
             'discount' => 0.00,
             'additional_charges' => 0.00,
             'total_amount' => $totalFee,
-            'paid_amount' => 0.00,
-            'due_amount' => $totalFee,
-            'payment_status' => 'unpaid',
+            'paid_amount' => $isPaidUpfront ? $totalFee : 0.00,
+            'due_amount' => $isPaidUpfront ? 0.00 : $totalFee,
+            'payment_status' => $initialPaymentStatus,
+            'payment_method' => $isPaidUpfront ? $paymentMethod : null,
             'notes' => "Physiotherapy package: {$categoryName} for {$treatmentDays} days (excluding Sundays) (₹" . number_format($dailyFee, 2) . "/day)",
         ]);
+
+        // Link all created appointments in this package to the generated invoice
+        foreach ($createdAppointments as $apt) {
+            $aptData = ['payment_status' => $initialPaymentStatus];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('appointments', 'invoice_id')) {
+                $aptData['invoice_id'] = $invoice->id;
+            }
+            $apt->update($aptData);
+        }
 
         InvoiceItem::create([
             'invoice_id' => $invoice->id,
@@ -258,10 +273,27 @@ class AppointmentController extends Controller
             'total' => $totalFee,
         ]);
 
-        AuditLog::record('Appointment Package Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-session physiotherapy package for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee})");
+        // If paid upfront, record payment transaction
+        if ($isPaidUpfront) {
+            $txnNo = \App\Models\PaymentTransaction::generateTransactionNo();
+            $recNo = \App\Models\PaymentTransaction::generateReceiptNo();
+            \App\Models\PaymentTransaction::create([
+                'invoice_id' => $invoice->id,
+                'patient_id' => $invoice->patient_id,
+                'transaction_no' => $txnNo,
+                'amount' => $totalFee,
+                'payment_method' => $paymentMethod,
+                'payment_date' => $appointment->appointment_date,
+                'collected_by' => auth()->user()->name ?? 'Receptionist',
+                'receipt_no' => $recNo,
+                'notes' => "Full package payment collected upfront at booking.",
+            ]);
+        }
+
+        AuditLog::record('Appointment Package Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-session physiotherapy package for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee}, Status: {$initialPaymentStatus})");
 
         return redirect()->route('appointments.index', ['date' => $appointment->appointment_date->toDateString()])
-            ->with('success', "Appointment package ({$treatmentDays} sessions excluding Sundays) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . " at {$appointment->clinic?->name}.");
+            ->with('success', "Appointment package ({$treatmentDays} sessions) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . ($isPaidUpfront ? " (Marked as Paid via {$paymentMethod})" : "") . ".");
     }
 
     public function edit($id)
