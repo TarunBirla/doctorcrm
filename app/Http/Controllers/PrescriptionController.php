@@ -160,11 +160,44 @@ class PrescriptionController extends Controller
         $exercises = Exercise::where('is_active', true)->with('category')->orderBy('name')->get();
         $categories = TreatmentCategory::where('is_active', true)->orderBy('name')->get();
 
+        $appointmentId = $request->get('appointment_id');
+        $selectedAppointment = null;
         $patientId = $request->get('patient_id');
-        $selectedPatient = $patientId ? Patient::with(['clinic', 'category'])->find($patientId) : null;
         $defaultType = $request->get('type', 'musculoskeletal');
 
-        return view('prescriptions.create', compact('patients', 'doctors', 'clinics', 'exercises', 'categories', 'selectedPatient', 'defaultType'));
+        if ($appointmentId) {
+            $selectedAppointment = \App\Models\Appointment::with(['patient.clinic', 'patient.category', 'doctor', 'clinic', 'category'])->find($appointmentId);
+            if ($selectedAppointment) {
+                if (in_array($selectedAppointment->status, ['waiting', 'scheduled', 'confirmed'])) {
+                    $selectedAppointment->update(['status' => 'in_consultation']);
+                }
+                $selectedPatient = $selectedAppointment->patient;
+                if ($selectedPatient && !$patients->contains('id', $selectedPatient->id)) {
+                    $patients->push($selectedPatient);
+                }
+                if ($selectedAppointment->doctor && !$doctors->contains('id', $selectedAppointment->doctor_id)) {
+                    $doctors->push($selectedAppointment->doctor);
+                }
+                if ($selectedAppointment->clinic && !$clinics->contains('id', $selectedAppointment->clinic_id)) {
+                    $clinics->push($selectedAppointment->clinic);
+                }
+                if (!$request->has('type') && $selectedAppointment->category) {
+                    $catSlug = strtolower($selectedAppointment->category->slug ?? $selectedAppointment->category->name ?? '');
+                    if (str_contains($catSlug, 'neuro') || str_contains($catSlug, 'stroke') || str_contains($catSlug, 'brain') || str_contains($catSlug, 'palsy')) {
+                        $defaultType = 'neurological';
+                    }
+                }
+            }
+        } elseif ($patientId) {
+            $selectedPatient = Patient::with(['clinic', 'category'])->find($patientId);
+            if ($selectedPatient && !$patients->contains('id', $selectedPatient->id)) {
+                $patients->push($selectedPatient);
+            }
+        } else {
+            $selectedPatient = null;
+        }
+
+        return view('prescriptions.create', compact('patients', 'doctors', 'clinics', 'exercises', 'categories', 'selectedPatient', 'selectedAppointment', 'defaultType'));
     }
 
     public function store(Request $request)
@@ -176,6 +209,7 @@ class PrescriptionController extends Controller
         }
 
         $validated = $request->validate([
+            'appointment_id' => 'nullable|exists:appointments,id',
             'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'required|exists:doctors,id',
             'clinic_id' => 'nullable|exists:clinics,id',
@@ -223,6 +257,7 @@ class PrescriptionController extends Controller
             'visit_no' => Visit::generateVisitNo(),
             'patient_id' => $patient->id,
             'doctor_id' => $validated['doctor_id'],
+            'appointment_id' => $validated['appointment_id'] ?? null,
             'visit_date' => $validated['prescription_date'],
             'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
             'chief_complaint' => $request->input('assessment_data.chief_complaint') ?? $request->input('assessment_data.chief_complaints') ?? 'Physiotherapy Assessment & Consultation',
@@ -279,6 +314,29 @@ class PrescriptionController extends Controller
                         'timing' => $item['timing'] ?? 'After Food',
                         'instructions' => $item['instructions'] ?? '',
                     ]);
+                }
+            }
+        }
+
+        // Update linked appointment to 'completed'
+        if (!empty($validated['appointment_id'])) {
+            $apt = \App\Models\Appointment::find($validated['appointment_id']);
+            if ($apt) {
+                $apt->update(['status' => 'completed']);
+                if (!$visit->appointment_id) {
+                    $visit->update(['appointment_id' => $apt->id]);
+                }
+            }
+        } else {
+            // Auto-complete if today's scheduled/waiting/in_consultation appointment exists for this patient
+            $scheduledApt = \App\Models\Appointment::where('patient_id', $patient->id)
+                ->whereDate('appointment_date', $validated['prescription_date'])
+                ->whereIn('status', ['in_consultation', 'waiting', 'scheduled', 'confirmed'])
+                ->first();
+            if ($scheduledApt) {
+                $scheduledApt->update(['status' => 'completed']);
+                if (!$visit->appointment_id) {
+                    $visit->update(['appointment_id' => $scheduledApt->id]);
                 }
             }
         }

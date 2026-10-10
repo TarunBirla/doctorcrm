@@ -231,7 +231,7 @@
 
                                     <!-- Consultation / Action -->
                                     @if($apt->status === 'waiting' || $apt->status === 'in_consultation')
-                                        <a href="{{ route('consultations.create', ['appointment_id' => $apt->id]) }}" 
+                                        <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
                                            class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1">
                                             <i data-lucide="stethoscope" class="w-3 h-3"></i>
                                             <span>Consult</span>

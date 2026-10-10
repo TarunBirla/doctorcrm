@@ -106,7 +106,7 @@
                             ->sortBy('appointment_date')
                             ->first();
                 @endphp
-                <a href="{{ $todayOrNextApt ? route('consultations.create', ['appointment_id' => $todayOrNextApt->id]) : route('consultations.create', ['patient_id' => $patient->id]) }}" 
+                <a href="{{ $todayOrNextApt ? route('prescriptions.create', ['appointment_id' => $todayOrNextApt->id]) : route('prescriptions.create', ['patient_id' => $patient->id]) }}" 
                    class="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs">
                     <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
                     <span>Start Consultation {{ $todayOrNextApt ? '(' . ($todayOrNextApt->appointment_time ?? 'Session') . ')' : '' }}</span>
@@ -335,7 +335,7 @@
                                     </td>
                                     <td class="p-3 pr-5 text-right">
                                         @if($apt->status !== 'completed')
-                                            <a href="{{ route('consultations.create', ['appointment_id' => $apt->id]) }}" 
+                                            <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
                                                 <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
                                                 <span>Start Consultation</span>

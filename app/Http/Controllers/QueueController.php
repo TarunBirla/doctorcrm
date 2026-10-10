@@ -90,13 +90,21 @@ class QueueController extends Controller
 
     public function startConsultation(Request $request, $id)
     {
-        $appointment = Appointment::with('patient')->findOrFail($id);
+        $appointment = Appointment::with(['patient', 'category'])->findOrFail($id);
         $appointment->status = 'in_consultation';
         $appointment->save();
 
+        $type = 'musculoskeletal';
+        if ($appointment->category) {
+            $catSlug = strtolower($appointment->category->slug ?? $appointment->category->name ?? '');
+            if (str_contains($catSlug, 'neuro') || str_contains($catSlug, 'stroke') || str_contains($catSlug, 'brain') || str_contains($catSlug, 'palsy')) {
+                $type = 'neurological';
+            }
+        }
+
         AuditLog::record('Consultation Started', 'Appointment', $appointment->appointment_no, "Doctor started consultation for Token #{$appointment->token_number} ({$appointment->patient->full_name})");
 
-        return redirect()->route('consultations.create', ['appointment_id' => $appointment->id]);
+        return redirect()->route('prescriptions.create', ['appointment_id' => $appointment->id, 'type' => $type]);
     }
 
     public function completeConsultation(Request $request, $id)

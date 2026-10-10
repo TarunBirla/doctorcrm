@@ -84,42 +84,25 @@ class ConsultationController extends Controller
     {
         $appointmentId = $request->get('appointment_id');
         $patientId = $request->get('patient_id');
+        $type = $request->get('type');
 
-        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-        }
-
-        $appointment = null;
         if ($appointmentId) {
-            $appointment = Appointment::with(['patient.medicalHistory', 'patient.visits.prescriptions', 'patient.reports'])->findOrFail($appointmentId);
-            $patient = $appointment->patient;
-            $doctor = $appointment->doctor;
-        } elseif ($patientId) {
-            $patient = Patient::with(['medicalHistory', 'visits.prescriptions', 'reports'])->findOrFail($patientId);
-            $doctor = $loggedInDoctor ?? Doctor::first();
-        } else {
-            return redirect()->route('queue.index')->with('error', 'Please select a patient from queue or directory to start consultation.');
-        }
-
-        if ($loggedInDoctor && $patient) {
-            if (!$patient->doctor_id || $patient->doctor_id !== $loggedInDoctor->id) {
-                $patient->update(['doctor_id' => $loggedInDoctor->id]);
+            $appointment = Appointment::with('category')->find($appointmentId);
+            if ($appointment && !$type) {
+                $catSlug = strtolower($appointment->category->slug ?? $appointment->category->name ?? '');
+                if (str_contains($catSlug, 'neuro') || str_contains($catSlug, 'stroke') || str_contains($catSlug, 'brain') || str_contains($catSlug, 'palsy')) {
+                    $type = 'neurological';
+                } else {
+                    $type = 'musculoskeletal';
+                }
             }
         }
 
-        // Get previous visit for smart revisit carry-forward
-        $previousVisit = $patient->visits()->with(['diagnoses', 'prescriptions.items'])->latest('visit_date')->first();
-
-        $diagnosesCatalog = Diagnosis::orderBy('name')->get();
-        $doctors = Doctor::all();
-        $exercises = \App\Models\Exercise::where('is_active', true)->with('category')->orderBy('name')->get();
-        $categories = \App\Models\TreatmentCategory::where('is_active', true)->orderBy('name')->get();
-
-        return view('consultations.create', compact(
-            'patient', 'appointment', 'doctor', 'previousVisit', 'diagnosesCatalog', 'doctors', 'exercises', 'categories'
-        ));
+        return redirect()->route('prescriptions.create', array_filter([
+            'appointment_id' => $appointmentId,
+            'patient_id' => $patientId,
+            'type' => $type ?? 'musculoskeletal',
+        ]));
     }
 
     public function store(Request $request)

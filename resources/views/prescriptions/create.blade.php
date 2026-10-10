@@ -23,9 +23,47 @@
         </div>
     </div>
 
+    @if(!empty($selectedAppointment))
+        <!-- APPOINTMENT VERIFIED & LOCKED BANNER -->
+        <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-blue-800 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-xl text-white border border-white/30 shadow-inner">
+                    #{{ $selectedAppointment->token_number }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-400 text-emerald-950 font-black text-[10px] uppercase tracking-wider">
+                            Active Consultation Room
+                        </span>
+                        <span class="text-xs font-mono font-bold text-blue-200">
+                            {{ $selectedAppointment->appointment_no }}
+                        </span>
+                    </div>
+                    <h3 class="text-base font-black text-white mt-0.5">
+                        {{ $selectedPatient->full_name }} <span class="text-xs font-semibold text-blue-200">({{ $selectedPatient->patient_id }})</span>
+                    </h3>
+                    <p class="text-xs text-blue-200">
+                        Category: <strong>{{ $selectedAppointment->category->name ?? 'General Physiotherapy' }}</strong> • 
+                        Slot: <strong>{{ $selectedAppointment->appointment_time ?? 'Today' }}</strong> • 
+                        Payment: <span class="font-bold {{ $selectedAppointment->payment_status === 'paid' ? 'text-emerald-300' : 'text-amber-300' }} capitalize">{{ $selectedAppointment->payment_status ?? 'Pending' }}</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold border border-white/20">
+                    <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-300"></i>
+                    <span>Patient Profile Locked</span>
+                </span>
+            </div>
+        </div>
+    @endif
+
     <!-- MAIN FORM -->
     <form action="{{ route('prescriptions.store') }}" method="POST" class="space-y-6" id="assessmentForm">
         @csrf
+        @if(!empty($selectedAppointment))
+            <input type="hidden" name="appointment_id" value="{{ $selectedAppointment->id }}">
+        @endif
 
         <!-- 1. CLINIC BRANCH & PATIENT META CARD -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
@@ -34,58 +72,100 @@
                     <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                         <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i> Clinic Branch & Patient Profile
                     </h3>
-                    <p class="text-xs text-slate-500">Select which clinic branch this patient belongs to and doctor details</p>
+                    <p class="text-xs text-slate-500">
+                        @if(!empty($selectedAppointment))
+                            Patient, doctor and clinic are locked to Active Appointment Token #{{ $selectedAppointment->token_number }}
+                        @else
+                            Select which clinic branch this patient belongs to and doctor details
+                        @endif
+                    </p>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <!-- Clinic Branch Selection -->
                 <div class="md:col-span-1">
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Clinic Branch <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="clinic_id" id="clinicSelect" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
-                        @foreach($clinics as $c)
-                            <option value="{{ $c->id }}" {{ (old('clinic_id', optional($selectedPatient)->clinic_id) == $c->id) ? 'selected' : '' }}>
-                                {{ $c->name }} ({{ $c->city }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
-                        <i data-lucide="map-pin" class="w-3 h-3"></i> Appears in Prescription letterhead header
-                    </p>
+                    @if(!empty($selectedAppointment))
+                        <input type="hidden" name="clinic_id" value="{{ $selectedAppointment->clinic_id ?? optional($selectedPatient)->clinic_id ?? $clinics->first()?->id }}">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                            <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i> Clinic Branch (Locked)
+                        </label>
+                        <div class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs">
+                            <p class="font-bold text-slate-900">{{ optional($selectedAppointment->clinic)->name ?? optional(optional($selectedPatient)->clinic)->name ?? optional($clinics->first())->name }}</p>
+                            <span class="text-[11px] text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
+                                <i data-lucide="map-pin" class="w-3 h-3"></i> {{ optional($selectedAppointment->clinic)->city ?? 'Indore' }}
+                            </span>
+                        </div>
+                    @else
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Clinic Branch <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="clinic_id" id="clinicSelect" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
+                            @foreach($clinics as $c)
+                                <option value="{{ $c->id }}" {{ (old('clinic_id', optional($selectedPatient)->clinic_id) == $c->id) ? 'selected' : '' }}>
+                                    {{ $c->name }} ({{ $c->city }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
+                            <i data-lucide="map-pin" class="w-3 h-3"></i> Appears in Prescription letterhead header
+                        </p>
+                    @endif
                 </div>
 
                 <!-- Patient Selection -->
                 <div class="md:col-span-1">
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                        Select Patient <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="patient_id" id="patientSelect" required onchange="handlePatientChange(this)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
-                        <option value="">-- Choose Patient --</option>
-                        @foreach($patients as $p)
-                            <option value="{{ $p->id }}" 
-                                    data-age="{{ $p->age }}" 
-                                    data-gender="{{ $p->gender }}"
-                                    data-clinic-id="{{ $p->clinic_id }}"
-                                    data-occupation="{{ $p->occupation }}"
-                                    data-address="{{ $p->address }}"
-                                    {{ (old('patient_id', optional($selectedPatient)->id) == $p->id) ? 'selected' : '' }}>
-                                {{ $p->patient_id }} - {{ $p->full_name }} ({{ $p->age }}y, {{ $p->gender }})
-                            </option>
-                        @endforeach
-                    </select>
+                    @if(!empty($selectedAppointment))
+                        <input type="hidden" name="patient_id" value="{{ $selectedPatient->id }}">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                            <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i> Patient Profile (Locked)
+                        </label>
+                        <div class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs">
+                            <p class="font-bold text-slate-900">{{ $selectedPatient->patient_id }} - {{ $selectedPatient->full_name }}</p>
+                            <span class="text-[11px] text-slate-500 font-semibold">
+                                {{ $selectedPatient->age }} yrs • {{ $selectedPatient->gender }} • Mob: {{ $selectedPatient->mobile }}
+                            </span>
+                        </div>
+                    @else
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Select Patient <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="patient_id" id="patientSelect" required onchange="handlePatientChange(this)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
+                            <option value="">-- Choose Patient --</option>
+                            @foreach($patients as $p)
+                                <option value="{{ $p->id }}" 
+                                        data-age="{{ $p->age }}" 
+                                        data-gender="{{ $p->gender }}"
+                                        data-clinic-id="{{ $p->clinic_id }}"
+                                        data-occupation="{{ $p->occupation }}"
+                                        data-address="{{ $p->address }}"
+                                        {{ (old('patient_id', optional($selectedPatient)->id) == $p->id) ? 'selected' : '' }}>
+                                    {{ $p->patient_id }} - {{ $p->full_name }} ({{ $p->age }}y, {{ $p->gender }})
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
 
                 <!-- Doctor & Date -->
                 <div class="md:col-span-1 grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Doctor <span class="text-rose-500">*</span></label>
-                        <select name="doctor_id" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
-                            @foreach($doctors as $d)
-                                <option value="{{ $d->id }}">{{ $d->name }}</option>
-                            @endforeach
-                        </select>
+                        @if(!empty($selectedAppointment))
+                            <input type="hidden" name="doctor_id" value="{{ $selectedAppointment->doctor_id ?? $doctors->first()?->id }}">
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                                <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i> Doctor
+                            </label>
+                            <div class="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-800 truncate">
+                                {{ optional($selectedAppointment->doctor)->name ?? optional($doctors->first())->name ?? 'Doctor' }}
+                            </div>
+                        @else
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Doctor <span class="text-rose-500">*</span></label>
+                            <select name="doctor_id" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50">
+                                @foreach($doctors as $d)
+                                    <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                @endforeach
+                            </select>
+                        @endif
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">Date <span class="text-rose-500">*</span></label>
@@ -1341,6 +1421,11 @@ function setAssessmentType(type) {
         desc.innerText = "Evaluating Neurological deficits, Cranial Nerves (I-XII), Sensory/Motor myotomes/dermatomes, reflexes, GCS & higher mental functions.";
     }
 }
+
+// Auto-activate selected assessment type (Musculoskeletal or Neurological)
+document.addEventListener('DOMContentLoaded', function() {
+    setAssessmentType('{{ $defaultType ?? "musculoskeletal" }}');
+});
 
 // VAS Score Badge Updater
 function updateVasBadge(val) {

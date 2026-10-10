@@ -14,7 +14,7 @@
             <a href="{{ route('queue.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
                 <i data-lucide="users" class="w-4 h-4 text-primary"></i> OPD Queue
             </a>
-            <a href="{{ route('consultations.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-slate-800 transition shadow-sm">
+            <a href="{{ route('prescriptions.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-slate-800 transition shadow-sm">
                 <i data-lucide="stethoscope" class="w-4 h-4"></i> Start Consultation
             </a>
         </div>

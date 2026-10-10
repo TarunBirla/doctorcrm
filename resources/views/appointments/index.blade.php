@@ -248,8 +248,8 @@
 
                                     <!-- One-Click Consultation Action -->
                                     @if($apt->status === 'waiting' || $apt->status === 'in_consultation')
-                                        <a href="{{ route('consultations.create', ['appointment_id' => $apt->id]) }}" 
-                                           title="Doctor Consultation Room" 
+                                        <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
+                                           title="Doctor Consultation & Prescription Room" 
                                            class="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-2xs">
                                             <i data-lucide="stethoscope" class="w-3 h-3"></i>
                                             <span>Consult</span>
