@@ -17,8 +17,8 @@
                 <!-- Assessment Type Filter -->
                 <select name="type" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 font-semibold text-slate-700">
                     <option value="">-- All Assessment Types --</option>
-                    <option value="musculoskeletal" {{ $type === 'musculoskeletal' ? 'selected' : '' }}>🦴 Musculoskeletal</option>
-                    <option value="neurological" {{ $type === 'neurological' ? 'selected' : '' }}>🧠 Neurological</option>
+                    <option value="musculoskeletal" {{ $type === 'musculoskeletal' ? 'selected' : '' }}><i data-lucide="activity" class="w-3.5 h-3.5"></i> Musculoskeletal</option>
+                    <option value="neurological" {{ $type === 'neurological' ? 'selected' : '' }}><i data-lucide="brain" class="w-3.5 h-3.5"></i> Neurological</option>
                 </select>
 
                 <!-- Clinic Branch Filter -->
@@ -40,7 +40,7 @@
                 </a>
             </div>
 
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
                 <a href="{{ route('prescriptions.create') }}?type=musculoskeletal" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
                     <i data-lucide="activity" class="w-3.5 h-3.5"></i>
                     <span>+ Musculoskeletal</span>
@@ -49,7 +49,7 @@
                     <i data-lucide="brain" class="w-3.5 h-3.5"></i>
                     <span>+ Neurological</span>
                 </a>
-            </div>
+            </div> -->
         </form>
     </div>
 
@@ -130,17 +130,17 @@
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     @if($exCount > 0)
                                         <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
-                                            🏋️ {{ $exCount }} Exercises
+                                             {{ $exCount }} Exercises
                                         </span>
                                     @endif
                                     @if($medCount > 0)
                                         <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200">
-                                            💊 {{ $medCount }} Meds
+                                             {{ $medCount }} Meds
                                         </span>
                                     @endif
                                     @if($rx->treatment_days)
                                         <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[10px]">
-                                            📅 {{ $rx->treatment_days }} Days
+                                             {{ $rx->treatment_days }} Days
                                         </span>
                                     @endif
                                 </div>

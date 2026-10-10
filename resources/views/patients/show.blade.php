@@ -397,7 +397,7 @@
                                         <span>Print Rx</span>
                                     </a>
                                 @endif
-                                <a href="{{ route('consultations.show', $vst->id) }}" class="px-3 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
+                                <a href="{{ route('prescriptions.show', $vst->id) }}" class="px-3 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
                                     Full Visit Details
                                 </a>
                             </div>
@@ -495,14 +495,14 @@
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-slate-900 text-sm">Prescriptions & Clinical Assessments</h3>
-                    <div class="flex items-center gap-2">
+                    <!-- <div class="flex items-center gap-2">
                         <a href="{{ route('prescriptions.create', ['patient_id' => $patient->id, 'type' => 'musculoskeletal']) }}" class="px-3 py-1.5 bg-blue-700 text-white rounded-xl text-xs font-bold hover:bg-blue-800 transition">
                             + Musculoskeletal Assessment
                         </a>
                         <a href="{{ route('prescriptions.create', ['patient_id' => $patient->id, 'type' => 'neurological']) }}" class="px-3 py-1.5 bg-purple-700 text-white rounded-xl text-xs font-bold hover:bg-purple-800 transition">
                             + Neurological Assessment
                         </a>
-                    </div>
+                    </div> -->
                 </div>
 
                 @forelse($patient->prescriptions as $rx)
