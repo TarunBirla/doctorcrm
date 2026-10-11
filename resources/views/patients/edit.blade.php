@@ -128,7 +128,7 @@
                     <div class="p-3.5 rounded-xl {{ $currentRecoveryPct >= 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-indigo-50/70 border-indigo-200' }} border">
                         <span class="text-[10px] font-bold uppercase tracking-wider {{ $currentRecoveryPct >= 100 ? 'text-emerald-700' : 'text-indigo-700' }} block">Current Recovery Status</span>
                         <div class="text-lg font-extrabold {{ $currentRecoveryPct >= 100 ? 'text-emerald-800' : 'text-indigo-900' }} mt-0.5" id="topRecoveryBadgeText">
-                            {{ $currentRecoveryPct }}% Sahi Hua
+                            {{ $currentRecoveryPct }}% Recovery
                         </div>
                         <span class="text-[11px] {{ $currentRecoveryPct >= 100 ? 'text-emerald-700' : 'text-indigo-600' }} font-bold">
                             {{ $currentRecoveryPct >= 100 ? '🌟 Fully Recovered' : ($currentRecoveryPct >= 75 ? 'High Improvement' : 'Under Active Therapy') }}
@@ -177,9 +177,9 @@
                             <button type="button" onclick="syncEditRecovery(25)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-blue-400 font-bold text-slate-700 transition">25%</button>
                             <button type="button" onclick="syncEditRecovery(50)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-blue-400 font-bold text-slate-700 transition">50%</button>
                             <button type="button" onclick="syncEditRecovery(70)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-blue-400 font-bold text-slate-700 transition">70%</button>
-                            <button type="button" onclick="syncEditRecovery(80)" class="px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-300 hover:bg-indigo-100 font-extrabold text-indigo-800 transition">80% Sahi Hua</button>
+                            <button type="button" onclick="syncEditRecovery(80)" class="px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-300 hover:bg-indigo-100 font-extrabold text-indigo-800 transition">80% Recovery</button>
                             <button type="button" onclick="syncEditRecovery(90)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-400 font-bold text-slate-700 transition">90%</button>
-                            <button type="button" onclick="syncEditRecovery(100)" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold transition shadow-2xs">🌟 100% Sahi Ho Gaya</button>
+                            <button type="button" onclick="syncEditRecovery(100)" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold transition shadow-2xs">🌟 100% Recovery</button>
                         </div>
 
                         <div>
