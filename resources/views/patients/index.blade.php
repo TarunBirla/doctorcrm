@@ -185,7 +185,7 @@
                                             {{ $doneSess }} / {{ $totalSess }} Days Done
                                         </span>
                                         <span class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold {{ $recPct >= 100 ? 'bg-emerald-600 text-white' : ($recPct >= 75 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200') }}">
-                                            {{ $recPct >= 100 ? '🌟 100% Cured' : $recPct . '% Sahi Hua' }}
+                                            {{ $recPct >= 100 ? '🌟 100% Cured' : $recPct . '% Recovery' }}
                                         </span>
                                     </div>
                                     <div class="w-36 bg-slate-100 h-1.5 rounded-full overflow-hidden">
