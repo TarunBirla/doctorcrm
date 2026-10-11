@@ -22,20 +22,25 @@
     }
 @endphp
 
-<aside class="w-64 bg-white border-r border-slate-200/90 flex flex-col shrink-0 min-h-screen select-none no-print">
+<aside id="appSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/90 flex flex-col shrink-0 min-h-screen select-none no-print -translate-x-full lg:static lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none">
     <!-- CLINIC BRANDING HEADER -->
-    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-1 shadow-sm overflow-hidden shrink-0">
                 <img src="{{ asset('logo.png') }}" alt="SDPC" class="h-8 w-auto object-contain">
             </div>
-            <div>
+            <div class="truncate">
                 <h1 class="text-sm font-black tracking-tight text-slate-900 leading-tight">SDPC</h1>
                 <p class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Physiotherapy</p>
             </div>
         </div>
-        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-700 uppercase">
-            <span>{{ $roleLabels[$currentRole] ?? 'USER' }}</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <div class="px-2 py-0.5 rounded-full bg-slate-100 text-[9px] font-bold text-slate-700 uppercase">
+                <span>{{ $roleLabels[$currentRole] ?? 'USER' }}</span>
+            </div>
+            <button type="button" onclick="closeMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition" title="Close Menu">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
         </div>
     </div>
 
@@ -404,12 +409,19 @@
 
     </nav>
 
-    <!-- FOOTER PROFILE & ACTIONS -->
-    <div class="p-3 border-t border-slate-100 bg-slate-50/50">
+    <!-- FOOTER PROFILE & PWA APP DOWNLOAD ACTIONS -->
+    <div class="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2">
+        <button type="button" onclick="triggerPwaInstall()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-[11px] font-bold transition shadow-xs cursor-pointer">
+            <span class="flex items-center gap-2">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Download CRM App</span>
+            </span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/15 text-emerald-300 font-extrabold uppercase">PWA</span>
+        </button>
         <div class="flex items-center justify-between px-2 py-1">
-            <a href="{{ route('profile.show') }}" class="flex items-center gap-2 hover:opacity-80 transition" title="View Profile">
+            <a href="{{ route('profile.show') }}" class="flex items-center gap-2 hover:opacity-80 transition" title="View Profile & App Download">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span class="text-[11px] text-slate-700 font-bold">My Profile</span>
+                <span class="text-[11px] text-slate-700 font-bold">My Profile & App</span>
             </a>
             <div class="flex items-center gap-1">
                 <a href="{{ route('profile.show') }}" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="User Profile">

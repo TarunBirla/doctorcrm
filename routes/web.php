@@ -28,6 +28,7 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\DoctorVideoController;
+use App\Http\Controllers\PwaSetupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,7 +41,7 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Live Server Database Setup & Migration Routes (https://crm.physiopii.in/setup-database)
+// Live Server Database & PWA Setup Routes (https://crm.physiopii.in/setup-database & https://crm.physiopii.in/install-pwa)
 Route::withoutMiddleware([
     \Illuminate\Session\Middleware\StartSession::class,
     \Illuminate\View\Middleware\ShareErrorsFromSession::class,
@@ -50,6 +51,10 @@ Route::withoutMiddleware([
     Route::match(['get', 'post'], '/setup-database/run', [DatabaseSetupController::class, 'run'])->name('database.setup.run');
     Route::match(['get', 'post'], '/setup-database/fresh', [DatabaseSetupController::class, 'fresh'])->name('database.setup.fresh');
     Route::match(['get', 'post'], '/setup-database/clean', [DatabaseSetupController::class, 'clean'])->name('database.setup.clean');
+
+    // Server URL Hit to Install/Publish PWA Package & Assets
+    Route::match(['get', 'post'], '/install-pwa', [PwaSetupController::class, 'install'])->name('pwa.install');
+    Route::match(['get', 'post'], '/setup-pwa', [PwaSetupController::class, 'install'])->name('pwa.setup');
 });
 
 // Role Switching

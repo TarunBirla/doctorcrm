@@ -37,24 +37,24 @@ class RoleMenuPermission extends Model
     {
         return [
             'Main & Patient Flow' => [
-                'dashboard' => ['label' => 'Dashboard', 'icon' => 'fa-chart-pie', 'desc' => 'Clinic overview & daily patient statistics (without revenue)'],
-                'queue' => ['label' => 'Live Queue', 'icon' => 'fa-users-viewfinder', 'desc' => 'Real-time waiting room & token management'],
-                'appointments' => ['label' => 'Appointments', 'icon' => 'fa-calendar-check', 'desc' => 'Book, reschedule & manage patient appointments'],
-                'calendar' => ['label' => 'Slot Calendar', 'icon' => 'fa-calendar-days', 'desc' => 'Interactive slot schedule & calendar view'],
-                'clinics' => ['label' => 'My Clinics', 'icon' => 'fa-hospital', 'desc' => 'View clinic locations & timings'],
-                'availability' => ['label' => 'Doctor Availability', 'icon' => 'fa-user-clock', 'desc' => 'Manage doctor weekly schedule & slot overrides'],
+                'dashboard' => ['label' => 'Dashboard', 'icon' => 'layout-grid', 'desc' => 'Clinic overview & daily patient statistics (without revenue)'],
+                'queue' => ['label' => 'Today\'s Queue', 'icon' => 'clock', 'desc' => 'Real-time waiting room & token management'],
+                'appointments' => ['label' => 'Appointments', 'icon' => 'calendar', 'desc' => 'Book, reschedule & manage patient appointments'],
+                'calendar' => ['label' => 'Appointment Calendar', 'icon' => 'calendar-days', 'desc' => 'Interactive slot schedule & calendar view'],
+                'clinics' => ['label' => 'My Practice Clinics', 'icon' => 'building-2', 'desc' => 'View clinic locations & timings'],
+                'availability' => ['label' => 'Doctor Availability', 'icon' => 'clock-4', 'desc' => 'Manage doctor weekly schedule & slot overrides'],
             ],
             'Clinical & Patient Care' => [
-                'patients' => ['label' => 'Patients Directory', 'icon' => 'fa-hospital-user', 'desc' => 'Register, edit & view patient profiles'],
-                'consultations' => ['label' => 'Consultations (OPD)', 'icon' => 'fa-stethoscope', 'desc' => 'OPD consultation notes & assessment records'],
-                'prescriptions' => ['label' => 'Prescriptions (Rx)', 'icon' => 'fa-file-prescription', 'desc' => 'View & print patient prescriptions'],
-                'medical_reports' => ['label' => 'Medical Reports', 'icon' => 'fa-file-medical', 'desc' => 'Upload & manage X-Ray, MRI & lab reports'],
-                'progress' => ['label' => 'Recovery Tracker', 'icon' => 'fa-chart-line', 'desc' => 'Track patient physiotherapy recovery sessions'],
-                'followups' => ['label' => 'Follow-up Reminders', 'icon' => 'fa-bell', 'desc' => 'Upcoming patient follow-ups & WhatsApp reminders'],
+                'patients' => ['label' => 'Patients Master', 'icon' => 'users', 'desc' => 'Register, edit & view patient profiles'],
+                'consultations' => ['label' => 'Consultations & Visits', 'icon' => 'stethoscope', 'desc' => 'OPD consultation notes & assessment records'],
+                'prescriptions' => ['label' => 'Prescriptions (Rx)', 'icon' => 'file-text', 'desc' => 'View & print patient prescriptions'],
+                'medical_reports' => ['label' => 'Medical Reports', 'icon' => 'clipboard-list', 'desc' => 'Upload & manage X-Ray, MRI & lab reports'],
+                'progress' => ['label' => 'Recovery Tracker', 'icon' => 'trending-up', 'desc' => 'Track patient physiotherapy recovery sessions'],
+                'followups' => ['label' => 'Follow-ups', 'icon' => 'alarm-clock', 'desc' => 'Upcoming patient follow-ups & reminders'],
             ],
             'Physiotherapy Library' => [
-                'exercises' => ['label' => 'Exercise Library', 'icon' => 'fa-dumbbell', 'desc' => 'Physiotherapy exercises & home routines'],
-                'categories' => ['label' => 'Treatment Categories', 'icon' => 'fa-layer-group', 'desc' => 'Conditions & physiotherapy treatment categories'],
+                'exercises' => ['label' => 'Exercises Library', 'icon' => 'dumbbell', 'desc' => 'Physiotherapy exercises & home routines'],
+                'categories' => ['label' => 'Manage Categories', 'icon' => 'layers', 'desc' => 'Conditions & physiotherapy treatment categories'],
             ],
         ];
     }

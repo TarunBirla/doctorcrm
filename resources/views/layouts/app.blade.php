@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0a2540">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SDPC CRM">
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <title>@yield('title', 'Dashboard') - SDPC Physiotherapy Clinic</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,10 +51,11 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
+        html, body {
             font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #0f172a;
+            overflow-x: hidden;
         }
         /* Enforce font-weight: 600 globally */
         .font-medium, [style*="font-weight: 500"], [style*="font-weight:500"] {
@@ -73,6 +82,35 @@
             border-radius: 1rem;
             box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
         }
+        /* Full Responsiveness Across All Mobile (320px+) & Laptop Screens (1024px-1920px+) */
+        main table {
+            min-width: 100%;
+        }
+        .card-custom:has(> table),
+        div:has(> table.w-full) {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 1023px) {
+            .grid-cols-5, .grid-cols-4, .grid-cols-3 {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            }
+        }
+        @media (max-width: 640px) {
+            .card-custom {
+                border-radius: 0.875rem;
+            }
+            .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5 {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+            main .p-6, main .p-8 {
+                padding: 1rem !important;
+            }
+            main .px-6 {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        }
         @media print {
             .no-print {
                 display: none !important;
@@ -84,46 +122,49 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen flex antialiased selection:bg-blue-100 selection:text-blue-900">
+<body class="min-h-screen flex antialiased selection:bg-blue-100 selection:text-blue-900 relative">
+
+    <!-- MOBILE SIDEBAR OVERLAY BACKDROP -->
+    <div id="mobileSidebarBackdrop" onclick="closeMobileSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 hidden lg:hidden transition-opacity no-print"></div>
 
     <!-- SIDEBAR -->
     @include('partials.sidebar')
 
     <!-- MAIN CONTENT WRAPPER -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <div class="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">
         <!-- TOP HEADER NAVBAR -->
         @include('partials.header')
 
         <!-- FLASH NOTIFICATIONS -->
-        <div class="px-6 pt-4 no-print">
+        <div class="px-3 sm:px-6 pt-4 no-print">
             @if(session('success'))
-                <div class="flex items-center justify-between p-4 mb-4 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm animate-fade-in">
+                <div class="flex items-center justify-between p-3.5 sm:p-4 mb-4 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm animate-fade-in">
                     <div class="flex items-center gap-3">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                        <span class="text-sm font-semibold">{{ session('success') }}</span>
+                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                        <span class="text-xs sm:text-sm font-semibold">{{ session('success') }}</span>
                     </div>
-                    <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">
+                    <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 shrink-0 ml-2">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
             @endif
 
             @if(session('error'))
-                <div class="flex items-center justify-between p-4 mb-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-xl shadow-sm">
+                <div class="flex items-center justify-between p-3.5 sm:p-4 mb-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-xl shadow-sm">
                     <div class="flex items-center gap-3">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i>
-                        <span class="text-sm font-semibold">{{ session('error') }}</span>
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600 shrink-0"></i>
+                        <span class="text-xs sm:text-sm font-semibold">{{ session('error') }}</span>
                     </div>
-                    <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">
+                    <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 shrink-0 ml-2">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
             @endif
 
             @if(isset($errors) && $errors->any())
-                <div class="p-4 mb-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-xl shadow-sm">
-                    <div class="flex items-center gap-2 mb-2 font-semibold text-sm">
-                        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+                <div class="p-3.5 sm:p-4 mb-4 text-rose-800 bg-rose-50 border border-rose-200 rounded-xl shadow-sm">
+                    <div class="flex items-center gap-2 mb-2 font-semibold text-xs sm:text-sm">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
                         Please check the following errors:
                     </div>
                     <ul class="list-disc list-inside text-xs space-y-1">
@@ -136,13 +177,65 @@
         </div>
 
         <!-- PAGE CONTENT CONTAINER -->
-        <main class="flex-1 px-6 pb-12">
+        <main class="flex-1 px-3 sm:px-6 pb-12 max-w-full">
             @yield('content')
         </main>
     </div>
 
     <!-- GLOBAL QUICK MODALS -->
     @include('partials.modals')
+
+    <!-- PWA APP INSTALL GUIDE MODAL -->
+    <div id="pwaInstallGuideModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 no-print" onclick="if(event.target===this) closeModal('pwaInstallGuideModal')">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-navy-900 text-white px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="smartphone" class="w-5 h-5 text-emerald-400"></i>
+                    <h3 class="text-sm font-extrabold">Install SDPC Clinic CRM App</h3>
+                </div>
+                <button type="button" onclick="closeModal('pwaInstallGuideModal')" class="text-slate-300 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs text-slate-600">
+                <div class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900">
+                    <img src="{{ asset('logo.png') }}" alt="SDPC" class="w-10 h-10 rounded-lg bg-white p-1 border border-blue-100 shrink-0 object-contain">
+                    <div>
+                        <div class="font-extrabold text-sm">SDPC Physiotherapy CRM</div>
+                        <div class="text-[11px] text-blue-700 font-semibold">Works on Android, iPhone, iPad, Windows & Mac</div>
+                    </div>
+                </div>
+                <div class="space-y-2.5">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-extrabold text-slate-900 mb-1 flex items-center gap-1.5">
+                            <i data-lucide="laptop" class="w-4 h-4 text-blue-600"></i> Laptop / Desktop (Chrome / Edge)
+                        </div>
+                        <p>Click the <strong>Install App</strong> icon in the right side of your browser's address bar, or open browser menu <strong>⋮ → Cast, save, and share → Install page as app</strong>.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-extrabold text-slate-900 mb-1 flex items-center gap-1.5">
+                            <i data-lucide="smartphone" class="w-4 h-4 text-emerald-600"></i> Android Phone / Tablet
+                        </div>
+                        <p>Tap the Chrome menu <strong>⋮</strong> (top-right) and tap <strong>"Install App"</strong> or <strong>"Add to Home screen"</strong>.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-extrabold text-slate-900 mb-1 flex items-center gap-1.5">
+                            <i data-lucide="tablet" class="w-4 h-4 text-indigo-600"></i> iPhone / iPad (Safari)
+                        </div>
+                        <p>Tap the <strong>Share</strong> icon at the bottom of Safari and choose <strong>"Add to Home Screen"</strong>.</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <a href="{{ route('pwa.install') }}" class="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Verify Server PWA Setup
+                    </a>
+                    <button type="button" onclick="closeModal('pwaInstallGuideModal')" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-xl text-xs">
+                        Got It
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Initialize lucide icons
@@ -339,7 +432,70 @@
                 selectedBtn.className = 'slot-pill px-2.5 py-1 text-[11px] font-bold rounded-lg border transition bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-300';
             }
         }
+
+        // Mobile & Tablet Responsive Sidebar Drawer Controls
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('mobileSidebarBackdrop');
+            if (!sidebar) return;
+            const isHidden = sidebar.classList.contains('-translate-x-full');
+            if (isHidden) {
+                sidebar.classList.remove('-translate-x-full');
+                if (backdrop) backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('mobileSidebarBackdrop');
+            if (sidebar) sidebar.classList.add('-translate-x-full');
+            if (backdrop) backdrop.classList.add('hidden');
+        }
+
+        // Progressive Web App (PWA) Service Worker & Install Handler
+        window.deferredPwaPrompt = null;
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPwaPrompt = e;
+            document.querySelectorAll('.pwa-install-status-badge').forEach(el => {
+                el.innerText = 'Ready for 1-Click Install';
+            });
+        });
+
+        window.addEventListener('appinstalled', () => {
+            window.deferredPwaPrompt = null;
+            document.querySelectorAll('.pwa-install-status-badge').forEach(el => {
+                el.innerText = 'App Installed ✔';
+            });
+        });
+
+        async function triggerPwaInstall() {
+            if (window.deferredPwaPrompt) {
+                window.deferredPwaPrompt.prompt();
+                const { outcome } = await window.deferredPwaPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    window.deferredPwaPrompt = null;
+                }
+            } else {
+                openModal('pwaInstallGuideModal');
+            }
+        }
     </script>
     @stack('scripts')
+    <script>
+        // Re-init Lucide icons after any dynamic scripts
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 </html>

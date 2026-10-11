@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a2540">
+    <title>Offline - SDPC Physiotherapy Clinic CRM</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            padding: 2.25rem 1.75rem;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        h1 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; color: #0a2540; }
+        p { font-size: 0.875rem; color: #64748b; line-height: 1.5; margin-bottom: 1.5rem; font-weight: 600; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            background: #0a2540;
+            color: #ffffff;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn:hover { background: #0f2744; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">
+            <img src="/logo.png" alt="SDPC Logo" onerror="this.style.display='none'">
+        </div>
+        <h1>You're Currently Offline</h1>
+        <p>Please check your internet connection to sync live patient records, appointments, and clinic billing.</p>
+        <button class="btn" onclick="window.location.reload()">Retry Connection</button>
+    </div>
+</body>
+</html>

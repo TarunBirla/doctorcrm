@@ -1,0 +1,49 @@
+{
+    "name": "SDPC Physiotherapy Clinic CRM",
+    "short_name": "SDPC CRM",
+    "description": "SDPC Physiotherapy & Spine Clinic Practice Management CRM",
+    "start_url": "/dashboard?pwa=1",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#0a2540",
+    "theme_color": "#0a2540",
+    "categories": ["medical", "health", "productivity", "business"],
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "Open Clinic Dashboard",
+            "url": "/dashboard",
+            "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Appointments",
+            "short_name": "Appointments",
+            "description": "View & Book Appointments",
+            "url": "/appointments",
+            "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Patients Master",
+            "short_name": "Patients",
+            "description": "Manage Clinic Patients",
+            "url": "/patients",
+            "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+        }
+    ]
+}

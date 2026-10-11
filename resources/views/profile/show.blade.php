@@ -7,12 +7,12 @@
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900">User Profile</h1>
-            <p class="text-sm text-slate-500">Manage your personal information, login credentials and preferences</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">User Profile</h1>
+            <p class="text-xs sm:text-sm text-slate-500">Manage your personal information, login credentials, and clinic app installation</p>
         </div>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+        <span class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
             {{ $user->role === 'super_admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : '' }}
             {{ $user->role === 'doctor' ? 'bg-blue-50 text-blue-700 border border-blue-200' : '' }}
             {{ $user->role === 'receptionist' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : '' }}">
@@ -21,12 +21,49 @@
         </span>
     </div>
 
+    <!-- PWA App Download & Install Card -->
+    <div class="bg-gradient-to-r from-[#0a2540] via-[#0f2744] to-slate-900 text-white rounded-2xl border border-slate-800 shadow-lg p-5 sm:p-7">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="flex items-start sm:items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-white p-2 flex items-center justify-center shrink-0 shadow-md">
+                    <img src="{{ asset('logo.png') }}" alt="SDPC CRM App" class="w-full h-full object-contain">
+                </div>
+                <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 pwa-install-status-badge">
+                            PWA Web & Mobile App Ready
+                        </span>
+                        <span class="text-[11px] text-slate-300 font-semibold">Android • iOS • Windows • Mac</span>
+                    </div>
+                    <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-white">Download SDPC Physiotherapy CRM App</h2>
+                    <p class="text-xs text-slate-300 leading-relaxed max-w-xl">
+                        Install the clinic CRM directly on your mobile phone, tablet, or laptop for instant 1-tap access, full-screen standalone mode, and faster performance.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+                <button type="button" onclick="triggerPwaInstall()"
+                    class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs transition shadow-md cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Download / Install App</span>
+                </button>
+                <a href="{{ route('pwa.install') }}"
+                    class="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs transition"
+                    title="Run Server PWA Package Setup & Refresh Cache">
+                    <i data-lucide="server" class="w-3.5 h-3.5 text-blue-300"></i>
+                    <span>Server PWA Setup</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- User Information Form -->
-    <form action="{{ route('profile.update') }}" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+    <form action="{{ route('profile.update') }}" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8 space-y-6">
         @csrf
-        <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
+        <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-base shrink-0">
                     {{ substr($user->name, 0, 2) }}
                 </div>
                 <div>
@@ -34,7 +71,7 @@
                     <p class="text-xs text-slate-400">Account details visible on clinic communications</p>
                 </div>
             </div>
-            <button type="submit" class="px-5 py-2 rounded-xl bg-[#0a2540] hover:bg-slate-800 text-white font-bold text-xs transition">
+            <button type="submit" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#0a2540] hover:bg-slate-800 text-white font-bold text-xs transition">
                 Update Profile
             </button>
         </div>
@@ -100,11 +137,11 @@
     </form>
 
     <!-- Change Password Form -->
-    <form action="{{ route('profile.password') }}" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+    <form action="{{ route('profile.password') }}" method="POST" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8 space-y-6">
         @csrf
-        <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
+        <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base shrink-0">
                     <i data-lucide="key-round" class="w-5 h-5"></i>
                 </div>
                 <div>
@@ -112,7 +149,7 @@
                     <p class="text-xs text-slate-400">Ensure your clinic account uses a strong, private password</p>
                 </div>
             </div>
-            <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition">
+            <button type="submit" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition">
                 Change Password
             </button>
         </div>

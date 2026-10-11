@@ -27,21 +27,31 @@
     $notifications = \App\Models\Notification::latest()->take(4)->get();
 @endphp
 
-<header class="bg-white border-b border-slate-200/90 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)] no-print">
-    <!-- LEFT: BREADCRUMBS & PAGE TITLE -->
-    <div>
-        <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
-            <a href="{{ route('dashboard') }}" class="hover:text-slate-600 transition">Dashboard</a>
-            <span>/</span>
-            <span class="text-slate-600 font-semibold">@yield('breadcrumb', 'Overview')</span>
+<header class="bg-white border-b border-slate-200/90 px-3 sm:px-6 py-3 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)] no-print">
+    <!-- LEFT: MOBILE HAMBURGER, BREADCRUMBS & PAGE TITLE -->
+    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <button type="button" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition shrink-0" title="Open Navigation Menu">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div class="min-w-0">
+            <div class="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-semibold truncate">
+                <a href="{{ route('dashboard') }}" class="hover:text-slate-600 transition">Dashboard</a>
+                <span>/</span>
+                <span class="text-slate-600 font-semibold truncate">@yield('breadcrumb', 'Overview')</span>
+            </div>
+            <h2 class="text-sm sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">
+                @yield('page_title', 'Clinic Operations Dashboard')
+            </h2>
         </div>
-        <h2 class="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">
-            @yield('page_title', 'Clinic Operations Dashboard')
-        </h2>
     </div>
 
     <!-- RIGHT: CONTROLS & USER ACTIONS -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- QUICK PWA DOWNLOAD / INSTALL BUTTON -->
+        <button type="button" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-[11px] font-extrabold transition cursor-pointer" title="Download & Install CRM App">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">Install App</span>
+        </button>
 
         <!-- GLOBAL SEARCH TRIGGER BUTTON -->
         <!-- <button onclick="openGlobalSearch()" class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 transition shadow-2xs">
@@ -154,6 +164,13 @@
                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
                     <span>My Profile</span>
                 </a>
+                <button type="button" onclick="triggerPwaInstall()" class="w-full flex items-center justify-between px-3.5 py-2 text-blue-700 hover:bg-blue-50 transition font-bold text-left">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span>Download CRM App</span>
+                    </span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold">PWA</span>
+                </button>
                 @if($currentRole === 'super_admin')
                 <a href="{{ route('settings.index') }}" class="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition">
                     <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400"></i>
