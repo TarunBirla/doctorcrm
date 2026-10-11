@@ -227,7 +227,7 @@
                                     <a href="{{ route('patients.edit', $patient->id) }}" title="Edit Patient, Update Recovery % & Extend +Days"
                                        class="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1">
                                         <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-                                        <span>Edit / Extend</span>
+                                        <span>Edit</span>
                                     </a>
                                     <a href="{{ route('patients.show', $patient->id) }}" title="Open Patient CRM Profile"
                                        class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-xl transition">

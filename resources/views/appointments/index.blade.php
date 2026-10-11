@@ -328,7 +328,7 @@
                                     @endif
 
                                     <!-- Delete / Cancel -->
-                                    @if($apt->status !== 'completed')
+                                    <!-- @if($apt->status !== 'completed')
                                         <form action="{{ route('appointments.destroy', $apt->id) }}" method="POST" onsubmit="return confirm('Cancel this appointment session?')" class="inline">
                                             @csrf
                                             @method('DELETE')
@@ -336,7 +336,7 @@
                                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                             </button>
                                         </form>
-                                    @endif
+                                    @endif -->
                                 </div>
                             </td>
                         </tr>

@@ -319,9 +319,9 @@
                             <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
                             Edit & Extend (+Days / Recovery %)
                         </a>
-                        <button onclick="openModal('quickAppointmentModal')" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
+                        <!-- <button onclick="openModal('quickAppointmentModal')" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
                             + Single Appt
-                        </button>
+                        </button> -->
                     </div>
                 </div>
                 <div class="overflow-x-auto text-xs">
@@ -395,10 +395,10 @@
                                                 <form action="{{ route('appointments.status', $apt->id) }}" method="POST" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="status" value="completed">
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-xl text-[11px] font-bold transition">
+                                                    <!-- <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-xl text-[11px] font-bold transition">
                                                         <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                                         <span>Done ✔</span>
-                                                    </button>
+                                                    </button> -->
                                                 </form>
                                                 <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
@@ -411,12 +411,12 @@
                                                     <span>Completed</span>
                                                 </span>
                                             @endif
-                                            @if($isLastApt)
+                                            <!-- @if($isLastApt)
                                                 <a href="{{ route('patients.edit', $patient->id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold transition">
                                                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
                                                     <span>Review / +Extend</span>
                                                 </a>
-                                            @endif
+                                            @endif -->
                                         </div>
                                     </td>
                                 </tr>
