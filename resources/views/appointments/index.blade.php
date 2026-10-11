@@ -40,10 +40,10 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ route('appointments.create') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5">
+            <!-- <a href="{{ route('appointments.create') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>+ Book Appointment</span>
-            </a>
+            </a> -->
         </div>
     </div>
 
@@ -258,7 +258,7 @@
                                 <div>
                                     <div class="flex items-center justify-between text-[11px] font-bold mb-1">
                                         <span class="px-1.5 py-0.5 rounded border text-[10px] {{ $badgeClass }}">
-                                            {{ $pct >= 100 ? '🌟 100% Sahi Ho Gaya' : $pct . '% Sahi Hua' }}
+                                            {{ $pct >= 100 ? '🌟 100% Recovery' : $pct . '% Recovery' }}
                                         </span>
                                     </div>
                                     <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
@@ -311,55 +311,9 @@
                             </td>
                             <td class="p-3.5 pr-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                                    <!-- 1. DAILY SESSION COMPLETION / CHECK-IN ACTIONS -->
-                                    @if($apt->status !== 'completed' && $apt->status !== 'cancelled')
-                                        @if($apt->status === 'waiting' || $apt->status === 'in_consultation')
-                                            <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
-                                               title="Doctor Consultation & Prescription Room" 
-                                               class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-2xs">
-                                                <i data-lucide="stethoscope" class="w-3 h-3"></i>
-                                                <span>Consult</span>
-                                            </a>
-                                        @else
-                                            <form action="{{ route('appointments.status', $apt->id) }}" method="POST" class="inline">
-                                                @csrf
-                                                <input type="hidden" name="status" value="waiting">
-                                                <button type="submit" title="Mark Patient Arrived & Waiting" 
-                                                        class="px-2 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-[11px] font-bold transition">
-                                                    Check In
-                                                </button>
-                                            </form>
-                                        @endif
+                                    
 
-                                        <!-- 1-Click Complete Session Button -->
-                                        <form action="{{ route('appointments.status', $apt->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <input type="hidden" name="status" value="completed">
-                                            <button type="submit" title="Mark Session {{ $sessionNumber }} Completed"
-                                                    class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-xl text-[11px] font-bold transition inline-flex items-center gap-1">
-                                                <i data-lucide="check" class="w-3 h-3"></i>
-                                                <span>Done</span>
-                                            </button>
-                                        </form>
-                                    @endif
-
-                                    <!-- 2. FINAL SESSION PACKAGE EVALUATION & EXTEND (+DAYS) BUTTON -->
-                                    @if($isLastSession)
-                                        @if($pct >= 100 && $patientCompletedSessions >= $patientTotalSessions)
-                                            <span class="px-2.5 py-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-[10px] font-extrabold inline-flex items-center gap-1">
-                                                <i data-lucide="award" class="w-3.5 h-3.5"></i>
-                                                <span>100% Cured</span>
-                                            </span>
-                                        @else
-                                            <button type="button"
-                                                    onclick='openEditExtendModal(@json($apt), "{{ addslashes($apt->patient?->full_name ?? "Patient") }}", "{{ addslashes($apt->clinic?->name ?? "Clinic") }}", "{{ addslashes($apt->category?->name ?? "Category") }}", {{ $patientTotalSessions }}, {{ $patientCompletedSessions }}, {{ $dailyFeeVal }}, {{ $patientPackageFee }}, {{ $pct }})'
-                                                    class="px-2.5 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-                                                    title="Final Session: Evaluate Recovery % (80% / 100%) or Extend +Days">
-                                                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-                                                <span>Review / +Extend</span>
-                                            </button>
-                                        @endif
-                                    @endif
+                                   
 
                                     <!-- Edit Patient & Package Link -->
                                     @if($apt->patient_id)
@@ -480,9 +434,9 @@
                     <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Quick Set:</span>
                     <button type="button" onclick="syncRecoveryFromInput(50)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100">50%</button>
                     <button type="button" onclick="syncRecoveryFromInput(75)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100">75%</button>
-                    <button type="button" onclick="syncRecoveryFromInput(80)" class="px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-300 font-extrabold text-indigo-800 hover:bg-indigo-100">80% Sahi Hua</button>
+                    <button type="button" onclick="syncRecoveryFromInput(80)" class="px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-300 font-extrabold text-indigo-800 hover:bg-indigo-100">80% Recovery</button>
                     <button type="button" onclick="syncRecoveryFromInput(90)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100">90%</button>
-                    <button type="button" onclick="syncRecoveryFromInput(100); setModalExtExtraDays(0);" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">🌟 100% Sahi Ho Gaya</button>
+                    <button type="button" onclick="syncRecoveryFromInput(100); setModalExtExtraDays(0);" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">🌟 100% Recovery</button>
                 </div>
 
                 <!-- LIVE LEVEL BADGE -->
@@ -648,7 +602,7 @@ function updateRecoveryLevelDisplay(pct) {
         el.innerText = `🌟 Fully Recovered (100% Sahi Ho Gaya)`;
     } else if (pct >= 75) {
         el.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200";
-        el.innerText = `🟢 High Recovery (${pct}% Sahi Hua)`;
+        el.innerText = `🟢 High Recovery (${pct}% Recovery)`;
     } else if (pct >= 50) {
         el.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200";
         el.innerText = `🟡 Significant Improvement (${pct}%)`;
