@@ -223,15 +223,15 @@
                 </a>
                 @endif
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'progress'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'progress'))
                 <a href="{{ route('progress.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('progress.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="trending-up" class="w-4 h-4 {{ request()->routeIs('progress.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Recovery Tracker</span>
                 </a>
-                @endif
+                @endif -->
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'followups'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'followups'))
                 <a href="{{ route('followups.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('followups.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="alarm-clock" class="w-4 h-4 {{ request()->routeIs('followups.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
@@ -245,7 +245,7 @@
                     <i data-lucide="clock-4" class="w-4 h-4 {{ request()->routeIs('settings.availability') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>{{ $currentRole === 'doctor' ? 'My Availability & Slots' : 'Doctor Availability' }}</span>
                 </a>
-                @endif
+                @endif -->
             </div>
         </div>
         @endif
@@ -340,7 +340,7 @@
         @endif
 
         <!-- REPORTS & ANALYTICS (HIDDEN FOR STAFF) -->
-        @if(!$isStaffUser && \App\Models\RoleMenuPermission::canAccess($currentRole, 'reports'))
+        <!-- @if(!$isStaffUser && \App\Models\RoleMenuPermission::canAccess($currentRole, 'reports'))
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Reports & Analytics
@@ -365,7 +365,7 @@
                 </a>
             </div>
         </div>
-        @endif
+        @endif -->
 
         <!-- CLINIC ADMINISTRATION (SUPER ADMIN ONLY) -->
         @if($currentRole === 'super_admin')

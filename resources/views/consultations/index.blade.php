@@ -14,9 +14,9 @@
             <a href="{{ route('queue.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
                 <i data-lucide="users" class="w-4 h-4 text-primary"></i> OPD Queue
             </a>
-            <a href="{{ route('prescriptions.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-slate-800 transition shadow-sm">
+            <!-- <a href="{{ route('prescriptions.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-slate-800 transition shadow-sm">
                 <i data-lucide="stethoscope" class="w-4 h-4"></i> Start Consultation
-            </a>
+            </a> -->
         </div>
     </div>
 
@@ -152,9 +152,9 @@
                             </td>
                             <td class="py-3.5 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5">
-                                    <a href="{{ route('consultations.show', $v->id) }}" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="View Clinical Record">
+                                    <!-- <a href="{{ route('consultations.show', $v->id) }}" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="View Clinical Record">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
-                                    </a>
+                                    </a> -->
                                     <a href="{{ route('patients.show', ['patient' => $v->patient_id, 'tab' => 'visits']) }}" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Patient Profile">
                                         <i data-lucide="user" class="w-4 h-4"></i>
                                     </a>
