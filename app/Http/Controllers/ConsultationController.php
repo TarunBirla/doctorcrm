@@ -28,14 +28,9 @@ class ConsultationController extends Controller
         $query = Visit::with(['patient', 'doctor', 'diagnoses', 'prescriptions']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $query->where('doctor_id', $loggedInDoctor->id);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $query->where('doctor_id', $loggedInDoctor->id);
         }
 
         if (!empty($search)) {

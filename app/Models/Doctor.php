@@ -84,4 +84,57 @@ class Doctor extends Model
     {
         return $this->hasMany(DoctorSlotOverride::class);
     }
+
+    public function staff()
+    {
+        return $this->hasMany(User::class, 'doctor_id')->whereIn('role', ['receptionist', 'staff']);
+    }
+
+    /**
+     * Get all clinic IDs belonging to or associated with this doctor
+     */
+    public function allClinicIds(): array
+    {
+        try {
+            $owned = $this->ownedClinics()->pluck('clinics.id')->toArray();
+            $assigned = $this->clinics()->pluck('clinics.id')->toArray();
+            return array_values(array_unique(array_merge($owned, $assigned)));
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Resolve the active Doctor profile for the current logged-in user (works for both Doctor and their Staff)
+     */
+    public static function resolveForCurrentUser(?string $currentRole = null): ?self
+    {
+        if (!auth()->check()) {
+            return null;
+        }
+
+        $user = auth()->user();
+        $role = $currentRole ?? session('current_role', $user->role ?? 'super_admin');
+
+        if ($role === 'doctor') {
+            return self::where('user_id', $user->id)->first();
+        }
+
+        if (in_array($role, ['receptionist', 'staff'])) {
+            if (!empty($user->doctor_id)) {
+                $doc = self::find($user->doctor_id);
+                if ($doc) {
+                    return $doc;
+                }
+            }
+            // Fallback if staff user wasn't explicitly linked or in role switch preview
+            $ownDoc = self::where('user_id', $user->id)->first();
+            if ($ownDoc) {
+                return $ownDoc;
+            }
+            return self::where('is_active', true)->first() ?? self::first();
+        }
+
+        return null;
+    }
 }

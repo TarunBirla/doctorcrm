@@ -136,11 +136,22 @@ Route::post('/follow-ups/{id}/status', [FollowUpController::class, 'updateStatus
 Route::resource('invoices', InvoiceController::class)->except(['edit', 'update', 'destroy']);
 Route::get('/invoices/{id}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 Route::post('/invoices/{id}/pay', [InvoiceController::class, 'recordPayment'])->name('invoices.pay');
+Route::post('/invoices/{id}/record-payment', [InvoiceController::class, 'recordPayment'])->name('invoices.record-payment');
 Route::get('/due-payments', [InvoiceController::class, 'duePayments'])->name('due-payments.index');
 Route::get('/receipts/{id}/print', [InvoiceController::class, 'printReceipt'])->name('receipts.print');
 
-// Payment History
+// Payment Manage & Comprehensive Reports
 Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+Route::get('/payments/report/print', [PaymentController::class, 'printReport'])->name('payments.report.print');
+Route::get('/payments/export', [PaymentController::class, 'exportCsv'])->name('payments.export');
+
+// Doctor Role: Staff Create / Show / Edit / Active-Inactive-Suspend & Staff Sidebar Show/Hide Permissions
+Route::get('/doctor/staff', [\App\Http\Controllers\DoctorStaffController::class, 'index'])->name('doctor.staff.index');
+Route::post('/doctor/staff', [\App\Http\Controllers\DoctorStaffController::class, 'store'])->name('doctor.staff.store');
+Route::put('/doctor/staff/{id}', [\App\Http\Controllers\DoctorStaffController::class, 'update'])->name('doctor.staff.update');
+Route::post('/doctor/staff/{id}/status', [\App\Http\Controllers\DoctorStaffController::class, 'updateStatus'])->name('doctor.staff.status');
+Route::delete('/doctor/staff/{id}', [\App\Http\Controllers\DoctorStaffController::class, 'destroy'])->name('doctor.staff.destroy');
+Route::post('/doctor/staff/permissions', [\App\Http\Controllers\DoctorStaffController::class, 'updatePermissions'])->name('doctor.staff.permissions.update');
 
 // Clinic Expenses
 Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');

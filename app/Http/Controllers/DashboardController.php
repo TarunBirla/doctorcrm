@@ -33,6 +33,18 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
+        // Auto-logout if staff/user account was deactivated or suspended by Doctor
+        $authUser = auth()->user();
+        $effStatus = $authUser->status ?? ($authUser->is_active ? 'active' : 'inactive');
+        if (!$authUser->is_active || in_array($effStatus, ['inactive', 'suspended'], true)) {
+            \Illuminate\Support\Facades\Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->withErrors([
+                'email' => 'Your account has been ' . $effStatus . ' by the Doctor. Please contact your clinic.',
+            ]);
+        }
+
         $dateFilter = $request->get('date_filter', 'today');
         $customStart = $request->get('start_date');
         $customEnd = $request->get('end_date');
@@ -88,17 +100,21 @@ class DashboardController extends Controller
                 break;
         }
 
-        // Resolve current role and logged-in doctor if role is doctor
+        // Resolve current role and logged-in doctor (works for both Doctor and their Staff)
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor') {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-        }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
-        // 1. Appointments Summary (Isolated for doctor)
+        // 1. Appointments Summary (Isolated for doctor & their staff)
         $appointmentsQuery = Appointment::whereBetween('appointment_date', [$startDate->toDateString(), $endDate->toDateString()]);
         if ($loggedInDoctor) {
-            $appointmentsQuery->where('doctor_id', $loggedInDoctor->id);
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $appointmentsQuery->where(function ($q) use ($docId, $clinicIds) {
+                $q->where('doctor_id', $docId);
+                if (!empty($clinicIds)) {
+                    $q->orWhereIn('clinic_id', $clinicIds);
+                }
+            });
         } elseif ($currentRole === 'doctor') {
             $appointmentsQuery->whereRaw('1 = 0'); // Empty if doctor profile not linked
         }
@@ -297,10 +313,15 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $invoices = Invoice::with('patient')
-            ->where('invoice_no', 'like', "%{$q}%")
-            ->take(5)
-            ->get();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $isStaff = \App\Models\User::isStaffRole($currentRole);
+
+        $invoices = $isStaff
+            ? collect()
+            : Invoice::with('patient')
+                ->where('invoice_no', 'like', "%{$q}%")
+                ->take(5)
+                ->get();
 
         return response()->json([
             'patients' => $patients,

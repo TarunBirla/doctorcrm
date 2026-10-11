@@ -22,18 +22,17 @@ class PatientController extends Controller
         $query = Patient::with(['medicalHistory', 'invoices']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $query->where(function ($q) use ($loggedInDoctor) {
-                    $q->where('doctor_id', $loggedInDoctor->id)
-                      ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
-                      ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
-                });
-            } else {
-                $query->whereRaw('1 = 0'); // No patients if doctor record missing
-            }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $totalDocs = Doctor::count();
+            $query->where(function ($q) use ($loggedInDoctor, $totalDocs) {
+                $q->where('doctor_id', $loggedInDoctor->id)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                  ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
+                if ($totalDocs <= 1) {
+                    $q->orWhereNotNull('id');
+                }
+            });
         }
 
         if (!empty($search)) {
@@ -116,18 +115,17 @@ class PatientController extends Controller
     {
         $nextId = Patient::generatePatientId();
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
-            if ($clinics->isEmpty() && $loggedInDoctor) {
-                $clinics = \App\Models\Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
-            }
+        if ($loggedInDoctor) {
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $clinics = !empty($clinicIds)
+                ? \App\Models\Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get();
             if ($clinics->isEmpty()) {
                 $clinics = \App\Models\Clinic::where('is_active', true)->get();
             }
-            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+            $doctors = collect([$loggedInDoctor]);
         } else {
             $clinics = \App\Models\Clinic::where('is_active', true)->get();
             $doctors = Doctor::active()->orderBy('name')->get();
@@ -171,10 +169,9 @@ class PatientController extends Controller
         ]);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $assignedDoctorId = $loggedInDoctor ? $loggedInDoctor->id : null;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if ($loggedInDoctor) {
+            $assignedDoctorId = $loggedInDoctor->id;
         } else {
             $assignedDoctorId = $request->input('doctor_id') ?? Doctor::active()->first()?->id;
         }
@@ -307,16 +304,16 @@ class PatientController extends Controller
     protected function authorizePatientAccess(Patient $patient): void
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $hasAccess = ($patient->doctor_id == $loggedInDoctor->id)
-                    || $patient->appointments()->where('doctor_id', $loggedInDoctor->id)->exists()
-                    || $patient->visits()->where('doctor_id', $loggedInDoctor->id)->exists();
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if ($loggedInDoctor) {
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $hasAccess = ($patient->doctor_id == $loggedInDoctor->id)
+                || (!empty($clinicIds) && in_array($patient->clinic_id, $clinicIds))
+                || $patient->appointments()->where('doctor_id', $loggedInDoctor->id)->exists()
+                || $patient->visits()->where('doctor_id', $loggedInDoctor->id)->exists();
 
-                if (!$hasAccess) {
-                    abort(403, 'Unauthorized: You only have access to patients registered under your practice.');
-                }
+            if (!$hasAccess) {
+                abort(403, 'Unauthorized: You only have access to patients registered under your practice.');
             }
         }
     }
@@ -351,7 +348,13 @@ class PatientController extends Controller
         }
         $patient->load(['appointments.doctor', 'appointments.invoice']);
 
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $isStaff = \App\Models\User::isStaffRole($currentRole);
+
         $activeTab = $request->get('tab', 'overview');
+        if ($isStaff && $activeTab === 'payments') {
+            $activeTab = 'overview';
+        }
         $doctors = Doctor::all();
 
         // Calculate progress chart data
@@ -415,17 +418,19 @@ class PatientController extends Controller
             ]);
         }
 
-        // Payments
-        foreach ($patient->paymentTransactions as $txn) {
-            $timelineEvents->push([
-                'date' => $txn->created_at,
-                'type' => 'payment',
-                'title' => "Payment of ₹" . number_format($txn->amount, 2) . " Received",
-                'description' => "Transaction #{$txn->transaction_no} via {$txn->payment_method}. Receipt #{$txn->receipt_no}",
-                'icon' => 'receipt',
-                'badge' => 'Payment',
-                'badge_color' => 'bg-emerald-100 text-emerald-700',
-            ]);
+        // Payments (hidden for Staff role)
+        if (!$isStaff) {
+            foreach ($patient->paymentTransactions as $txn) {
+                $timelineEvents->push([
+                    'date' => $txn->created_at,
+                    'type' => 'payment',
+                    'title' => "Payment of ₹" . number_format($txn->amount, 2) . " Received",
+                    'description' => "Transaction #{$txn->transaction_no} via {$txn->payment_method}. Receipt #{$txn->receipt_no}",
+                    'icon' => 'receipt',
+                    'badge' => 'Payment',
+                    'badge_color' => 'bg-emerald-100 text-emerald-700',
+                ]);
+            }
         }
 
         // Follow-ups
@@ -455,7 +460,16 @@ class PatientController extends Controller
     {
         $patient = Patient::findOrFail($id);
         $this->authorizePatientAccess($patient);
-        $clinics = \App\Models\Clinic::where('is_active', true)->get();
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if ($loggedInDoctor) {
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $clinics = !empty($clinicIds)
+                ? \App\Models\Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get()
+                : \App\Models\Clinic::where('is_active', true)->get();
+        } else {
+            $clinics = \App\Models\Clinic::where('is_active', true)->get();
+        }
         $categories = \App\Models\TreatmentCategory::active()->orderBy('name')->get();
         return view('patients.edit', compact('patient', 'clinics', 'categories'));
     }
@@ -550,26 +564,29 @@ class PatientController extends Controller
     public function export()
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-        }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        $isStaff = \App\Models\User::isStaffRole($currentRole);
 
-        $response = new StreamedResponse(function () use ($loggedInDoctor) {
+        $response = new StreamedResponse(function () use ($loggedInDoctor, $isStaff) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, [
+            $headers = [
                 'Patient ID', 'First Name', 'Last Name', 'Gender', 'Age', 'Mobile',
-                'Email', 'City', 'Blood Group', 'Conditions', 'Allergies', 'Outstanding Due (INR)', 'Created At'
-            ]);
+                'Email', 'City', 'Blood Group', 'Conditions', 'Allergies'
+            ];
+            if (!$isStaff) {
+                $headers[] = 'Outstanding Due (INR)';
+            }
+            $headers[] = 'Created At';
+            fputcsv($handle, $headers);
 
             $query = Patient::with('medicalHistory');
             if ($loggedInDoctor) {
                 $query->where('doctor_id', $loggedInDoctor->id);
             }
 
-            $query->chunk(100, function ($patients) use ($handle) {
+            $query->chunk(100, function ($patients) use ($handle, $isStaff) {
                 foreach ($patients as $p) {
-                    fputcsv($handle, [
+                    $row = [
                         $p->patient_id,
                         $p->first_name,
                         $p->last_name,
@@ -581,9 +598,12 @@ class PatientController extends Controller
                         $p->blood_group ?? '',
                         $p->medicalHistory->conditions ?? '',
                         $p->medicalHistory->allergies ?? '',
-                        $p->outstanding_balance,
-                        $p->created_at->format('Y-m-d H:i'),
-                    ]);
+                    ];
+                    if (!$isStaff) {
+                        $row[] = $p->outstanding_balance;
+                    }
+                    $row[] = $p->created_at->format('Y-m-d H:i');
+                    fputcsv($handle, $row);
                 }
             });
 

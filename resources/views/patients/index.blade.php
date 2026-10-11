@@ -5,10 +5,13 @@
 @section('page_title', 'Patient Directory & Master Records')
 
 @section('content')
+@php
+    $isStaff = \App\Models\User::isStaffRole(session('current_role', auth()->user()->role ?? 'super_admin'));
+@endphp
 <div class="space-y-6">
 
     <!-- TOP KPI STATS -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 {{ $isStaff ? 'md:grid-cols-3' : 'md:grid-cols-4' }} gap-4">
         <div class="card-custom p-5 bg-white">
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Registered</span>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">{{ $totalPatients }}</div>
@@ -24,10 +27,12 @@
             <div class="text-3xl font-extrabold text-purple-700 tracking-tight mt-1">{{ $femalePatients }}</div>
         </div>
 
+        @if(!$isStaff)
         <div class="card-custom p-5 bg-white">
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Patients with Dues</span>
             <div class="text-3xl font-extrabold text-rose-600 tracking-tight mt-1">{{ $patientsWithDues }}</div>
         </div>
+        @endif
     </div>
 
     <!-- SEARCH & FILTER BAR -->
@@ -125,7 +130,9 @@
                         <th class="p-3.5">Contact</th>
                         <th class="p-3.5">Blood</th>
                         <th class="p-3.5">Medical History</th>
+                        @if(!$isStaff)
                         <th class="p-3.5">Due Balance</th>
+                        @endif
                         <th class="p-3.5">Last Visit</th>
                         <th class="p-3.5 pr-5 text-right">Actions</th>
                     </tr>
@@ -184,6 +191,7 @@
                                     <span class="text-slate-400">No conditions logged</span>
                                 @endif
                             </td>
+                            @if(!$isStaff)
                             <td class="p-3.5">
                                 @if($patient->outstanding_balance > 0)
                                     <span class="px-2 py-0.5 rounded-full font-extrabold text-[10px] bg-rose-100 text-rose-800">
@@ -195,6 +203,7 @@
                                     </span>
                                 @endif
                             </td>
+                            @endif
                             <td class="p-3.5 text-slate-500">
                                 @if($patient->last_visit)
                                     <span class="font-semibold text-slate-800">{{ $patient->last_visit->visit_date->format('d M Y') }}</span>

@@ -31,18 +31,13 @@ class MedicalReportController extends Controller
         $query = MedicalReport::with(['patient', 'visit']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $query->whereHas('patient', function ($q) use ($loggedInDoctor) {
-                    $q->where('doctor_id', $loggedInDoctor->id)
-                      ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
-                      ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
-                });
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $query->whereHas('patient', function ($q) use ($loggedInDoctor) {
+                $q->where('doctor_id', $loggedInDoctor->id)
+                  ->orWhereHas('appointments', fn($aq) => $aq->where('doctor_id', $loggedInDoctor->id))
+                  ->orWhereHas('visits', fn($vq) => $vq->where('doctor_id', $loggedInDoctor->id));
+            });
         }
 
         if (!empty($search)) {

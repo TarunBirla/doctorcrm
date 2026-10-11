@@ -17,24 +17,19 @@ class ClinicController extends Controller
     public function index(Request $request)
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                // Doctor sees owned clinics and clinics attached via pivot
-                $clinicIds = DB::table('doctor_clinics')
-                    ->where('doctor_id', $loggedInDoctor->id)
-                    ->pluck('clinic_id')
-                    ->merge(Clinic::where('doctor_id', $loggedInDoctor->id)->pluck('id'))
-                    ->unique();
-
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            if (!empty($clinicIds)) {
                 $clinics = Clinic::whereIn('id', $clinicIds)
                     ->with(['doctor', 'doctors'])
                     ->withCount(['appointments', 'availabilities'])
                     ->paginate(12);
             } else {
-                $clinics = Clinic::whereRaw('1 = 0')->paginate(12);
+                $clinics = Clinic::with(['doctor', 'doctors'])
+                    ->withCount(['appointments', 'availabilities'])
+                    ->paginate(12);
             }
         } else {
             // Super Admin or staff sees all clinics

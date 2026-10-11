@@ -5,6 +5,9 @@
 @section('page_title', $patient->full_name)
 
 @section('content')
+@php
+    $isStaff = \App\Models\User::isStaffRole(session('current_role', auth()->user()->role ?? 'super_admin'));
+@endphp
 <div class="space-y-6">
 
     <!-- CRM HEADER SECTION (MATCHING SPECIFICATION #38) -->
@@ -84,12 +87,14 @@
                     </span>
                 </div>
 
+                @if(!$isStaff)
                 <div class="px-4 py-2.5 rounded-2xl {{ $patient->outstanding_balance > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200' }} border text-left min-w-[130px]">
                     <span class="text-[10px] font-bold uppercase tracking-wider {{ $patient->outstanding_balance > 0 ? 'text-rose-700' : 'text-emerald-700' }} block">Outstanding Due</span>
                     <span class="font-extrabold text-sm {{ $patient->outstanding_balance > 0 ? 'text-rose-700' : 'text-emerald-700' }} block mt-0.5">
                         ₹{{ number_format($patient->outstanding_balance, 2) }}
                     </span>
                 </div>
+                @endif
             </div>
 
         </div>
@@ -118,7 +123,7 @@
                     <span>New Appointment</span>
                 </button>
 
-                @if($patient->outstanding_balance > 0)
+                @if(!$isStaff && $patient->outstanding_balance > 0)
                     <button onclick="openModal('patientCollectDueModal')" 
                             class="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-xs">
                         <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
@@ -169,6 +174,9 @@
                     'followups' => ['label' => 'Follow-ups (' . $patient->followUps->count() . ')', 'icon' => 'clock'],
                     'timeline' => ['label' => 'Patient Timeline', 'icon' => 'git-commit'],
                 ];
+                if ($isStaff) {
+                    unset($tabs['payments']);
+                }
             @endphp
 
             @foreach($tabs as $tabKey => $tabInfo)
@@ -310,8 +318,9 @@
                                 <th class="p-3">Date & Time</th>
                                 <th class="p-3">Doctor</th>
                                 <th class="p-3">Type</th>
-                                <th class="p-3">Reason</th>
+                                @if(!$isStaff)
                                 <th class="p-3">Payment</th>
+                                @endif
                                 <th class="p-3">Status</th>
                                 <th class="p-3 pr-5 text-right">Action</th>
                             </tr>
@@ -325,6 +334,7 @@
                                     <td class="p-3 font-semibold">{{ $apt->appointment_date->format('d M Y') }} at {{ $apt->appointment_time }}</td>
                                     <td class="p-3 text-slate-700">{{ $apt->doctor ? $apt->doctor->name : '-' }}</td>
                                     <td class="p-3 uppercase text-[10px] font-bold text-slate-500">{{ $apt->appointment_type }}</td>
+                                    @if(!$isStaff)
                                     <td class="p-3">
                                         <div class="font-bold text-slate-800 text-xs">₹{{ number_format($apt->consultation_fee, 0) }}</div>
                                         @if($apt->payment_status === 'paid')
@@ -344,6 +354,7 @@
                                             </span>
                                         @endif
                                     </td>
+                                    @endif
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize 
                                             {{ $apt->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($apt->status === 'in_consultation' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800') }}">

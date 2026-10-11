@@ -20,6 +20,46 @@ class RoleMenuPermission extends Model
     ];
 
     /**
+     * Menus that are strictly payment/financial and NEVER visible to Staff
+     */
+    public const PAYMENT_MENUS = [
+        'billing',
+        'dues',
+        'payments',
+        'expenses',
+        'reports',
+    ];
+
+    /**
+     * Controllable non-payment menus that a Doctor can show or hide for their Staff
+     */
+    public static function staffControllableMenus(): array
+    {
+        return [
+            'Main & Patient Flow' => [
+                'dashboard' => ['label' => 'Dashboard', 'icon' => 'fa-chart-pie', 'desc' => 'Clinic overview & daily patient statistics (without revenue)'],
+                'queue' => ['label' => 'Live Queue', 'icon' => 'fa-users-viewfinder', 'desc' => 'Real-time waiting room & token management'],
+                'appointments' => ['label' => 'Appointments', 'icon' => 'fa-calendar-check', 'desc' => 'Book, reschedule & manage patient appointments'],
+                'calendar' => ['label' => 'Slot Calendar', 'icon' => 'fa-calendar-days', 'desc' => 'Interactive slot schedule & calendar view'],
+                'clinics' => ['label' => 'My Clinics', 'icon' => 'fa-hospital', 'desc' => 'View clinic locations & timings'],
+                'availability' => ['label' => 'Doctor Availability', 'icon' => 'fa-user-clock', 'desc' => 'Manage doctor weekly schedule & slot overrides'],
+            ],
+            'Clinical & Patient Care' => [
+                'patients' => ['label' => 'Patients Directory', 'icon' => 'fa-hospital-user', 'desc' => 'Register, edit & view patient profiles'],
+                'consultations' => ['label' => 'Consultations (OPD)', 'icon' => 'fa-stethoscope', 'desc' => 'OPD consultation notes & assessment records'],
+                'prescriptions' => ['label' => 'Prescriptions (Rx)', 'icon' => 'fa-file-prescription', 'desc' => 'View & print patient prescriptions'],
+                'medical_reports' => ['label' => 'Medical Reports', 'icon' => 'fa-file-medical', 'desc' => 'Upload & manage X-Ray, MRI & lab reports'],
+                'progress' => ['label' => 'Recovery Tracker', 'icon' => 'fa-chart-line', 'desc' => 'Track patient physiotherapy recovery sessions'],
+                'followups' => ['label' => 'Follow-up Reminders', 'icon' => 'fa-bell', 'desc' => 'Upcoming patient follow-ups & WhatsApp reminders'],
+            ],
+            'Physiotherapy Library' => [
+                'exercises' => ['label' => 'Exercise Library', 'icon' => 'fa-dumbbell', 'desc' => 'Physiotherapy exercises & home routines'],
+                'categories' => ['label' => 'Treatment Categories', 'icon' => 'fa-layer-group', 'desc' => 'Conditions & physiotherapy treatment categories'],
+            ],
+        ];
+    }
+
+    /**
      * Default menus for each role if not customized in database
      */
     public static function defaultPermissions(): array
@@ -42,11 +82,12 @@ class RoleMenuPermission extends Model
                 'videos' => true,
                 'categories' => true,
                 'availability' => true,
-                'billing' => false,
-                'dues' => false,
-                'payments' => false,
+                'billing' => true,
+                'dues' => true,
+                'payments' => true,
                 'expenses' => false,
-                'reports' => false,
+                'reports' => true,
+                'staff_manage' => true,
             ],
             'receptionist' => [
                 'dashboard' => true,
@@ -56,15 +97,18 @@ class RoleMenuPermission extends Model
                 'calendar' => true,
                 'clinics' => true,
                 'slots' => true,
-                'billing' => true,
-                'dues' => true,
-                'payments' => true,
+                'availability' => true,
+                'consultations' => true,
+                'prescriptions' => true,
+                'medical_reports' => true,
+                'progress' => true,
                 'followups' => true,
-                'availability' => false,
-                'consultations' => false,
-                'prescriptions' => false,
-                'medical_reports' => false,
-                'progress' => false,
+                'exercises' => true,
+                'videos' => true,
+                'categories' => true,
+                'billing' => false,
+                'dues' => false,
+                'payments' => false,
                 'expenses' => false,
                 'reports' => false,
             ],
@@ -74,19 +118,51 @@ class RoleMenuPermission extends Model
     /**
      * Check if a specific menu item is allowed for a given role
      */
-    public static function canAccess(string $role, string $menuKey): bool
+    public static function canAccess(string $role, string $menuKey, ?int $doctorId = null): bool
     {
         if ($role === 'super_admin') {
             return true;
         }
 
-        $record = self::where('role', $role)->where('menu_key', $menuKey)->first();
+        // Normalize 'staff' role to 'receptionist'
+        $normalizedRole = ($role === 'staff') ? 'receptionist' : $role;
 
-        if ($record !== null) {
-            return (bool) $record->is_visible;
+        // Staff is NEVER allowed to access payment/billing/financial menus
+        if ($normalizedRole === 'receptionist' && in_array($menuKey, self::PAYMENT_MENUS, true)) {
+            return false;
+        }
+
+        // Doctor always has access to Payment Management and Staff Management
+        if ($normalizedRole === 'doctor' && in_array($menuKey, ['payments', 'billing', 'dues', 'staff_manage'], true)) {
+            return true;
+        }
+
+        try {
+            // If checking for staff, first check doctor-specific staff permission override
+            if ($normalizedRole === 'receptionist') {
+                if ($doctorId === null && auth()->check()) {
+                    $doc = Doctor::resolveForCurrentUser($role);
+                    $doctorId = $doc ? $doc->id : null;
+                }
+                if ($doctorId) {
+                    $docRoleKey = 'receptionist_doc_' . $doctorId;
+                    $docRecord = self::where('role', $docRoleKey)->where('menu_key', $menuKey)->first();
+                    if ($docRecord !== null) {
+                        return (bool) $docRecord->is_visible;
+                    }
+                }
+            }
+
+            $record = self::where('role', $normalizedRole)->where('menu_key', $menuKey)->first();
+
+            if ($record !== null) {
+                return (bool) $record->is_visible;
+            }
+        } catch (\Throwable $e) {
+            // Fallback to defaults if table doesn't exist yet
         }
 
         $defaults = self::defaultPermissions();
-        return $defaults[$role][$menuKey] ?? false;
+        return $defaults[$normalizedRole][$menuKey] ?? false;
     }
 }

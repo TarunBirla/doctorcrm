@@ -39,13 +39,16 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+@php
+    $isStaffIntake = \App\Models\User::isStaffRole($currentRole ?? session('current_role', auth()->user()->role ?? 'super_admin'));
+@endphp
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Select Practice Clinic <span class="text-rose-500">*</span></label>
                         <select name="clinic_id" id="clinic_select" required onchange="updateClinicFee()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white font-semibold outline-none focus:border-blue-500 transition text-slate-800">
                             <option value="">Select Clinic</option>
                             @foreach($clinics as $cl)
                                 <option value="{{ $cl->id }}" data-fee="{{ $cl->consultation_fee }}" {{ old('clinic_id') == $cl->id ? 'selected' : '' }}>
-                                    {{ $cl->name }} ({{ $cl->city ?? 'Clinic' }}) - Fee: ₹{{ number_format($cl->consultation_fee, 0) }}/day
+                                    {{ $cl->name }} ({{ $cl->city ?? 'Clinic' }}){{ !$isStaffIntake ? ' - Fee: ₹' . number_format($cl->consultation_fee, 0) . '/day' : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -202,16 +205,10 @@
                             Book First Treatment Session / Package Immediately (Optional)
                         </label>
                     </div>
-                    <span class="text-[11px] text-blue-700 font-bold bg-blue-100 px-2.5 py-0.5 rounded-full">
-                        Days-Based Auto Billing
-                    </span>
                 </div>
-                <p class="text-xs text-slate-500 mb-4 pl-7">
-                    Select the therapy start date and treatment days package. The total fee will be automatically calculated (Daily Fee × Days) without requiring hourly time slots.
-                </p>
 
                 <div id="appointmentSection" class="{{ old('book_appointment') ? '' : 'hidden' }} pl-7 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 {{ $isStaffIntake ? 'md:grid-cols-2' : 'md:grid-cols-3' }} gap-4">
                         <!-- Start Date -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Start Date *</label>
@@ -236,6 +233,7 @@
                             </div>
                         </div>
 
+                        @if(!$isStaffIntake)
                         <!-- Per-day Fee -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Doctor / Clinic Fee Per Day (₹)</label>
@@ -244,8 +242,12 @@
                                    oninput="calculateTotalFee()"
                                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white font-bold outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 text-sm">
                         </div>
+                        @else
+                        <input type="hidden" name="consultation_fee" id="intake_consultation_fee" value="{{ old('consultation_fee', $clinics->first()?->consultation_fee ?? 800) }}">
+                        @endif
                     </div>
 
+                    @if(!$isStaffIntake)
                     <!-- LIVE AUTO FEE CALCULATION BANNER -->
                     <div class="p-4 bg-white rounded-xl border border-blue-200 flex items-center justify-between shadow-xs">
                         <div class="flex items-center gap-3">
@@ -266,6 +268,7 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
 

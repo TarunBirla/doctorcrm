@@ -19,17 +19,22 @@ class QueueController extends Controller
         $categoryId = $request->get('category_id');
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $doctorId = $loggedInDoctor ? $loggedInDoctor->id : -1;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $doctorId = $loggedInDoctor->id;
         }
 
         $query = Appointment::with(['patient.medicalHistory', 'doctor', 'invoice', 'clinic', 'category'])
             ->where('appointment_date', $today);
 
         if ($doctorId && $doctorId != -1) {
-            $query->where('doctor_id', $doctorId);
+            $clinicIds = $loggedInDoctor ? $loggedInDoctor->allClinicIds() : [];
+            $query->where(function ($q) use ($doctorId, $clinicIds) {
+                $q->where('doctor_id', $doctorId);
+                if (!empty($clinicIds)) {
+                    $q->orWhereIn('clinic_id', $clinicIds);
+                }
+            });
         } elseif ($doctorId == -1) {
             $query->whereRaw('1 = 0');
         }

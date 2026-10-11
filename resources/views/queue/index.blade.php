@@ -144,6 +144,9 @@
             </button> -->
         </div>
 
+@php
+    $isStaff = \App\Models\User::isStaffRole(session('current_role', auth()->user()->role ?? 'super_admin'));
+@endphp
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
@@ -154,7 +157,9 @@
                         <th class="p-3.5">Type</th>
                         <th class="p-3.5">Waiting Time</th>
                         <th class="p-3.5">Status</th>
+                        @if(!$isStaff)
                         <th class="p-3.5">Payment</th>
+                        @endif
                         <th class="p-3.5 pr-5 text-right">Action</th>
                     </tr>
                 </thead>
@@ -212,6 +217,7 @@
                                     </span>
                                 @endif
                             </td>
+                            @if(!$isStaff)
                             <td class="p-3.5">
                                 @if($apt->payment_status === 'paid')
                                     <span class="font-bold text-emerald-700">₹{{ number_format($apt->consultation_fee, 0) }} (Paid)</span>
@@ -221,6 +227,7 @@
                                     <span class="font-bold text-rose-600">Unpaid</span>
                                 @endif
                             </td>
+                            @endif
                             <td class="p-3.5 pr-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <!-- Call In button -->

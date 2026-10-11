@@ -5,6 +5,10 @@
 @section('page_title', 'Clinic Operations Dashboard')
 
 @section('content')
+@php
+    $currRole = session('current_role', auth()->user()->role ?? 'super_admin');
+    $isStaff = \App\Models\User::isStaffRole($currRole);
+@endphp
 <div class="space-y-6">
 
     <!-- DATE FILTER BAR (MATCHING THEME) -->
@@ -42,7 +46,7 @@
         </form>
     </div>
 
-    <!-- 4 MAIN METRIC CARDS (EXACT SCREENSHOT STYLE) -->
+    <!-- 4 MAIN METRIC CARDS -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <!-- CARD 1: APPOINTMENTS -->
@@ -82,47 +86,80 @@
             </div>
         </div>
 
-        <!-- CARD 3: TOTAL REVENUE / COLLECTION -->
-        <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Collection</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <i data-lucide="wallet" class="w-5 h-5"></i>
+        @if(!$isStaff)
+            <!-- CARD 3: TOTAL REVENUE / COLLECTION (DOCTOR & SUPER ADMIN ONLY) -->
+            <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Collection</span>
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="wallet" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-3xl font-extrabold text-slate-900 tracking-tight">₹{{ number_format($totalCollected, 2) }}</div>
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Billed: <strong class="text-slate-700">₹{{ number_format($totalBilled, 0) }}</strong></span>
+                        <a href="{{ route('payments.index') }}" class="text-blue-600 font-semibold hover:underline">Payment Manage →</a>
+                    </div>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-3xl font-extrabold text-slate-900 tracking-tight">₹{{ number_format($totalCollected, 2) }}</div>
-                <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>Billed: <strong class="text-slate-700">₹{{ number_format($totalBilled, 0) }}</strong></span>
-                    <span>Expenses: <strong class="text-rose-600">₹{{ number_format($totalExpenses, 0) }}</strong></span>
-                    <a href="{{ route('reports.financial') }}" class="text-blue-600 font-semibold hover:underline">Report →</a>
-                </div>
-            </div>
-        </div>
 
-        <!-- CARD 4: FINANCIAL BALANCES / DUES -->
-        <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Financial Balances</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <!-- CARD 4: FINANCIAL BALANCES / DUES (DOCTOR & SUPER ADMIN ONLY) -->
+            <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Financial Balances</span>
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-xs text-slate-500">Outstanding Dues (Receivable):</div>
+                    <div class="text-2xl font-extrabold text-rose-600 tracking-tight">₹{{ number_format($totalOutstandingDues, 2) }}</div>
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{{ $patientsWithDuesCount }} Patients with Dues</span>
+                        <a href="{{ route('payments.index', ['payment_status' => 'due']) }}" class="text-blue-700 font-bold hover:underline">Collect Dues →</a>
+                    </div>
                 </div>
             </div>
-            <div class="mt-3">
-                <div class="text-xs text-slate-500">Outstanding Dues (Receivable):</div>
-                <div class="text-2xl font-extrabold text-rose-600 tracking-tight">₹{{ number_format($totalOutstandingDues, 2) }}</div>
-                <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>{{ $patientsWithDuesCount }} Patients with Dues</span>
-                    <a href="{{ route('due-payments.index') }}" class="text-blue-700 font-bold hover:underline">Collect Dues →</a>
+        @else
+            <!-- CARD 3 FOR STAFF: TOTAL PATIENTS -->
+            <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Registered Patients</span>
+                    <div class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $totalPatientsCount }}</div>
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>New in Period: <strong class="text-teal-700">{{ $newPatientsInRange }}</strong></span>
+                        <a href="{{ route('patients.index') }}" class="text-blue-600 font-semibold hover:underline">Patients →</a>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        
+            <!-- CARD 4 FOR STAFF: UPCOMING FOLLOW-UPS -->
+            <div class="card-custom p-5 relative overflow-hidden transition hover:shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Scheduled Follow-Ups</span>
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $patientsNeedingFollowUp }}</div>
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Revisits Today: <strong class="text-indigo-700">{{ $revisitAppointments }}</strong></span>
+                        <a href="{{ route('appointments.index') }}" class="text-blue-700 font-bold hover:underline">All Appointments →</a>
+                    </div>
+                </div>
+            </div>
+        @endif
 
     </div>
 
-    <!-- QUICK ACTIONS ROW (MATCHING MEDIA 1 SCREENSHOT) -->
+    <!-- QUICK ACTIONS ROW -->
     <div class="card-custom p-4 bg-white flex flex-wrap items-center gap-3">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">QUICK ACTIONS:</span>
         
@@ -132,29 +169,31 @@
             <span>Register Patient</span>
         </a>
 
-        <button onclick="openModal('quickAppointmentModal')" 
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/70 text-indigo-800 text-xs font-semibold transition">
-            <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-indigo-600"></i>
-            <span>New Appointment</span>
-        </button>
-
-        <!-- <a href="{{ route('prescriptions.create') }}" 
-           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold transition">
-            <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-emerald-600"></i>
-            <span>Start Consultation</span>
-        </a> -->
-
-        <a href="{{ route('invoices.create') }}" 
-           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 text-xs font-semibold transition">
-            <i data-lucide="receipt" class="w-3.5 h-3.5 text-amber-600"></i>
-            <span>POS Billing Counter</span>
+        <a href="{{ route('appointments.index') }}" 
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/70 text-indigo-800 text-xs font-semibold transition">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>All Appointments</span>
         </a>
 
-        <a href="{{ route('due-payments.index') }}" 
-           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50/50 hover:bg-rose-100/70 text-rose-800 text-xs font-semibold transition">
-            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-rose-600"></i>
-            <span>Collect Pending Dues</span>
-        </a>
+        @if(!$isStaff)
+            <a href="{{ route('payments.index') }}" 
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold transition">
+                <i data-lucide="indian-rupee" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Payment Manage & Reports</span>
+            </a>
+
+            <a href="{{ route('invoices.create') }}" 
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 text-xs font-semibold transition">
+                <i data-lucide="receipt" class="w-3.5 h-3.5 text-amber-600"></i>
+                <span>POS Billing Counter</span>
+            </a>
+
+            <a href="{{ route('doctor.staff.index') }}" 
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-teal-200 bg-teal-50/50 hover:bg-teal-100/70 text-teal-800 text-xs font-semibold transition">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-teal-600"></i>
+                <span>Manage Staff & Roles</span>
+            </a>
+        @endif
 
         <a href="{{ route('queue.index') }}" 
            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-200 bg-purple-50/50 hover:bg-purple-100/70 text-purple-800 text-xs font-semibold transition">
@@ -223,7 +262,9 @@
                                 <th class="p-3">Patient</th>
                                 <th class="p-3">Time & Type</th>
                                 <th class="p-3">Status</th>
-                                <th class="p-3">Payment</th>
+                                @if(!$isStaff)
+                                    <th class="p-3">Payment</th>
+                                @endif
                                 <th class="p-3 pr-5 text-right">Action</th>
                             </tr>
                         </thead>
@@ -266,15 +307,17 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="p-3">
-                                        @if($apt->payment_status === 'paid')
-                                            <span class="text-[11px] font-bold text-emerald-700">₹{{ number_format($apt->consultation_fee, 0) }} (Paid)</span>
-                                        @elseif($apt->payment_status === 'partially_paid')
-                                            <span class="text-[11px] font-bold text-amber-700">Partial Due</span>
-                                        @else
-                                            <span class="text-[11px] font-bold text-rose-600">Unpaid</span>
-                                        @endif
-                                    </td>
+                                    @if(!$isStaff)
+                                        <td class="p-3">
+                                            @if($apt->payment_status === 'paid')
+                                                <span class="text-[11px] font-bold text-emerald-700">₹{{ number_format($apt->consultation_fee, 0) }} (Paid)</span>
+                                            @elseif($apt->payment_status === 'partially_paid')
+                                                <span class="text-[11px] font-bold text-amber-700">Partial Due</span>
+                                            @else
+                                                <span class="text-[11px] font-bold text-rose-600">Unpaid</span>
+                                            @endif
+                                        </td>
+                                    @endif
                                     <td class="p-3 pr-5 text-right">
                                         <div class="flex items-center justify-end gap-1.5">
                                             @if($apt->status === 'waiting' || $apt->status === 'confirmed' || $apt->status === 'scheduled')
@@ -293,7 +336,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="p-8 text-center text-slate-400">
+                                    <td colspan="{{ $isStaff ? 5 : 6 }}" class="p-8 text-center text-slate-400">
                                         <i data-lucide="calendar" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
                                         No appointments scheduled in the queue today.
                                     </td>
@@ -304,12 +347,12 @@
                 </div>
             </div>
 
-            <!-- APPOINTMENTS & REVENUE 7-DAY TREND CHART -->
+            <!-- APPOINTMENTS 7-DAY TREND CHART -->
             <div class="card-custom p-5 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">7-Day Operational Activity Trend</h3>
-                        <p class="text-xs text-slate-400">Patient footfall and daily billing collection</p>
+                        <p class="text-xs text-slate-400">{{ $isStaff ? 'Daily patient appointments footfall' : 'Patient footfall and daily billing collection' }}</p>
                     </div>
                 </div>
                 <div class="h-64">
@@ -319,100 +362,119 @@
 
         </div>
 
-        <!-- COLUMN 3: FINANCIAL BREAKDOWN & QUICK METRICS (1 COL) -->
+        <!-- COLUMN 3: FINANCIAL BREAKDOWN (DOCTOR/ADMIN) OR RECENT CONSULTATIONS (STAFF) -->
         <div class="space-y-6">
 
-            <!-- PAYMENT METHODS BREAKDOWN (MATCHING THEME) -->
-            <div class="card-custom p-5 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-bold text-slate-900">Payment Breakdown</h3>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">This Period</span>
-                </div>
-
-                <div class="space-y-3.5 text-xs">
-                    <div>
-                        <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
-                            <span class="flex items-center gap-1.5"><i data-lucide="banknote" class="w-3.5 h-3.5 text-emerald-600"></i> Cash</span>
-                            <span>₹{{ number_format($cashCollection, 2) }}</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($cashCollection / $totalCollected) * 100) : 0 }}%"></div>
-                        </div>
+            @if(!$isStaff)
+                <!-- PAYMENT METHODS BREAKDOWN -->
+                <div class="card-custom p-5 bg-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-900">Payment Breakdown</h3>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">This Period</span>
                     </div>
 
-                    <div>
-                        <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
-                            <span class="flex items-center gap-1.5"><i data-lucide="smartphone" class="w-3.5 h-3.5 text-blue-600"></i> UPI / QR Code</span>
-                            <span>₹{{ number_format($upiCollection, 2) }}</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($upiCollection / $totalCollected) * 100) : 0 }}%"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
-                            <span class="flex items-center gap-1.5"><i data-lucide="credit-card" class="w-3.5 h-3.5 text-indigo-600"></i> Credit / Debit Card</span>
-                            <span>₹{{ number_format($cardCollection, 2) }}</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-indigo-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($cardCollection / $totalCollected) * 100) : 0 }}%"></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
-                            <span class="flex items-center gap-1.5"><i data-lucide="building" class="w-3.5 h-3.5 text-purple-600"></i> Bank Transfer</span>
-                            <span>₹{{ number_format($bankCollection, 2) }}</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-purple-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($bankCollection / $totalCollected) * 100) : 0 }}%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span class="font-bold text-slate-700">Net Clinic Profit:</span>
-                    <span class="font-extrabold {{ $netIncome >= 0 ? 'text-emerald-700' : 'text-rose-600' }} text-sm">
-                        ₹{{ number_format($netIncome, 2) }}
-                    </span>
-                </div>
-            </div>
-
-            <!-- RECENT PAYMENTS LOG -->
-            <div class="card-custom p-5 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-bold text-slate-900">Recent Collections</h3>
-                    <a href="{{ route('payments.index') }}" class="text-xs text-blue-600 font-semibold hover:underline">View All</a>
-                </div>
-
-                <div class="space-y-3 text-xs">
-                    @forelse($recentTransactions as $txn)
-                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                            <div>
-                                <span class="font-bold text-slate-800 block">{{ $txn->patient ? $txn->patient->full_name : 'Patient' }}</span>
-                                <span class="text-[11px] text-slate-400">{{ $txn->receipt_no }} • {{ $txn->payment_method }}</span>
+                    <div class="space-y-3.5 text-xs">
+                        <div>
+                            <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
+                                <span class="flex items-center gap-1.5"><i data-lucide="banknote" class="w-3.5 h-3.5 text-emerald-600"></i> Cash</span>
+                                <span>₹{{ number_format($cashCollection, 2) }}</span>
                             </div>
-                            <div class="text-right">
-                                <span class="font-bold text-emerald-700 block">+₹{{ number_format($txn->amount, 2) }}</span>
-                                <span class="text-[10px] text-slate-400">{{ $txn->payment_date->format('d M') }}</span>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($cashCollection / $totalCollected) * 100) : 0 }}%"></div>
                             </div>
                         </div>
-                    @empty
-                        <p class="text-xs text-slate-400 text-center py-4">No recent payments recorded.</p>
-                    @endforelse
+
+                        <div>
+                            <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
+                                <span class="flex items-center gap-1.5"><i data-lucide="smartphone" class="w-3.5 h-3.5 text-blue-600"></i> UPI / QR Code</span>
+                                <span>₹{{ number_format($upiCollection, 2) }}</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($upiCollection / $totalCollected) * 100) : 0 }}%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
+                                <span class="flex items-center gap-1.5"><i data-lucide="credit-card" class="w-3.5 h-3.5 text-indigo-600"></i> Credit / Debit Card</span>
+                                <span>₹{{ number_format($cardCollection, 2) }}</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-indigo-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($cardCollection / $totalCollected) * 100) : 0 }}%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between font-semibold text-slate-700 mb-1">
+                                <span class="flex items-center gap-1.5"><i data-lucide="building" class="w-3.5 h-3.5 text-purple-600"></i> Bank Transfer</span>
+                                <span>₹{{ number_format($bankCollection, 2) }}</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-purple-500 h-1.5 rounded-full" style="width: {{ $totalCollected > 0 ? min(100, ($bankCollection / $totalCollected) * 100) : 0 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-700">Net Clinic Profit:</span>
+                        <span class="font-extrabold {{ $netIncome >= 0 ? 'text-emerald-700' : 'text-rose-600' }} text-sm">
+                            ₹{{ number_format($netIncome, 2) }}
+                        </span>
+                    </div>
                 </div>
-            </div>
+
+                <!-- RECENT PAYMENTS LOG -->
+                <div class="card-custom p-5 bg-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-900">Recent Collections</h3>
+                        <a href="{{ route('payments.index') }}" class="text-xs text-blue-600 font-semibold hover:underline">View All</a>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        @forelse($recentTransactions as $txn)
+                            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                                <div>
+                                    <span class="font-bold text-slate-800 block">{{ $txn->patient ? $txn->patient->full_name : 'Patient' }}</span>
+                                    <span class="text-[11px] text-slate-400">{{ $txn->receipt_no }} • {{ $txn->payment_method }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-bold text-emerald-700 block">+₹{{ number_format($txn->amount, 2) }}</span>
+                                    <span class="text-[10px] text-slate-400">{{ $txn->payment_date->format('d M') }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400 text-center py-4">No recent payments recorded.</p>
+                        @endforelse
+                    </div>
+                </div>
+            @else
+                <!-- RECENT CONSULTATIONS FOR STAFF -->
+                <div class="card-custom p-5 bg-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-900">Recent Consultations</h3>
+                        <a href="{{ route('consultations.index') }}" class="text-xs text-blue-600 font-semibold hover:underline">View All</a>
+                    </div>
+                    <div class="space-y-3 text-xs">
+                        @forelse($recentVisits as $visit)
+                            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                                <div>
+                                    <span class="font-bold text-slate-800 block">{{ $visit->patient ? $visit->patient->full_name : 'Patient' }}</span>
+                                    <span class="text-[11px] text-slate-400">{{ $visit->visit_no }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[11px] font-semibold text-blue-700">{{ $visit->visit_date ? $visit->visit_date->format('d M Y') : '' }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400 text-center py-4">No recent consultations recorded.</p>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
 
             <!-- CLINIC DOCTOR PROFILE MINI-CARD -->
             @php
-                $currentDoctorProfile = null;
-                if (auth()->check() && (auth()->user()->role === 'doctor' || session('current_role') === 'doctor')) {
-                    $currentDoctorProfile = \App\Models\Doctor::where('user_id', auth()->id())->first();
-                }
-                if (!$currentDoctorProfile) {
-                    $currentDoctorProfile = $doctors->first();
-                }
+                $currentDoctorProfile = \App\Models\Doctor::resolveForCurrentUser($currRole) ?? $doctors->first();
             @endphp
             @if($currentDoctorProfile)
                 @php 
@@ -434,10 +496,12 @@
                             <span class="text-[10px] text-slate-400 font-mono">Reg: {{ $doc->registration_no }}</span>
                         </div>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
-                        <span>Consultation Fee:</span>
-                        <span class="font-bold text-white text-sm">₹{{ number_format($doc->consultation_fee, 0) }}</span>
-                    </div>
+                    @if(!$isStaff)
+                        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+                            <span>Consultation Fee:</span>
+                            <span class="font-bold text-white text-sm">₹{{ number_format($doc->consultation_fee, 0) }}</span>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -467,8 +531,9 @@
                         tension: 0.3,
                         fill: true,
                         yAxisID: 'y'
-                    },
-                    {
+                    }
+                    @if(!$isStaff)
+                    ,{
                         label: 'Collections (₹)',
                         data: {!! json_encode($trendCollections) !!},
                         borderColor: '#10b981',
@@ -478,6 +543,7 @@
                         tension: 0.3,
                         yAxisID: 'y1'
                     }
+                    @endif
                 ]
             },
             options: {
@@ -493,14 +559,16 @@
                         display: true,
                         position: 'left',
                         title: { display: true, text: 'Appointments Count', font: { size: 10 } }
-                    },
-                    y1: {
+                    }
+                    @if(!$isStaff)
+                    ,y1: {
                         type: 'linear',
                         display: true,
                         position: 'right',
                         grid: { drawOnChartArea: false },
                         title: { display: true, text: 'Amount (INR)', font: { size: 10 } }
                     }
+                    @endif
                 },
                 plugins: {
                     legend: {

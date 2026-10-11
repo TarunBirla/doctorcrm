@@ -35,13 +35,29 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
-            
-            // Set active role based on user record
-            session(['current_role' => $user->role ?? 'doctor']);
+            $effectiveStatus = $user->status ?? ($user->is_active ? 'active' : 'inactive');
+
+            if (!$user->is_active || in_array($effectiveStatus, ['inactive', 'suspended'], true)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                $msg = $effectiveStatus === 'suspended'
+                    ? 'Your account has been suspended by the Doctor / Administrator. Please contact your clinic.'
+                    : 'Your account is currently inactive. Please ask your Doctor to activate your account.';
+
+                return back()->withInput($request->only('email', 'remember'))->withErrors([
+                    'email' => $msg,
+                ]);
+            }
+
+            // Set active role based on user record (normalize 'staff' to 'receptionist')
+            $activeRole = ($user->role === 'staff') ? 'receptionist' : ($user->role ?? 'doctor');
+            session(['current_role' => $activeRole]);
 
             $request->session()->regenerate();
 
-            AuditLog::record('User Login', 'User', (string) $user->id, "User {$user->name} ({$user->email}) logged in successfully.");
+            AuditLog::record('User Login', 'User', (string) $user->id, "User {$user->name} ({$user->email}) logged in successfully as {$activeRole}.");
 
             return redirect()->intended(route('dashboard'))
                 ->with('success', "Welcome back, {$user->name}!");

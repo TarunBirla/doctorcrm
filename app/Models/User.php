@@ -16,9 +16,12 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'doctor_id',
         'phone',
+        'position',
         'avatar',
         'is_active',
+        'status',
     ];
 
     protected $hidden = [
@@ -44,11 +47,34 @@ class User extends Authenticatable
 
     public function isReceptionist(): bool
     {
-        return $this->role === 'receptionist';
+        return in_array($this->role, ['receptionist', 'staff']);
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['receptionist', 'staff']);
+    }
+
+    public static function isStaffRole(?string $role): bool
+    {
+        return in_array($role, ['receptionist', 'staff']);
+    }
+
+    public function getEffectiveStatusAttribute(): string
+    {
+        if (!empty($this->status)) {
+            return $this->status;
+        }
+        return $this->is_active ? 'active' : 'inactive';
     }
 
     public function doctor()
     {
         return $this->hasOne(Doctor::class);
+    }
+
+    public function parentDoctor()
+    {
+        return $this->belongsTo(Doctor::class, 'doctor_id');
     }
 }

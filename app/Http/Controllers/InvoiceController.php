@@ -15,21 +15,31 @@ class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            return redirect()->route('dashboard')->with('error', 'Access denied. Billing and payment records are restricted to Doctors only.');
+        }
+
         $status = $request->get('status');
         $search = $request->get('search');
         $date = $request->get('date');
 
         $query = Invoice::with(['patient', 'doctor', 'transactions']);
 
-        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $query->where('doctor_id', $loggedInDoctor->id);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if ($currentRole === 'doctor' && $loggedInDoctor) {
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $query->where(function ($q) use ($docId, $clinicIds) {
+                $q->where('doctor_id', $docId)
+                  ->orWhereHas('patient', fn($pq) => $pq->where('doctor_id', $docId))
+                  ->orWhereHas('appointment', function ($aq) use ($docId, $clinicIds) {
+                      $aq->where('doctor_id', $docId);
+                      if (!empty($clinicIds)) {
+                          $aq->orWhereIn('clinic_id', $clinicIds);
+                      }
+                  });
+            });
         }
 
         if (!empty($status)) {
@@ -37,11 +47,13 @@ class InvoiceController extends Controller
         }
 
         if (!empty($search)) {
-            $query->whereHas('patient', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('patient_id', 'like', "%{$search}%");
-            })->orWhere('invoice_no', 'like', "%{$search}%");
+            $query->where(function ($outer) use ($search) {
+                $outer->whereHas('patient', function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('patient_id', 'like', "%{$search}%");
+                })->orWhere('invoice_no', 'like', "%{$search}%");
+            });
         }
 
         if (!empty($date)) {
@@ -51,8 +63,19 @@ class InvoiceController extends Controller
         $invoices = $query->orderBy('invoice_date', 'desc')->paginate(15)->withQueryString();
 
         $statsQuery = Invoice::query();
-        if ($loggedInDoctor) {
-            $statsQuery->where('doctor_id', $loggedInDoctor->id);
+        if ($currentRole === 'doctor' && $loggedInDoctor) {
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $statsQuery->where(function ($q) use ($docId, $clinicIds) {
+                $q->where('doctor_id', $docId)
+                  ->orWhereHas('patient', fn($pq) => $pq->where('doctor_id', $docId))
+                  ->orWhereHas('appointment', function ($aq) use ($docId, $clinicIds) {
+                      $aq->where('doctor_id', $docId);
+                      if (!empty($clinicIds)) {
+                          $aq->orWhereIn('clinic_id', $clinicIds);
+                      }
+                  });
+            });
         }
 
         $totalBilled = (clone $statsQuery)->sum('total_amount');
@@ -61,7 +84,7 @@ class InvoiceController extends Controller
         $unpaidCount = (clone $statsQuery)->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->count();
 
         $patients = $loggedInDoctor 
-            ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get()
+            ? Patient::where('doctor_id', $loggedInDoctor->id)->orWhereNull('doctor_id')->orderBy('first_name')->get()
             : Patient::orderBy('first_name')->get();
         $doctors = $loggedInDoctor ? collect([$loggedInDoctor]) : Doctor::all();
 
@@ -74,6 +97,11 @@ class InvoiceController extends Controller
 
     public function show($id)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            return redirect()->route('dashboard')->with('error', 'Access denied.');
+        }
+
         $invoice = Invoice::with(['patient', 'doctor', 'items', 'transactions', 'appointment'])->findOrFail($id);
         $clinic = Clinic::first() ?? new Clinic();
 
@@ -82,6 +110,11 @@ class InvoiceController extends Controller
 
     public function print($id)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            abort(403);
+        }
+
         $invoice = Invoice::with(['patient', 'doctor', 'items', 'transactions', 'appointment'])->findOrFail($id);
         $clinic = Clinic::first() ?? new Clinic();
 
@@ -90,6 +123,11 @@ class InvoiceController extends Controller
 
     public function create(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            return redirect()->route('dashboard')->with('error', 'Access denied.');
+        }
+
         $patientId = $request->get('patient_id');
         $patients = Patient::orderBy('first_name')->get();
         $doctors = Doctor::all();
@@ -185,8 +223,9 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
             'payment_method' => 'required|in:Cash,UPI,Card,Bank Transfer,Online Payment,Other',
-            'payment_date' => 'required|date',
+            'payment_date' => 'nullable|date',
             'transaction_reference' => 'nullable|string',
+            'reference_no' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
@@ -203,9 +242,9 @@ class InvoiceController extends Controller
             'transaction_no' => $txnNo,
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
-            'payment_date' => $validated['payment_date'],
-            'transaction_reference' => $validated['transaction_reference'] ?? null,
-            'collected_by' => auth()->user()->name ?? 'Receptionist',
+            'payment_date' => $validated['payment_date'] ?? now()->toDateString(),
+            'transaction_reference' => $validated['transaction_reference'] ?? $validated['reference_no'] ?? null,
+            'collected_by' => auth()->user()->name ?? 'Doctor',
             'receipt_no' => $recNo,
             'notes' => $validated['notes'] ?? 'Due collection',
         ]);
@@ -220,24 +259,47 @@ class InvoiceController extends Controller
 
     public function duePayments(Request $request)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            return redirect()->route('dashboard')->with('error', 'Access denied.');
+        }
+
         $search = $request->get('search');
 
         $query = Invoice::with(['patient', 'transactions', 'doctor'])
             ->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])
             ->where('due_amount', '>', 0);
 
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if ($currentRole === 'doctor' && $loggedInDoctor) {
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $query->where(function ($q) use ($docId, $clinicIds) {
+                $q->where('doctor_id', $docId)
+                  ->orWhereHas('patient', fn($pq) => $pq->where('doctor_id', $docId))
+                  ->orWhereHas('appointment', function ($aq) use ($docId, $clinicIds) {
+                      $aq->where('doctor_id', $docId);
+                      if (!empty($clinicIds)) {
+                          $aq->orWhereIn('clinic_id', $clinicIds);
+                      }
+                  });
+            });
+        }
+
         if (!empty($search)) {
-            $query->whereHas('patient', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('patient_id', 'like', "%{$search}%")
-                  ->orWhere('mobile', 'like', "%{$search}%");
-            })->orWhere('invoice_no', 'like', "%{$search}%");
+            $query->where(function ($outer) use ($search) {
+                $outer->whereHas('patient', function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('patient_id', 'like', "%{$search}%")
+                      ->orWhere('mobile', 'like', "%{$search}%");
+                })->orWhere('invoice_no', 'like', "%{$search}%");
+            });
         }
 
         $dueInvoices = $query->orderBy('invoice_date', 'asc')->paginate(15)->withQueryString();
 
-        $totalOutstandingDue = Invoice::whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->sum('due_amount');
+        $totalOutstandingDue = (clone $query)->sum('due_amount');
         $patientsWithDuesCount = Patient::whereHas('invoices', function ($q) {
             $q->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])->where('due_amount', '>', 0);
         })->count();
@@ -247,6 +309,11 @@ class InvoiceController extends Controller
 
     public function printReceipt($transactionId)
     {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            abort(403);
+        }
+
         $transaction = PaymentTransaction::with(['invoice.items', 'invoice.doctor', 'patient'])->findOrFail($transactionId);
         $clinic = Clinic::first() ?? new Clinic();
 

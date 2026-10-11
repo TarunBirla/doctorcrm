@@ -38,6 +38,9 @@
     <form action="{{ route('appointments.store') }}" method="POST" id="appointmentBookingForm" class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-7">
         @csrf
 
+@php
+    $isStaffPage = \App\Models\User::isStaffRole($currentRole ?? session('current_role', auth()->user()->role ?? 'super_admin'));
+@endphp
         <!-- STEP 1: CLINIC SELECTION -->
         <div class="space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -56,13 +59,13 @@
                         <option value="">-- Choose Clinic --</option>
                         @foreach($clinics as $c)
                             <option value="{{ $c->id }}" data-fee="{{ $c->consultation_fee }}" {{ (old('clinic_id', $preselectedClinicId ?? '') == $c->id) ? 'selected' : '' }}>
-                                {{ $c->name }} ({{ $c->city ?? 'Clinic' }}) - Fee: ₹{{ number_format($c->consultation_fee, 0) }}/day
+                                {{ $c->name }} ({{ $c->city ?? 'Clinic' }}){{ !$isStaffPage ? ' - Fee: ₹' . number_format($c->consultation_fee, 0) . '/day' : '' }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
-                @if($currentRole === 'super_admin')
+                @if($currentRole === 'super_admin' && !$loggedInDoctor)
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Practicing Doctor <span class="text-rose-500">*</span></label>
                     <select name="doctor_id" id="pageDoctorSelect" required 
@@ -165,14 +168,11 @@
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
                     <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">4</span>
-                    Schedule, Treatment Days & Auto Fee Calculation
+                    Schedule & Treatment Days
                 </h3>
-                <span class="text-xs text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    Automated Math: Daily Fee × Days
-                </span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 {{ $isStaffPage ? 'sm:grid-cols-2' : 'sm:grid-cols-3' }} gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Start Date <span class="text-rose-500">*</span></label>
                     <input type="date" name="appointment_date" id="pageDateSelect" 
@@ -196,6 +196,7 @@
                     </div>
                 </div>
 
+                @if(!$isStaffPage)
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Doctor Fee Per Day (₹) <span class="text-rose-500">*</span></label>
                     <input type="number" step="0.01" name="daily_fee" id="pageDailyFee" 
@@ -204,8 +205,12 @@
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500 bg-white">
                     <p class="text-[10px] text-slate-400 font-semibold mt-1.5">Auto-loaded from selected clinic/doctor fee</p>
                 </div>
+                @else
+                <input type="hidden" name="daily_fee" id="pageDailyFee" value="{{ old('daily_fee', $clinics->first()?->consultation_fee ?? '800.00') }}">
+                @endif
             </div>
 
+            @if(!$isStaffPage)
             <!-- LIVE TOTAL AUTO CALCULATION BANNER -->
             <div class="p-5 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-emerald-50/60 rounded-2xl border border-blue-200/90 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
                 <div class="flex items-center gap-3.5">
@@ -227,6 +232,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- STEP 5: CLINICAL NOTES & TYPE -->

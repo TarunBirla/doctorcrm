@@ -1,17 +1,23 @@
 @php
     $modalRole = session('current_role', auth()->user()->role ?? 'super_admin');
-    $modalLoggedInDoctor = null;
-    if ($modalRole === 'doctor' && auth()->check()) {
-        $modalLoggedInDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
-        $modalPatients = $modalLoggedInDoctor ? \App\Models\Patient::where('doctor_id', $modalLoggedInDoctor->id)->with(['appointments' => fn($q) => $q->latest()->limit(1)])->orderBy('first_name')->get() : collect();
-        $modalClinics = $modalLoggedInDoctor ? $modalLoggedInDoctor->clinics()->where('is_active', true)->get() : collect();
-        if ($modalClinics->isEmpty() && $modalLoggedInDoctor) {
-            $modalClinics = \App\Models\Clinic::where('doctor_id', $modalLoggedInDoctor->id)->where('is_active', true)->get();
-        }
+    $isStaffModal = \App\Models\User::isStaffRole($modalRole);
+    $modalLoggedInDoctor = \App\Models\Doctor::resolveForCurrentUser($modalRole);
+    if ($modalLoggedInDoctor) {
+        $modalClinicIds = $modalLoggedInDoctor->allClinicIds();
+        $modalPatients = \App\Models\Patient::where(function ($q) use ($modalLoggedInDoctor, $modalClinicIds) {
+            $q->where('doctor_id', $modalLoggedInDoctor->id);
+            if (!empty($modalClinicIds)) {
+                $q->orWhereIn('clinic_id', $modalClinicIds);
+            }
+        })->with(['appointments' => fn($q) => $q->latest()->limit(1)])->orderBy('first_name')->get();
+
+        $modalClinics = !empty($modalClinicIds)
+            ? \App\Models\Clinic::whereIn('id', $modalClinicIds)->where('is_active', true)->get()
+            : \App\Models\Clinic::where('is_active', true)->get();
         if ($modalClinics->isEmpty()) {
             $modalClinics = \App\Models\Clinic::where('is_active', true)->get();
         }
-        $modalDoctors = collect($modalLoggedInDoctor ? [$modalLoggedInDoctor] : []);
+        $modalDoctors = collect([$modalLoggedInDoctor]);
     } else {
         $modalPatients = \App\Models\Patient::with(['appointments' => fn($q) => $q->latest()->limit(1)])->orderBy('first_name')->get();
         $modalDoctors = \App\Models\Doctor::active()->get();
@@ -27,7 +33,7 @@
         <div class="p-4 border-b border-slate-100 flex items-center gap-3">
             <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
             <input type="text" id="globalSearchInput" oninput="handleLiveSearch(this.value)" 
-                   placeholder="Search patient by name, ID (PAT-000001), phone, appointment, or invoice..." 
+                   placeholder="Search patient by name, ID (PAT-000001), phone, or appointment..." 
                    class="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 bg-transparent font-semibold">
             <button onclick="closeGlobalSearch()" class="text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-100 font-bold">
                 ESC
@@ -49,7 +55,7 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-slate-900 text-sm">Book Physiotherapy Appointment</h3>
-                    <p class="text-[11px] text-slate-500 font-semibold">Clinic & Category-based Session Booking with Auto Fee (Daily Fee × Days)</p>
+                    <p class="text-[11px] text-slate-500 font-semibold">Clinic & Category-based Session Booking</p>
                 </div>
             </div>
             <button onclick="closeModal('quickAppointmentModal')" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
@@ -118,7 +124,7 @@
                 </div>
 
                 <!-- Doctor -->
-                @if($modalRole === 'super_admin')
+                @if($modalRole === 'super_admin' && !$modalLoggedInDoctor)
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Doctor *</label>
                     <select name="doctor_id" id="modalDoctorSelect" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
@@ -151,6 +157,7 @@
                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-blue-700">
                 </div>
 
+                @if(!$isStaffModal)
                 <!-- Daily Fee -->
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Daily / Per-Session Fee (₹) *</label>
@@ -169,6 +176,9 @@
                         <div id="modalTotalFeeDisplay" class="text-lg font-black text-emerald-700 tracking-tight">₹4,000.00</div>
                     </div>
                 </div>
+                @else
+                <input type="hidden" name="daily_fee" id="modalDailyFee" value="{{ $modalClinics->first()?->consultation_fee ?? 800 }}">
+                @endif
 
                 <!-- Appointment Type & Symptoms -->
                 <div>
@@ -187,6 +197,7 @@
                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                 </div>
 
+                @if(!$isStaffModal)
                 <!-- Payment Collection At Booking -->
                 <div class="md:col-span-2 p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-3">
                     <div class="flex items-center justify-between">
@@ -215,6 +226,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">

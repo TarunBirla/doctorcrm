@@ -16,9 +16,38 @@ use App\Models\DoctorAvailability;
 
 class AppointmentController extends Controller
 {
+    /**
+     * Apply Doctor / Staff scoping to an Appointment query
+     */
+    protected function scopeAppointmentsForDoctor($query, ?Doctor $loggedInDoctor, string $currentRole)
+    {
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+
+            // Check if there are appointments matching this doctor/clinics; if single-doctor system, include unlinked ones too
+            $totalDoctors = Doctor::count();
+            $query->where(function ($q) use ($docId, $clinicIds, $totalDoctors) {
+                $q->where('doctor_id', $docId)
+                  ->orWhereHas('patient', function ($pq) use ($docId) {
+                      $pq->where('doctor_id', $docId);
+                  });
+                if (!empty($clinicIds)) {
+                    $q->orWhereIn('clinic_id', $clinicIds);
+                }
+                if ($totalDoctors <= 1) {
+                    $q->orWhereNotNull('id');
+                }
+            });
+        }
+        return $query;
+    }
+
     public function index(Request $request)
     {
-        $date = $request->get('date', now()->toDateString());
+        // Default to empty date ('') & period='all' so Doctor sees ALL Appointments by default!
+        $date = $request->get('date', '');
+        $period = $request->get('period', !empty($date) ? 'custom_date' : 'all');
         $status = $request->get('status');
         $type = $request->get('type');
         $paymentStatus = $request->get('payment_status');
@@ -26,20 +55,31 @@ class AppointmentController extends Controller
         $clinicId = $request->get('clinic_id');
         $categoryId = $request->get('category_id');
 
-        $query = Appointment::with(['patient', 'doctor', 'invoice', 'clinic', 'category']);
-
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $query->where('doctor_id', $loggedInDoctor->id);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
-        }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+
+        // Base scoped query for this doctor / staff
+        $baseScopedQuery = Appointment::query();
+        $this->scopeAppointmentsForDoctor($baseScopedQuery, $loggedInDoctor, $currentRole);
+
+        // Compute quick tab counts before date/status filter
+        $todayStr = now()->toDateString();
+        $allAppointmentsCount = (clone $baseScopedQuery)->count();
+        $todayAppointmentsCount = (clone $baseScopedQuery)->whereDate('appointment_date', $todayStr)->count();
+        $upcomingAppointmentsCount = (clone $baseScopedQuery)->whereDate('appointment_date', '>', $todayStr)->count();
+
+        $query = Appointment::with(['patient', 'doctor', 'invoice', 'clinic', 'category']);
+        $this->scopeAppointmentsForDoctor($query, $loggedInDoctor, $currentRole);
 
         if (!empty($date)) {
             $query->whereDate('appointment_date', $date);
+            $period = 'custom_date';
+        } elseif ($period === 'today') {
+            $query->whereDate('appointment_date', $todayStr);
+        } elseif ($period === 'upcoming') {
+            $query->whereDate('appointment_date', '>=', $todayStr);
+        } elseif ($period === 'past') {
+            $query->whereDate('appointment_date', '<', $todayStr);
         }
 
         if (!empty($status)) {
@@ -63,20 +103,31 @@ class AppointmentController extends Controller
         }
 
         if (!empty($search)) {
-            $query->whereHas('patient', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('patient_id', 'like', "%{$search}%")
-                  ->orWhere('mobile', 'like', "%{$search}%");
-            })->orWhere('appointment_no', 'like', "%{$search}%");
+            $query->where(function ($outer) use ($search) {
+                $outer->whereHas('patient', function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('patient_id', 'like', "%{$search}%")
+                      ->orWhere('mobile', 'like', "%{$search}%");
+                })->orWhere('appointment_no', 'like', "%{$search}%");
+            });
         }
 
-        $appointments = $query->orderBy('appointment_time', 'asc')->paginate(15)->withQueryString();
+        $appointments = $query
+            ->orderBy('appointment_date', 'desc')
+            ->orderBy('token_number', 'asc')
+            ->paginate(20)
+            ->withQueryString();
 
-        // Top KPI Cards for the filtered date / all
+        // Top KPI Cards for the filtered view
         $statsQuery = Appointment::query();
+        $this->scopeAppointmentsForDoctor($statsQuery, $loggedInDoctor, $currentRole);
         if (!empty($date)) {
             $statsQuery->whereDate('appointment_date', $date);
+        } elseif ($period === 'today') {
+            $statsQuery->whereDate('appointment_date', $todayStr);
+        } elseif ($period === 'upcoming') {
+            $statsQuery->whereDate('appointment_date', '>=', $todayStr);
         }
         if (!empty($clinicId)) {
             $statsQuery->where('clinic_id', $clinicId);
@@ -88,26 +139,43 @@ class AppointmentController extends Controller
         $totalAppointments = (clone $statsQuery)->count();
         $completedAppointments = (clone $statsQuery)->where('status', 'completed')->count();
         $waitingAppointments = (clone $statsQuery)->where('status', 'waiting')->count();
-        
+
         $invoicesQuery = Invoice::query();
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $docId = $loggedInDoctor->id;
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $invoicesQuery->where(function ($q) use ($docId, $clinicIds) {
+                $q->where('doctor_id', $docId)
+                  ->orWhereHas('patient', fn($pq) => $pq->where('doctor_id', $docId))
+                  ->orWhereHas('appointment', function ($aq) use ($docId, $clinicIds) {
+                      $aq->where('doctor_id', $docId);
+                      if (!empty($clinicIds)) {
+                          $aq->orWhereIn('clinic_id', $clinicIds);
+                      }
+                  });
+            });
+        }
         if (!empty($date)) {
-            $invoicesQuery->where('invoice_date', $date);
+            $invoicesQuery->whereDate('invoice_date', $date);
+        } elseif ($period === 'today') {
+            $invoicesQuery->whereDate('invoice_date', $todayStr);
         }
         $totalRevenue = (clone $invoicesQuery)->sum('paid_amount');
         $totalDues = (clone $invoicesQuery)->sum('due_amount');
 
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $patients = $loggedInDoctor ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
-            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
-            if ($clinics->isEmpty() && $loggedInDoctor) {
-                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $patients = Patient::where('doctor_id', $loggedInDoctor->id)->orWhereNull('doctor_id')->orderBy('first_name')->get();
+            if ($patients->isEmpty()) {
+                $patients = Patient::orderBy('first_name')->get();
             }
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $clinics = !empty($clinicIds)
+                ? Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get()
+                : Clinic::where('is_active', true)->get();
             if ($clinics->isEmpty()) {
                 $clinics = Clinic::where('is_active', true)->get();
             }
-            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+            $doctors = collect([$loggedInDoctor]);
         } else {
             $doctors = Doctor::active()->orderBy('name')->get();
             $patients = Patient::orderBy('first_name')->get();
@@ -119,26 +187,30 @@ class AppointmentController extends Controller
         return view('appointments.index', compact(
             'appointments', 'totalAppointments', 'completedAppointments',
             'waitingAppointments', 'totalRevenue', 'totalDues',
-            'date', 'status', 'type', 'paymentStatus', 'search', 'clinicId', 'categoryId', 'doctors', 'patients', 'clinics', 'categories'
+            'allAppointmentsCount', 'todayAppointmentsCount', 'upcomingAppointmentsCount',
+            'date', 'period', 'status', 'type', 'paymentStatus', 'search', 'clinicId', 'categoryId',
+            'doctors', 'patients', 'clinics', 'categories', 'currentRole'
         ));
     }
 
     public function create(Request $request)
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            $patients = $loggedInDoctor ? Patient::where('doctor_id', $loggedInDoctor->id)->orderBy('first_name')->get() : collect();
-            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
-            if ($clinics->isEmpty() && $loggedInDoctor) {
-                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $patients = Patient::where('doctor_id', $loggedInDoctor->id)->orWhereNull('doctor_id')->orderBy('first_name')->get();
+            if ($patients->isEmpty()) {
+                $patients = Patient::orderBy('first_name')->get();
             }
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $clinics = !empty($clinicIds)
+                ? Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get()
+                : Clinic::where('is_active', true)->get();
             if ($clinics->isEmpty()) {
                 $clinics = Clinic::where('is_active', true)->get();
             }
-            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+            $doctors = collect([$loggedInDoctor]);
         } else {
             $patients = Patient::orderBy('first_name')->get();
             $doctors = Doctor::active()->orderBy('name')->get();
@@ -158,10 +230,7 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-        }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
         $validated = $request->validate([
             'clinic_id' => 'required|exists:clinics,id',
@@ -177,13 +246,7 @@ class AppointmentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Security check: Doctor cannot book for another doctor's patients
         if ($loggedInDoctor) {
-            $patient = Patient::findOrFail($validated['patient_id']);
-            if ($patient->doctor_id && $patient->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized: You can only book appointments for your own registered patients.');
-            }
-            // Enforce logged-in doctor
             $validated['doctor_id'] = $loggedInDoctor->id;
         }
 
@@ -292,29 +355,29 @@ class AppointmentController extends Controller
 
         AuditLog::record('Appointment Package Created', 'Appointment', $appointment->appointment_no, "Created {$treatmentDays}-session physiotherapy package for {$appointment->patient->full_name} at {$appointment->clinic?->name} (Total: ₹{$totalFee}, Status: {$initialPaymentStatus})");
 
-        return redirect()->route('appointments.index', ['date' => $appointment->appointment_date->toDateString()])
-            ->with('success', "Appointment package ({$treatmentDays} sessions) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . ($isPaidUpfront ? " (Marked as Paid via {$paymentMethod})" : "") . ".");
+        $msg = \App\Models\User::isStaffRole($currentRole)
+            ? "Appointment package ({$treatmentDays} sessions) booked successfully!"
+            : "Appointment package ({$treatmentDays} sessions) booked successfully! Total Fee: ₹" . number_format($totalFee, 2) . ($isPaidUpfront ? " (Marked as Paid via {$paymentMethod})" : "") . ".";
+
+        return redirect()->route('appointments.index')
+            ->with('success', $msg);
     }
 
     public function edit($id)
     {
         $appointment = Appointment::with(['patient', 'doctor', 'clinic', 'category', 'invoice'])->findOrFail($id);
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor && $appointment->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized access: You can only edit your own appointments.');
-            }
-            $clinics = $loggedInDoctor ? $loggedInDoctor->clinics()->where('is_active', true)->get() : collect();
-            if ($clinics->isEmpty() && $loggedInDoctor) {
-                $clinics = Clinic::where('doctor_id', $loggedInDoctor->id)->where('is_active', true)->get();
-            }
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $clinicIds = $loggedInDoctor->allClinicIds();
+            $clinics = !empty($clinicIds)
+                ? Clinic::whereIn('id', $clinicIds)->where('is_active', true)->get()
+                : Clinic::where('is_active', true)->get();
             if ($clinics->isEmpty()) {
                 $clinics = Clinic::where('is_active', true)->get();
             }
-            $doctors = collect($loggedInDoctor ? [$loggedInDoctor] : []);
+            $doctors = collect([$loggedInDoctor]);
         } else {
             $doctors = Doctor::active()->orderBy('name')->get();
             $clinics = Clinic::where('is_active', true)->orderBy('name')->get();
@@ -339,12 +402,7 @@ class AppointmentController extends Controller
         $appointment = Appointment::with(['patient', 'invoice.items', 'clinic', 'category'])->findOrFail($id);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor && $appointment->doctor_id !== $loggedInDoctor->id) {
-                abort(403, 'Unauthorized: You can only modify your own appointments.');
-            }
-        }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
 
         $validated = $request->validate([
             'appointment_date' => 'nullable|date',

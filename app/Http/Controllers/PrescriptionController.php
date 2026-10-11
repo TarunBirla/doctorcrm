@@ -26,22 +26,15 @@ class PrescriptionController extends Controller
         $query = Prescription::with(['patient.clinic', 'doctor', 'clinic', 'items']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = null;
-        if ($currentRole === 'doctor' && auth()->check()) {
-            $loggedInDoctor = Doctor::where('user_id', auth()->id())->first();
-            if ($loggedInDoctor) {
-                $docClinicIds = DB::table('doctor_clinics')
-                    ->where('doctor_id', $loggedInDoctor->id)
-                    ->pluck('clinic_id')
-                    ->merge(Clinic::where('doctor_id', $loggedInDoctor->id)->pluck('id'))
-                    ->all();
-                $query->where(function ($q) use ($loggedInDoctor, $docClinicIds) {
-                    $q->where('doctor_id', $loggedInDoctor->id)
-                      ->orWhereIn('clinic_id', $docClinicIds);
-                });
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        if (in_array($currentRole, ['doctor', 'receptionist', 'staff'], true) && $loggedInDoctor) {
+            $docClinicIds = $loggedInDoctor->allClinicIds();
+            $query->where(function ($q) use ($loggedInDoctor, $docClinicIds) {
+                $q->where('doctor_id', $loggedInDoctor->id);
+                if (!empty($docClinicIds)) {
+                    $q->orWhereIn('clinic_id', $docClinicIds);
+                }
+            });
         }
 
         if (!empty($search)) {
