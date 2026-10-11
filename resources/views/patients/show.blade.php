@@ -125,7 +125,7 @@
                 <a href="{{ route('patients.edit', $patient->id) }}" 
                    class="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition shadow-xs">
                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-                    <span>Edit & Extend (+Days / Recovery %)</span>
+                    <span>Add More Appointments</span>
                 </a>
 
                 @if(!$isStaff && $patient->outstanding_balance > 0)
@@ -317,7 +317,7 @@
                     <div class="flex items-center gap-2">
                         <a href="{{ route('patients.edit', $patient->id) }}" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
                             <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-                            Edit & Extend (+Days / Recovery %)
+                            Add More Appointments
                         </a>
                         <!-- <button onclick="openModal('quickAppointmentModal')" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
                             + Single Appt
