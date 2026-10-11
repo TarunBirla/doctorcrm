@@ -19,7 +19,7 @@ class PatientController extends Controller
         $gender = $request->get('gender');
         $hasDue = $request->get('has_due');
 
-        $query = Patient::with(['medicalHistory', 'invoices']);
+        $query = Patient::with(['medicalHistory', 'invoices', 'appointments', 'clinic', 'category']);
 
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
@@ -285,6 +285,12 @@ class PatientController extends Controller
                     'total' => $totalFee,
                 ]);
 
+                if (\Illuminate\Support\Facades\Schema::hasColumn('appointments', 'invoice_id')) {
+                    foreach ($createdAppointments as $cApt) {
+                        $cApt->update(['invoice_id' => $invoice->id]);
+                    }
+                }
+
                 return [
                     'patient' => $patient,
                     'message' => "Patient {$patient->full_name} registered and {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Fee: ₹" . number_format($totalFee, 2)
@@ -458,7 +464,17 @@ class PatientController extends Controller
 
     public function edit($id)
     {
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::with([
+            'appointments' => function ($q) {
+                $q->whereNotIn('status', ['cancelled'])
+                  ->orderBy('appointment_date', 'asc')
+                  ->orderBy('id', 'asc');
+            },
+            'invoices.items',
+            'clinic',
+            'category',
+        ])->findOrFail($id);
+
         $this->authorizePatientAccess($patient);
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
@@ -476,7 +492,7 @@ class PatientController extends Controller
 
     public function update(Request $request, $id)
     {
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::with(['appointments', 'invoices.items'])->findOrFail($id);
         $this->authorizePatientAccess($patient);
 
         $validated = $request->validate([
@@ -501,14 +517,63 @@ class PatientController extends Controller
             'emergency_phone' => 'nullable|string|max:20',
             'referral_source' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            // Treatment Package Extension & Recovery Assessment Fields
+            'recovery_percentage' => 'nullable|integer|min:0|max:100',
+            'recovery_notes' => 'nullable|string|max:1000',
+            'additional_days' => 'nullable|integer|min:0|max:180',
+            'daily_fee' => 'nullable|numeric|min:0',
+            'extension_start_date' => 'nullable|date',
+            'mark_previous_completed' => 'nullable|boolean',
         ]);
 
-        $patient->update($validated);
+        $demographicFields = collect($validated)->except([
+            'recovery_percentage',
+            'recovery_notes',
+            'additional_days',
+            'daily_fee',
+            'extension_start_date',
+            'mark_previous_completed',
+        ])->toArray();
 
-        AuditLog::record('Patient Updated', 'Patient', $patient->patient_id, "Updated details for patient {$patient->full_name}");
+        $patient->update($demographicFields);
+
+        $extSummary = null;
+        if (
+            $request->has('recovery_percentage') ||
+            ((int) $request->input('additional_days', 0)) > 0 ||
+            $request->boolean('mark_previous_completed')
+        ) {
+            $extSummary = $patient->extendTreatmentAndSyncRecovery([
+                'additional_days' => (int) $request->input('additional_days', 0),
+                'recovery_percentage' => $request->input('recovery_percentage', $patient->recovery_percentage ?? 0),
+                'recovery_notes' => $request->input('recovery_notes'),
+                'daily_fee' => $request->input('daily_fee'),
+                'start_date' => $request->input('extension_start_date'),
+                'mark_previous_completed' => $request->boolean('mark_previous_completed'),
+                'clinic_id' => $patient->clinic_id,
+                'category_id' => $patient->category_id,
+                'doctor_id' => $patient->doctor_id,
+            ]);
+        }
+
+        AuditLog::record(
+            'Patient Updated',
+            'Patient',
+            $patient->patient_id,
+            "Updated patient {$patient->full_name}" . ($extSummary && $extSummary['added_days'] > 0 ? " & extended treatment by +{$extSummary['added_days']} days (+₹{$extSummary['added_fee']}), Recovery: {$extSummary['recovery_percentage']}%" : "")
+        );
+
+        $msg = "Patient details updated successfully!";
+        if ($extSummary) {
+            if ($extSummary['added_days'] > 0) {
+                $msg = "Patient updated & Treatment Extended by +{$extSummary['added_days']} Days (Sunday skipped)! {$extSummary['added_days']} new appointments created (Total: {$extSummary['total_sessions']} Sessions, Added Fee: ₹" . number_format($extSummary['added_fee'], 2) . "). Recovery: {$extSummary['recovery_percentage']}%.";
+            } else {
+                $msg = "Patient details & Recovery status ({$extSummary['recovery_percentage']}%) updated successfully!";
+            }
+        }
 
         return redirect()->route('patients.show', $patient->id)
-            ->with('success', "Patient details updated successfully!");
+            ->with('success', $msg);
     }
 
     public function updateMedicalHistory(Request $request, $id)

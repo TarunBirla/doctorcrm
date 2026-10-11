@@ -128,17 +128,23 @@
                         <th class="p-3.5 pl-5">Patient Details</th>
                         <th class="p-3.5">Gender & Age</th>
                         <th class="p-3.5">Contact</th>
-                        <th class="p-3.5">Blood</th>
-                        <th class="p-3.5">Medical History</th>
+                        <th class="p-3.5">Sessions & Recovery %</th>
                         @if(!$isStaff)
-                        <th class="p-3.5">Due Balance</th>
+                        <th class="p-3.5">Package & Due</th>
                         @endif
-                        <th class="p-3.5">Last Visit</th>
+                        <th class="p-3.5">Last Visit / Session</th>
                         <th class="p-3.5 pr-5 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($patients as $patient)
+                        @php
+                            $validApts = $patient->appointments ? $patient->appointments->whereNotIn('status', ['cancelled']) : collect();
+                            $totalSess = $validApts->count();
+                            $doneSess = $validApts->where('status', 'completed')->count();
+                            $recPct = (int) ($patient->recovery_percentage ?? ($validApts->last()?->recovery_percentage ?? 0));
+                            $pkgTotal = (float) $validApts->sum('consultation_fee');
+                        @endphp
                         <tr class="hover:bg-slate-50/80 transition">
                             <td class="p-3.5 pl-5">
                                 <div class="flex items-center gap-3">
@@ -157,9 +163,6 @@
                                             @if($patient->clinic)
                                                 <span class="text-[9px] px-1.5 py-0.2 bg-slate-100 text-slate-600 font-bold rounded">{{ $patient->clinic->name }}</span>
                                             @endif
-                                            @if(($patient->recovery_percentage ?? 0) > 0)
-                                                <span class="text-[9px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 font-bold rounded border border-emerald-200">{{ $patient->recovery_percentage }}% Recovered</span>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -167,45 +170,52 @@
                             <td class="p-3.5">
                                 <span class="font-semibold text-slate-800">{{ $patient->gender }}</span>
                                 <span class="text-slate-400">• {{ $patient->age }} yrs</span>
+                                @if($patient->blood_group)
+                                    <span class="ml-1 px-1.5 py-0.2 rounded font-bold text-[9px] bg-rose-50 text-rose-700 border border-rose-100">{{ $patient->blood_group }}</span>
+                                @endif
                             </td>
                             <td class="p-3.5">
                                 <div class="font-semibold text-slate-800">{{ $patient->mobile }}</div>
-                                <span class="text-[11px] text-slate-400">{{ $patient->city ?? 'Gurugram' }}</span>
+                                <span class="text-[11px] text-slate-400">{{ $patient->city ?? 'Indore' }}</span>
                             </td>
                             <td class="p-3.5">
-                                @if($patient->blood_group)
-                                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-rose-50 text-rose-700 border border-rose-100">
-                                        {{ $patient->blood_group }}
-                                    </span>
+                                @if($totalSess > 0)
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold {{ $doneSess >= $totalSess ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                                            {{ $doneSess }} / {{ $totalSess }} Days Done
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold {{ $recPct >= 100 ? 'bg-emerald-600 text-white' : ($recPct >= 75 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200') }}">
+                                            {{ $recPct >= 100 ? '🌟 100% Cured' : $recPct . '% Sahi Hua' }}
+                                        </span>
+                                    </div>
+                                    <div class="w-36 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                        <div class="{{ $recPct >= 75 ? 'bg-emerald-500' : 'bg-indigo-500' }} h-1.5 rounded-full" style="width: {{ max(6, $recPct) }}%"></div>
+                                    </div>
                                 @else
-                                    <span class="text-slate-300">-</span>
-                                @endif
-                            </td>
-                            <td class="p-3.5 max-w-xs truncate text-slate-600">
-                                @if($patient->medicalHistory && ($patient->medicalHistory->conditions || $patient->medicalHistory->allergies))
-                                    <span class="font-semibold text-slate-800">{{ $patient->medicalHistory->conditions ?? 'None' }}</span>
-                                    @if($patient->medicalHistory->allergies)
-                                        <span class="text-rose-600 block text-[10px] font-semibold">⚠️ Allergy: {{ $patient->medicalHistory->allergies }}</span>
-                                    @endif
-                                @else
-                                    <span class="text-slate-400">No conditions logged</span>
+                                    <span class="text-slate-400 text-[11px]">No package booked</span>
                                 @endif
                             </td>
                             @if(!$isStaff)
                             <td class="p-3.5">
+                                @if($pkgTotal > 0)
+                                    <div class="font-bold text-slate-900">₹{{ number_format($pkgTotal, 0) }} <span class="text-[10px] font-semibold text-slate-400">({{ $totalSess }}d)</span></div>
+                                @endif
                                 @if($patient->outstanding_balance > 0)
-                                    <span class="px-2 py-0.5 rounded-full font-extrabold text-[10px] bg-rose-100 text-rose-800">
-                                        Due: ₹{{ number_format($patient->outstanding_balance, 2) }}
+                                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full font-extrabold text-[10px] bg-rose-100 text-rose-800">
+                                        Due: ₹{{ number_format($patient->outstanding_balance, 0) }}
                                     </span>
                                 @else
-                                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700">
+                                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700">
                                         All Clear
                                     </span>
                                 @endif
                             </td>
                             @endif
                             <td class="p-3.5 text-slate-500">
-                                @if($patient->last_visit)
+                                @if($validApts->last())
+                                    <span class="font-semibold text-slate-800">{{ $validApts->last()->appointment_date->format('d M Y') }}</span>
+                                    <span class="text-[10px] text-slate-400 block">Session {{ $totalSess }} ({{ ucfirst($validApts->last()->status) }})</span>
+                                @elseif($patient->last_visit)
                                     <span class="font-semibold text-slate-800">{{ $patient->last_visit->visit_date->format('d M Y') }}</span>
                                     <span class="text-[10px] text-slate-400 block">{{ $patient->last_visit->visit_type }}</span>
                                 @else
@@ -214,11 +224,14 @@
                             </td>
                             <td class="p-3.5 pr-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <a href="{{ route('patients.show', $patient->id) }}" title="Open Patient CRM" class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-lg transition">
-                                        <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+                                    <a href="{{ route('patients.edit', $patient->id) }}" title="Edit Patient, Update Recovery % & Extend +Days"
+                                       class="px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1">
+                                        <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                                        <span>Edit / Extend</span>
                                     </a>
-                                    <a href="{{ route('patients.edit', $patient->id) }}" title="Edit Details" class="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-200 rounded-lg transition">
-                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                    <a href="{{ route('patients.show', $patient->id) }}" title="Open Patient CRM Profile"
+                                       class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-xl transition">
+                                        <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                                     </a>
                                 </div>
                             </td>

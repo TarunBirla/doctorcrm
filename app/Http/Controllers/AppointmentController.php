@@ -68,7 +68,7 @@ class AppointmentController extends Controller
         $todayAppointmentsCount = (clone $baseScopedQuery)->whereDate('appointment_date', $todayStr)->count();
         $upcomingAppointmentsCount = (clone $baseScopedQuery)->whereDate('appointment_date', '>', $todayStr)->count();
 
-        $query = Appointment::with(['patient', 'doctor', 'invoice', 'clinic', 'category']);
+        $query = Appointment::with(['patient.appointments', 'doctor', 'invoice', 'clinic', 'category']);
         $this->scopeAppointmentsForDoctor($query, $loggedInDoctor, $currentRole);
 
         if (!empty($date)) {
@@ -399,14 +399,10 @@ class AppointmentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $appointment = Appointment::with(['patient', 'invoice.items', 'clinic', 'category'])->findOrFail($id);
-
-        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
-        $loggedInDoctor = Doctor::resolveForCurrentUser($currentRole);
+        $appointment = Appointment::with(['patient.appointments', 'invoice.items', 'clinic', 'category'])->findOrFail($id);
 
         $validated = $request->validate([
             'appointment_date' => 'nullable|date',
-            'treatment_days' => 'nullable|integer|min:1|max:365',
             'additional_days' => 'nullable|integer|min:0|max:180',
             'daily_fee' => 'nullable|numeric|min:0',
             'recovery_percentage' => 'nullable|integer|min:0|max:100',
@@ -417,6 +413,7 @@ class AppointmentController extends Controller
             'clinic_id' => 'nullable|exists:clinics,id',
             'reason' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'mark_previous_completed' => 'nullable|boolean',
         ]);
 
         if (!empty($validated['clinic_id'])) {
@@ -438,144 +435,73 @@ class AppointmentController extends Controller
             $appointment->notes = $validated['notes'];
         }
 
-        // Daily Fee
-        if (isset($validated['daily_fee']) && $validated['daily_fee'] >= 0) {
+        if (isset($validated['daily_fee']) && $validated['daily_fee'] !== '' && (float) $validated['daily_fee'] >= 0) {
             $appointment->daily_fee = (float) $validated['daily_fee'];
-        }
-
-        // Treatment Days and additional extension days
-        if (isset($validated['treatment_days'])) {
-            $appointment->treatment_days = (int) $validated['treatment_days'];
-        }
-        $addDays = (int) ($validated['additional_days'] ?? 0);
-        if ($addDays > 0) {
-            $appointment->extended_days = ($appointment->extended_days ?? 0) + $addDays;
-        }
-
-        $totalDays = $appointment->treatment_days + ($appointment->extended_days ?? 0);
-        $dailyFee = (float) ($appointment->daily_fee ?? 800.00);
-        $totalFee = $dailyFee * $totalDays;
-        $appointment->consultation_fee = $totalFee;
-
-        // Recovery %
-        if (isset($validated['recovery_percentage'])) {
-            $recoveryPct = (int) $validated['recovery_percentage'];
-            $appointment->recovery_percentage = $recoveryPct;
-            $appointment->recovery_status = $validated['recovery_status'] ?? $appointment->getRecoveryLevelLabel();
-            $appointment->recovery_notes = $validated['recovery_notes'] ?? $appointment->recovery_notes;
-
-            // Sync to patient
-            if ($appointment->patient) {
-                $appointment->patient->update([
-                    'recovery_percentage' => $recoveryPct,
-                    'category_id' => $appointment->category_id ?: $appointment->patient->category_id,
-                    'clinic_id' => $appointment->clinic_id ?: $appointment->patient->clinic_id,
-                ]);
-
-                \App\Models\PatientProgress::create([
-                    'patient_id' => $appointment->patient_id,
-                    'recorded_date' => now()->toDateString(),
-                    'pain_level' => max(0, min(10, (int) round((100 - $recoveryPct) / 10))),
-                    'symptoms_assessment' => "Recovery: {$recoveryPct}% - " . $appointment->getRecoveryLevelLabel(),
-                    'treatment_response' => $appointment->recovery_notes ?: "Session extended / updated. Current recovery: {$recoveryPct}%. Treatment duration: {$totalDays} days.",
-                    'doctor_notes' => "Appointment #{$appointment->appointment_no} modified (Total {$totalDays} days, Fee: ₹{$totalFee}).",
-                ]);
-            }
+            $appointment->consultation_fee = (float) $validated['daily_fee'];
         }
 
         $appointment->save();
 
-        // Update Invoice
-        if ($appointment->invoice) {
-            $invoice = $appointment->invoice;
-            $invoice->subtotal = $totalFee;
-            $invoice->total_amount = $totalFee;
-            $invoice->due_amount = max(0, $totalFee - $invoice->paid_amount);
-            $invoice->payment_status = ($invoice->due_amount <= 0 && $totalFee > 0) ? 'paid' : ($invoice->paid_amount > 0 ? 'partially_paid' : 'unpaid');
-            $categoryName = $appointment->category?->name ?? 'Physiotherapy Package';
-            $invoice->notes = "Physiotherapy package: {$categoryName} for {$totalDays} days (₹" . number_format($dailyFee, 2) . "/day)";
-            $invoice->save();
+        $addDays = (int) ($validated['additional_days'] ?? 0);
+        $extSummary = null;
 
-            $item = $invoice->items()->first();
-            if ($item) {
-                $item->update([
-                    'item_description' => "{$categoryName} ({$totalDays} Days Treatment Package)",
-                    'quantity' => $totalDays,
-                    'unit_price' => $dailyFee,
-                    'total' => $totalFee,
-                ]);
-            }
+        if ($appointment->patient && (isset($validated['recovery_percentage']) || $addDays > 0 || $request->boolean('mark_previous_completed'))) {
+            $extSummary = $appointment->patient->extendTreatmentAndSyncRecovery([
+                'additional_days' => $addDays,
+                'recovery_percentage' => $validated['recovery_percentage'] ?? ($appointment->patient->recovery_percentage ?? 0),
+                'recovery_notes' => $validated['recovery_notes'] ?? null,
+                'daily_fee' => $appointment->daily_fee,
+                'mark_previous_completed' => $request->boolean('mark_previous_completed'),
+                'clinic_id' => $appointment->clinic_id,
+                'category_id' => $appointment->category_id,
+                'doctor_id' => $appointment->doctor_id,
+            ]);
         }
 
-        AuditLog::record('Appointment Updated', 'Appointment', $appointment->appointment_no, "Updated appointment #{$appointment->appointment_no}: {$totalDays} days (extended +{$addDays}d), Recovery: {$appointment->recovery_percentage}%, Total Fee: ₹{$totalFee}");
+        AuditLog::record(
+            'Appointment Updated',
+            'Appointment',
+            $appointment->appointment_no,
+            "Updated appointment #{$appointment->appointment_no}" . ($extSummary && $extSummary['added_days'] > 0 ? ": Extended +{$extSummary['added_days']} new appointments (Total {$extSummary['total_sessions']} sessions), Recovery: {$extSummary['recovery_percentage']}%" : "")
+        );
 
-        return back()->with('success', "Appointment #{$appointment->appointment_no} updated successfully! Total Days: {$totalDays}, Recovery: {$appointment->recovery_percentage}%, Package Fee: ₹" . number_format($totalFee, 2));
+        if ($extSummary && $extSummary['added_days'] > 0) {
+            return back()->with('success', "Treatment extended by +{$extSummary['added_days']} Days (Sunday skipped)! {$extSummary['added_days']} new daily appointments created (Total: {$extSummary['total_sessions']} Sessions, Added Fee: ₹" . number_format($extSummary['added_fee'], 2) . "). Recovery: {$extSummary['recovery_percentage']}%.");
+        }
+
+        return back()->with('success', "Appointment #{$appointment->appointment_no} updated successfully! Recovery: " . ($extSummary['recovery_percentage'] ?? $appointment->recovery_percentage ?? 0) . "%.");
     }
 
     public function extendDays(Request $request, $id)
     {
-        $appointment = Appointment::with(['patient', 'invoice.items', 'category'])->findOrFail($id);
+        $appointment = Appointment::with(['patient.appointments', 'invoice.items', 'category'])->findOrFail($id);
 
         $validated = $request->validate([
             'additional_days' => 'required|integer|min:1|max:180',
+            'daily_fee' => 'nullable|numeric|min:0',
             'recovery_percentage' => 'nullable|integer|min:0|max:100',
             'recovery_notes' => 'nullable|string|max:1000',
+            'mark_previous_completed' => 'nullable|boolean',
         ]);
 
-        $addDays = (int) $validated['additional_days'];
-        $appointment->extended_days = ($appointment->extended_days ?? 0) + $addDays;
-        $totalDays = $appointment->treatment_days + $appointment->extended_days;
-
-        $dailyFee = (float) ($appointment->daily_fee ?? 800.00);
-        $totalFee = $dailyFee * $totalDays;
-        $appointment->consultation_fee = $totalFee;
-
-        if (isset($validated['recovery_percentage'])) {
-            $pct = (int) $validated['recovery_percentage'];
-            $appointment->recovery_percentage = $pct;
-            $appointment->recovery_status = $appointment->getRecoveryLevelLabel();
-            $appointment->recovery_notes = $validated['recovery_notes'] ?? $appointment->recovery_notes;
-
-            if ($appointment->patient) {
-                $appointment->patient->update(['recovery_percentage' => $pct]);
-
-                \App\Models\PatientProgress::create([
-                    'patient_id' => $appointment->patient_id,
-                    'recorded_date' => now()->toDateString(),
-                    'pain_level' => max(0, min(10, (int) round((100 - $pct) / 10))),
-                    'symptoms_assessment' => "Recovery: {$pct}% - " . $appointment->getRecoveryLevelLabel(),
-                    'treatment_response' => "Extended treatment by +{$addDays} days. Recovery: {$pct}%. Notes: " . ($validated['recovery_notes'] ?? 'None'),
-                    'doctor_notes' => "Extended sessions for appointment #{$appointment->appointment_no} (+{$addDays} days, total: {$totalDays} days).",
-                ]);
-            }
+        if (!$appointment->patient) {
+            return back()->with('error', 'Patient record not found for this appointment.');
         }
 
-        $appointment->save();
+        $extSummary = $appointment->patient->extendTreatmentAndSyncRecovery([
+            'additional_days' => (int) $validated['additional_days'],
+            'recovery_percentage' => $validated['recovery_percentage'] ?? ($appointment->patient->recovery_percentage ?? 0),
+            'recovery_notes' => $validated['recovery_notes'] ?? null,
+            'daily_fee' => $validated['daily_fee'] ?? $appointment->daily_fee,
+            'mark_previous_completed' => $request->boolean('mark_previous_completed', true),
+            'clinic_id' => $appointment->clinic_id,
+            'category_id' => $appointment->category_id,
+            'doctor_id' => $appointment->doctor_id,
+        ]);
 
-        if ($appointment->invoice) {
-            $invoice = $appointment->invoice;
-            $invoice->subtotal = $totalFee;
-            $invoice->total_amount = $totalFee;
-            $invoice->due_amount = max(0, $totalFee - $invoice->paid_amount);
-            $invoice->payment_status = ($invoice->due_amount <= 0 && $totalFee > 0) ? 'paid' : ($invoice->paid_amount > 0 ? 'partially_paid' : 'unpaid');
-            $categoryName = $appointment->category?->name ?? 'Physiotherapy Package';
-            $invoice->notes = "Physiotherapy package: {$categoryName} for {$totalDays} days (₹" . number_format($dailyFee, 2) . "/day)";
-            $invoice->save();
+        AuditLog::record('Appointment Extended', 'Appointment', $appointment->appointment_no, "Extended treatment by +{$extSummary['added_days']} new daily sessions (Total: {$extSummary['total_sessions']} sessions, +₹{$extSummary['added_fee']})");
 
-            $item = $invoice->items()->first();
-            if ($item) {
-                $item->update([
-                    'item_description' => "{$categoryName} ({$totalDays} Days Treatment Package)",
-                    'quantity' => $totalDays,
-                    'unit_price' => $dailyFee,
-                    'total' => $totalFee,
-                ]);
-            }
-        }
-
-        AuditLog::record('Appointment Extended', 'Appointment', $appointment->appointment_no, "Extended appointment #{$appointment->appointment_no} by {$addDays} days (Total: {$totalDays} days, ₹{$totalFee})");
-
-        return back()->with('success', "Appointment extended by +{$addDays} days! Total duration: {$totalDays} days. Fee updated to ₹" . number_format($totalFee, 2));
+        return back()->with('success', "Treatment extended by +{$extSummary['added_days']} days (excluding Sunday)! {$extSummary['added_days']} new appointments created (Total: {$extSummary['total_sessions']} Sessions, Added Fee: ₹" . number_format($extSummary['added_fee'], 2) . ").");
     }
 
     public function updateRecovery(Request $request, $id)

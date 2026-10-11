@@ -72,11 +72,16 @@
             </div>
 
             <!-- KEY STATS CAPSULES -->
+            @php
+                $totalSessions = $patient->appointments->whereNotIn('status', ['cancelled'])->count();
+                $doneSessions = $patient->appointments->where('status', 'completed')->count();
+                $recPct = (int) ($patient->recovery_percentage ?? 0);
+            @endphp
             <div class="flex flex-wrap items-center gap-3">
-                <div class="px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-left min-w-[120px]">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Last Visit</span>
-                    <span class="font-bold text-xs text-slate-800 block mt-0.5">
-                        {{ $patient->last_visit ? $patient->last_visit->visit_date->format('d M Y') : 'None' }}
+                <div class="px-4 py-2.5 rounded-2xl {{ $recPct >= 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-indigo-50/70 border-indigo-200/80' }} border text-left min-w-[140px]">
+                    <span class="text-[10px] font-bold uppercase tracking-wider {{ $recPct >= 100 ? 'text-emerald-700' : 'text-indigo-700' }} block">Sessions & Recovery</span>
+                    <span class="font-extrabold text-xs {{ $recPct >= 100 ? 'text-emerald-800' : 'text-indigo-900' }} block mt-0.5">
+                        {{ $doneSessions }}/{{ $totalSessions }} Days • {{ $recPct }}% {{ $recPct >= 100 ? 'Cured 🌟' : 'Recovered' }}
                     </span>
                 </div>
 
@@ -117,11 +122,11 @@
                     <span>Start Consultation {{ $todayOrNextApt ? '(' . ($todayOrNextApt->appointment_time ?? 'Session') . ')' : '' }}</span>
                 </a>
 
-                <button onclick="openModal('quickAppointmentModal')" 
-                        class="flex items-center gap-1.5 px-3.5 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition shadow-xs">
+                <a href="{{ route('patients.edit', $patient->id) }}" 
+                   class="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition shadow-xs">
                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
-                    <span>New Appointment</span>
-                </button>
+                    <span>Edit & Extend (+Days / Recovery %)</span>
+                </a>
 
                 @if(!$isStaff && $patient->outstanding_balance > 0)
                     <button onclick="openModal('patientCollectDueModal')" 
@@ -151,7 +156,7 @@
                     <span>Print Summary</span>
                 </a>
                 <a href="{{ route('patients.edit', $patient->id) }}" 
-                   class="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold">
+                   class="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold" title="Edit Patient & Extend Days">
                     <i data-lucide="edit" class="w-3.5 h-3.5"></i>
                 </a>
             </div>
@@ -304,39 +309,62 @@
         <!-- 2. TAB: APPOINTMENTS -->
         @if($activeTab === 'appointments')
             <div class="card-custom bg-white overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                    <h3 class="font-bold text-slate-900 text-sm">Appointment History</h3>
-                    <button onclick="openModal('quickAppointmentModal')" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
-                        + New Appointment
-                    </button>
+                <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm">Treatment Sessions & Appointment History</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Completed: <span class="font-bold text-slate-800">{{ $doneSessions }} of {{ $totalSessions }} Days</span> • Recovery: <span class="font-bold text-indigo-700">{{ $recPct }}%</span></p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('patients.edit', $patient->id) }}" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                            Edit & Extend (+Days / Recovery %)
+                        </a>
+                        <button onclick="openModal('quickAppointmentModal')" class="px-3.5 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
+                            + Single Appt
+                        </button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto text-xs">
+                    @php
+                        $sortedApts = $patient->appointments->sortBy(function($a) {
+                            return ($a->appointment_date ? $a->appointment_date->format('Y-m-d') : '9999-99-99') . '_' . str_pad($a->id, 8, '0', STR_PAD_LEFT);
+                        })->values();
+                        $lastAptId = $sortedApts->whereNotIn('status', ['cancelled'])->last()?->id;
+                    @endphp
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             <tr class="border-b border-slate-100">
-                                <th class="p-3 pl-5">Appt No</th>
-                                <th class="p-3">Date & Time</th>
+                                <th class="p-3 pl-5">Session / Appt No</th>
+                                <th class="p-3">Date & Day</th>
                                 <th class="p-3">Doctor</th>
                                 <th class="p-3">Type</th>
                                 @if(!$isStaff)
-                                <th class="p-3">Payment</th>
+                                <th class="p-3">Daily Fee</th>
                                 @endif
                                 <th class="p-3">Status</th>
                                 <th class="p-3 pr-5 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse($patient->appointments->sortBy(function($a) {
-                                return $a->appointment_date->format('Y-m-d') . '_' . str_pad($a->id, 8, '0', STR_PAD_LEFT);
-                            }) as $apt)
+                            @forelse($sortedApts as $idx => $apt)
+                                @php
+                                    $sessionNum = $idx + 1;
+                                    $isLastApt = ($apt->id === $lastAptId);
+                                @endphp
                                 <tr class="hover:bg-slate-50">
-                                    <td class="p-3 pl-5 font-bold text-slate-900">{{ $apt->appointment_no }} (Token #{{ $apt->token_number }})</td>
-                                    <td class="p-3 font-semibold">{{ $apt->appointment_date->format('d M Y') }} at {{ $apt->appointment_time }}</td>
+                                    <td class="p-3 pl-5">
+                                        <span class="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-extrabold">Session {{ $sessionNum }} of {{ $sortedApts->count() }}</span>
+                                        <div class="font-bold text-slate-700 text-[11px] mt-1">{{ $apt->appointment_no }} (Token #{{ $apt->token_number }})</div>
+                                    </td>
+                                    <td class="p-3 font-semibold">
+                                        {{ $apt->appointment_date->format('d M Y (D)') }}
+                                        <div class="text-[10px] text-slate-400">{{ $apt->appointment_time }}</div>
+                                    </td>
                                     <td class="p-3 text-slate-700">{{ $apt->doctor ? $apt->doctor->name : '-' }}</td>
                                     <td class="p-3 uppercase text-[10px] font-bold text-slate-500">{{ $apt->appointment_type }}</td>
                                     @if(!$isStaff)
                                     <td class="p-3">
-                                        <div class="font-bold text-slate-800 text-xs">₹{{ number_format($apt->consultation_fee, 0) }}</div>
+                                        <div class="font-bold text-slate-800 text-xs">₹{{ number_format($apt->daily_fee > 0 ? $apt->daily_fee : $apt->consultation_fee, 0) }}/day</div>
                                         @if($apt->payment_status === 'paid')
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-0.5">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -362,18 +390,34 @@
                                         </span>
                                     </td>
                                     <td class="p-3 pr-5 text-right">
-                                        @if($apt->status !== 'completed')
-                                            <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
-                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
-                                                <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
-                                                <span>Start Consultation</span>
-                                            </a>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
-                                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                                                <span>Completed</span>
-                                            </span>
-                                        @endif
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            @if($apt->status !== 'completed')
+                                                <form action="{{ route('appointments.status', $apt->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="completed">
+                                                    <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-xl text-[11px] font-bold transition">
+                                                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                                        <span>Done ✔</span>
+                                                    </button>
+                                                </form>
+                                                <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
+                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                                                    <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
+                                                    <span>Consult</span>
+                                                </a>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
+                                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                                    <span>Completed</span>
+                                                </span>
+                                            @endif
+                                            @if($isLastApt)
+                                                <a href="{{ route('patients.edit', $patient->id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-bold transition">
+                                                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                                                    <span>Review / +Extend</span>
+                                                </a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
