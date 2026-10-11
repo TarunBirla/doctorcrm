@@ -175,11 +175,11 @@
         </div>
 
         <!-- PRIMARY HEADER CTA BUTTON (DEEP NAVY BLUE AS IN THEME) -->
-        <button onclick="openModal('quickAppointmentModal')" 
+        <!-- <button onclick="openModal('quickAppointmentModal')" 
                 class="flex items-center gap-2 px-3.5 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-xl text-xs font-bold transition shadow-sm hover:shadow">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
             <span>New Appointment</span>
-        </button>
+        </button> -->
 
     </div>
 </header>

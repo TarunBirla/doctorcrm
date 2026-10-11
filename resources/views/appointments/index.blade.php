@@ -112,10 +112,10 @@
                     <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-slate-400"></i>
                     <span>Calendar View</span>
                 </a>
-                <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <!-- <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>Book Physiotherapy</span>
-                </button>
+                </button> -->
             </div>
         </div>
 

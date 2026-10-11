@@ -138,10 +138,10 @@
                 <h3 class="text-sm font-bold text-slate-900">Today's Active OPD Waiting List</h3>
                 <p class="text-xs text-slate-400">Tokens ordered by arrival and doctor room status for {{ now()->format('d M Y') }}</p>
             </div>
-            <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-sm">
+            <!-- <button onclick="openModal('quickAppointmentModal')" class="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-sm">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Walk-in Patient</span>
-            </button>
+            </button> -->
         </div>
 
         <div class="overflow-x-auto">

@@ -91,7 +91,7 @@
                     @forelse($visits as $v)
                         <tr class="hover:bg-slate-50/60 transition group">
                             <td class="py-3.5 px-4 font-mono font-bold text-xs text-slate-700">
-                                <a href="{{ route('consultations.show', $v->id) }}" class="text-primary hover:underline">
+                                <a href="{{ route('prescriptions.show', $v->id) }}" class="text-primary hover:underline">
                                     {{ $v->visit_no }}
                                 </a>
                             </td>
