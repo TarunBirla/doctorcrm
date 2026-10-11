@@ -42,15 +42,15 @@ class RoleMenuPermission extends Model
                 'appointments' => ['label' => 'Appointments', 'icon' => 'calendar', 'desc' => 'Book, reschedule & manage patient appointments'],
                 'calendar' => ['label' => 'Appointment Calendar', 'icon' => 'calendar-days', 'desc' => 'Interactive slot schedule & calendar view'],
                 'clinics' => ['label' => 'My Practice Clinics', 'icon' => 'building-2', 'desc' => 'View clinic locations & timings'],
-                'availability' => ['label' => 'Doctor Availability', 'icon' => 'clock-4', 'desc' => 'Manage doctor weekly schedule & slot overrides'],
+                // 'availability' => ['label' => 'Doctor Availability', 'icon' => 'clock-4', 'desc' => 'Manage doctor weekly schedule & slot overrides'],
             ],
             'Clinical & Patient Care' => [
                 'patients' => ['label' => 'Patients Master', 'icon' => 'users', 'desc' => 'Register, edit & view patient profiles'],
                 'consultations' => ['label' => 'Consultations & Visits', 'icon' => 'stethoscope', 'desc' => 'OPD consultation notes & assessment records'],
                 'prescriptions' => ['label' => 'Prescriptions (Rx)', 'icon' => 'file-text', 'desc' => 'View & print patient prescriptions'],
                 'medical_reports' => ['label' => 'Medical Reports', 'icon' => 'clipboard-list', 'desc' => 'Upload & manage X-Ray, MRI & lab reports'],
-                'progress' => ['label' => 'Recovery Tracker', 'icon' => 'trending-up', 'desc' => 'Track patient physiotherapy recovery sessions'],
-                'followups' => ['label' => 'Follow-ups', 'icon' => 'alarm-clock', 'desc' => 'Upcoming patient follow-ups & reminders'],
+                // 'progress' => ['label' => 'Recovery Tracker', 'icon' => 'trending-up', 'desc' => 'Track patient physiotherapy recovery sessions'],
+                // 'followups' => ['label' => 'Follow-ups', 'icon' => 'alarm-clock', 'desc' => 'Upcoming patient follow-ups & reminders'],
             ],
             'Physiotherapy Library' => [
                 'exercises' => ['label' => 'Exercises Library', 'icon' => 'dumbbell', 'desc' => 'Physiotherapy exercises & home routines'],

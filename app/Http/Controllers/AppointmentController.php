@@ -114,8 +114,9 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query
-            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_date', 'asc')
             ->orderBy('token_number', 'asc')
+            ->orderBy('id', 'asc')
             ->paginate(20)
             ->withQueryString();
 
