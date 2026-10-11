@@ -251,7 +251,7 @@
         @endif
 
         <!-- DOCTOR ROLE: STAFF & ROLE MANAGEMENT -->
-        @if(in_array($currentRole, ['doctor', 'super_admin'], true))
+        <!-- @if(in_array($currentRole, ['doctor', 'super_admin'], true))
         <div>
             <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 Staff & Role Manage
@@ -276,7 +276,7 @@
                 </a>
             </div>
         </div>
-        @endif
+        @endif -->
 
         <!-- BILLING & FINANCE (STRICTLY HIDDEN FOR STAFF) -->
         @php
