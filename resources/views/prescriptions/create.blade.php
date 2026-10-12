@@ -49,7 +49,14 @@
                     </p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                @if(!empty($latestPrescription))
+                    <button type="button" onclick="copyLatestPrescription()" id="topBannerCopyBtn"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black shadow-md transition cursor-pointer border border-amber-200">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>Copy & Paste Latest Rx ({{ $latestPrescription->prescription_no }})</span>
+                    </button>
+                @endif
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold border border-white/20">
                     <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-300"></i>
                     <span>Patient Profile Locked</span>
@@ -57,6 +64,41 @@
             </div>
         </div>
     @endif
+
+    <!-- COPY & PASTE LATEST PRESCRIPTION BANNER -->
+    <div id="copyLatestRxContainer" class="{{ !empty($latestPrescription) ? '' : 'hidden' }} bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <i data-lucide="clipboard-copy" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider">
+                        Previous Prescription Available
+                    </span>
+                    <span id="copyRxBadgeNo" class="text-xs font-mono font-black text-emerald-900">
+                        {{ $latestPrescription->prescription_no ?? '' }}
+                    </span>
+                    <span id="copyRxBadgeDate" class="text-xs font-semibold text-emerald-700">
+                        {{ !empty($latestPrescription?->prescription_date) ? '• Date: ' . $latestPrescription->prescription_date->format('d M Y') : '' }}
+                    </span>
+                </div>
+                <p id="copyRxDiagnosisText" class="text-xs font-bold text-slate-800 mt-1">
+                    Diagnosis: <span class="text-emerald-900">{{ $latestPrescription->diagnosis_summary ?? '-' }}</span>
+                </p>
+                <p id="copyRxStatusMsg" class="text-[11px] text-slate-600 mt-0.5">
+                    Click <strong>Copy & Paste Latest Prescription</strong> to auto-fill all clinical findings, exercises, modalities & medicines. You can then edit/add/remove anything before saving.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="copyLatestPrescription()" id="mainCopyRxBtn"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md hover:shadow-lg transition cursor-pointer">
+                <i data-lucide="copy-check" class="w-4 h-4"></i>
+                <span>Copy & Paste Latest Prescription</span>
+            </button>
+        </div>
+    </div>
 
     <!-- MAIN FORM -->
     <form action="{{ route('prescriptions.store') }}" method="POST" class="space-y-6" id="assessmentForm">
@@ -1464,6 +1506,10 @@ function appendInputVal(inputId, text) {
     }
 }
 
+// Latest prescription data for selected patient and all patients map
+const allPatientsLatestRx = @json($allPatientRx ?? []);
+let currentLatestPrescription = @json($latestPrescription ?? null);
+
 // Patient change handler
 function handlePatientChange(select) {
     const opt = select.options[select.selectedIndex];
@@ -1490,6 +1536,252 @@ function handlePatientChange(select) {
                 clinicSelect.value = clinicId;
             }
         }
+
+        // Check if selected patient has a latest prescription
+        const patRx = allPatientsLatestRx[opt.value] || null;
+        currentLatestPrescription = patRx;
+        const banner = document.getElementById('copyLatestRxContainer');
+        if (banner) {
+            if (patRx) {
+                banner.classList.remove('hidden');
+                const badgeNo = document.getElementById('copyRxBadgeNo');
+                if (badgeNo) badgeNo.innerText = patRx.prescription_no || '';
+                const badgeDate = document.getElementById('copyRxBadgeDate');
+                if (badgeDate) {
+                    const dStr = patRx.prescription_date ? patRx.prescription_date.substring(0, 10) : '';
+                    badgeDate.innerText = dStr ? `• Date: ${dStr}` : '';
+                }
+                const diagText = document.getElementById('copyRxDiagnosisText');
+                if (diagText) {
+                    diagText.innerHTML = `Diagnosis: <span class="text-emerald-900">${escapeRxHtml(patRx.diagnosis_summary || '-')}</span>`;
+                }
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+    }
+}
+
+// Copy & Paste Latest Prescription Auto-Fill Function
+function copyLatestPrescription() {
+    const rx = currentLatestPrescription;
+    if (!rx) {
+        alert('No previous prescription found for this patient.');
+        return;
+    }
+
+    // 1. Switch Assessment Type Tab (musculoskeletal or neurological)
+    const aType = (rx.assessment_type === 'neurological') ? 'neurological' : 'musculoskeletal';
+    setAssessmentType(aType);
+
+    // 2. Fill Primary Diagnosis Summary
+    const diagInput = document.querySelector('input[name="diagnosis_summary"]');
+    if (diagInput) {
+        diagInput.value = rx.diagnosis_summary || '';
+    }
+
+    // 3. Fill Assessment Data (Inputs, Textareas, Selects, Checkboxes, Radios, VAS Slider)
+    const data = rx.assessment_data || {};
+
+    // First uncheck all assessment_data checkboxes so removed options don't stay checked
+    document.querySelectorAll('input[type="checkbox"][name^="assessment_data["]').forEach(cb => {
+        cb.checked = false;
+    });
+
+    Object.keys(data).forEach(key => {
+        const val = data[key];
+        if (Array.isArray(val)) {
+            const checkboxes = document.querySelectorAll(`input[type="checkbox"][name="assessment_data[${key}][]"]`);
+            checkboxes.forEach(cb => {
+                cb.checked = val.map(String).includes(String(cb.value));
+            });
+        } else if (val !== null && val !== undefined) {
+            const radios = document.querySelectorAll(`input[type="radio"][name="assessment_data[${key}]"]`);
+            if (radios.length > 0) {
+                radios.forEach(r => {
+                    r.checked = (String(r.value) === String(val));
+                });
+            } else {
+                const field = document.querySelector(`[name="assessment_data[${key}]"]`);
+                if (field) {
+                    field.value = val;
+                }
+            }
+            if (key === 'vas_scale') {
+                updateVasBadge(val);
+            }
+        }
+    });
+
+    // 4. Fill Treatment Plan Days & Modalities
+    const daysInput = document.querySelector('input[name="treatment_days"]');
+    if (daysInput && rx.treatment_days) {
+        daysInput.value = rx.treatment_days;
+    }
+
+    const modList = (rx.modalities || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    document.querySelectorAll('input[name="modalities_selected[]"]').forEach(cb => {
+        cb.checked = modList.includes(cb.value.trim());
+    });
+    updateModalitiesInput();
+
+    // 5. Fill Prescribed Exercises Table
+    const exContainer = document.getElementById('exerciseRowsContainer');
+    const exercisesList = Array.isArray(rx.prescribed_exercises) ? rx.prescribed_exercises : [];
+    if (exContainer) {
+        exContainer.innerHTML = '';
+        exIndex = 0;
+
+        if (exercisesList.length > 0) {
+            exercisesList.forEach(exItem => {
+                const matchedCatalogIndex = rxExerciseCatalog.findIndex(
+                    c => (c.name || '').trim().toLowerCase() === (exItem.name || '').trim().toLowerCase()
+                );
+                const tr = document.createElement('tr');
+                tr.className = 'exercise-row border-b border-slate-100 hover:bg-slate-50/50';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3">
+                        <div class="space-y-1.5">
+                            <select class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50/40 font-bold text-slate-800 focus:outline-none focus:border-emerald-600 ex-dropdown" onchange="onPrescriptionExerciseChange(this)">
+                                ${getRxExerciseOptionsHtml(matchedCatalogIndex)}
+                            </select>
+                            <input type="text" name="prescribed_exercises[${exIndex}][name]" value="${escapeRxHtml(exItem.name || '')}" placeholder="Exercise Name"
+                                   class="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-200 font-bold focus:outline-none focus:border-emerald-500 bg-white ex-name-input">
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${exIndex}][target]" value="${escapeRxHtml(exItem.target || 'General')}" placeholder="Target Area"
+                               class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-target-input">
+                    </td>
+                    <td class="py-2.5 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${exIndex}][sets]" value="${escapeRxHtml(exItem.sets || '3 Sets')}" placeholder="3 Sets"
+                               class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-sets-input">
+                    </td>
+                    <td class="py-2.5 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${exIndex}][reps]" value="${escapeRxHtml(exItem.reps || '10 Reps')}" placeholder="10 Reps"
+                               class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-reps-input">
+                    </td>
+                    <td class="py-2.5 px-2 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${exIndex}][duration]" value="${escapeRxHtml(exItem.duration || '5 sec hold')}" placeholder="5 sec hold"
+                               class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-duration-input">
+                    </td>
+                    <td class="py-2.5 px-3 align-top pt-2.5">
+                        <input type="text" name="prescribed_exercises[${exIndex}][instructions]" value="${escapeRxHtml(exItem.instructions || '')}" placeholder="Instructions"
+                               class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white ex-instructions-input">
+                    </td>
+                    <td class="py-2.5 px-2 text-center align-top pt-2.5">
+                        <button type="button" onclick="removeExerciseRow(this)" title="Delete Row" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                if (matchedCatalogIndex === -1 && exItem.name) {
+                    const sel = tr.querySelector('.ex-dropdown');
+                    if (sel) sel.value = 'custom';
+                }
+                exContainer.appendChild(tr);
+                exIndex++;
+            });
+        } else {
+            addPrescriptionExerciseRow();
+        }
+    }
+
+    // 6. Fill Medications / Supplements Table
+    const medContainer = document.getElementById('medRowsContainer');
+    const medItems = Array.isArray(rx.items) ? rx.items : [];
+    if (medContainer) {
+        medContainer.innerHTML = '';
+        medIndex = 0;
+
+        if (medItems.length > 0) {
+            medItems.forEach(item => {
+                const freqVal = item.frequency || '1-0-1';
+                const timingVal = item.timing || 'After Food';
+                const tr = document.createElement('tr');
+                tr.className = 'med-row';
+                tr.innerHTML = `
+                    <td class="py-2 px-3">
+                        <input type="text" name="items[${medIndex}][medicine_name]" value="${escapeRxHtml(item.medicine_name || '')}" placeholder="Medicine Name"
+                               class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500">
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" name="items[${medIndex}][dosage]" value="${escapeRxHtml(item.dosage || '')}" placeholder="Dosage"
+                               class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select name="items[${medIndex}][frequency]" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                            <option value="1-0-1" ${freqVal === '1-0-1' ? 'selected' : ''}>1-0-1 (BD)</option>
+                            <option value="1-1-1" ${freqVal === '1-1-1' ? 'selected' : ''}>1-1-1 (TDS)</option>
+                            <option value="1-0-0" ${freqVal === '1-0-0' ? 'selected' : ''}>1-0-0 (OD)</option>
+                            <option value="0-0-1" ${freqVal === '0-0-1' ? 'selected' : ''}>0-0-1 (Night)</option>
+                            <option value="SOS" ${freqVal === 'SOS' ? 'selected' : ''}>SOS (As needed)</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-2">
+                        <input type="text" name="items[${medIndex}][duration]" value="${escapeRxHtml(item.duration || '5 Days')}" placeholder="Duration"
+                               class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+                    </td>
+                    <td class="py-2 px-2">
+                        <select name="items[${medIndex}][timing]" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200">
+                            <option value="After Food" ${timingVal === 'After Food' ? 'selected' : ''}>After Food</option>
+                            <option value="Before Food" ${timingVal === 'Before Food' ? 'selected' : ''}>Before Food</option>
+                            <option value="External Use" ${timingVal === 'External Use' ? 'selected' : ''}>External Use</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-3">
+                        <input type="text" name="items[${medIndex}][instructions]" value="${escapeRxHtml(item.instructions || '')}" placeholder="Instructions"
+                               class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200">
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <button type="button" onclick="removeMedRow(this)" class="text-slate-400 hover:text-rose-600 transition p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                medContainer.appendChild(tr);
+                medIndex++;
+            });
+        } else {
+            addMedRow();
+        }
+    }
+
+    // 7. Fill Advice & Follow-up Date
+    const adviceField = document.querySelector('textarea[name="advice"]');
+    if (adviceField) {
+        adviceField.value = rx.advice || '';
+    }
+    const followUpInput = document.querySelector('input[name="follow_up_date"]');
+    if (followUpInput && rx.follow_up_date) {
+        followUpInput.value = String(rx.follow_up_date).substring(0, 10);
+    }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    // Visual feedback on button & banner
+    const mainBtn = document.getElementById('mainCopyRxBtn');
+    if (mainBtn) {
+        mainBtn.className = "inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-black shadow-md transition cursor-pointer";
+        mainBtn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Copied & Auto-Filled! (Ready to Edit / Save)</span>`;
+    }
+    const topBtn = document.getElementById('topBannerCopyBtn');
+    if (topBtn) {
+        topBtn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Copied Latest Rx (${escapeRxHtml(rx.prescription_no || '')}) ✔</span>`;
+    }
+    const statusMsg = document.getElementById('copyRxStatusMsg');
+    if (statusMsg) {
+        statusMsg.className = "text-xs font-bold text-blue-800 mt-1";
+        statusMsg.innerText = "✔ All fields, exercises, modalities & medicines have been auto-filled from the latest prescription. Make any changes if needed and click Save below!";
+    }
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
 }
 

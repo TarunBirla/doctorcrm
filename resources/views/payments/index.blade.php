@@ -473,7 +473,7 @@
                                     <div class="inline-flex items-center justify-end gap-1.5">
                                         @if($inv->due_amount > 0)
                                             <button type="button"
-                                                    onclick="openCollectPaymentModal({{ $inv->id }}, '{{ $inv->invoice_no }}', '{{ addslashes($inv->patient?->full_name ?? 'Patient') }}', {{ (float)$inv->due_amount }})"
+                                                    onclick="openCollectPaymentModal({{ $inv->id }}, '{{ $inv->invoice_no }}', '{{ addslashes($inv->patient?->full_name ?? 'Patient') }}', {{ (float)$inv->due_amount }}, '{{ addslashes($clinicObj?->name ?? 'Main Clinic') }}', '{{ ($clinicObj && $clinicObj->qr_code) ? asset($clinicObj->qr_code) : '' }}')"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-2xs">
                                                 <i data-lucide="indian-rupee" class="w-3 h-3"></i>
                                                 <span>Collect</span>
@@ -778,9 +778,27 @@
         <form method="POST" id="collectPaymentForm" action="" class="p-6 space-y-4 text-xs">
             @csrf
             <div class="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-1">
-                <div class="text-[11px] text-emerald-800">Invoice: <strong id="collectInvNo" class="font-mono">-</strong></div>
+                <div class="flex items-center justify-between">
+                    <div class="text-[11px] text-emerald-800">Invoice: <strong id="collectInvNo" class="font-mono">-</strong></div>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white text-blue-700 font-bold text-[10px] border border-emerald-200">
+                        <i data-lucide="building-2" class="w-3 h-3"></i>
+                        <span id="collectClinicName">Clinic</span>
+                    </span>
+                </div>
                 <div class="text-sm font-black text-slate-900" id="collectPatientName">-</div>
                 <div class="text-xs font-extrabold text-rose-600">Pending Balance: ₹<span id="collectDueDisplay">0.00</span></div>
+            </div>
+
+            <!-- CLINIC QR CODE BOX -->
+            <div id="collectModalQrBox" class="hidden p-3.5 rounded-xl bg-slate-50 border border-emerald-200 text-center space-y-2">
+                <div class="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-xs">
+                    <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Scan Clinic QR to Pay (<span id="collectModalQrClinicLabel">Clinic</span>)</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-xl border border-emerald-200 inline-block shadow-xs">
+                    <img id="collectModalQrImg" src="" alt="Clinic Payment QR" class="w-44 h-44 object-contain mx-auto">
+                </div>
+                <p class="text-[11px] text-emerald-700 font-semibold">Scan via GPay, PhonePe, Paytm or any UPI App</p>
             </div>
 
             <div>
@@ -876,15 +894,29 @@ function switchPaymentTab(tab) {
     document.getElementById('btnTabReports').className = (tab === 'reports') ? activeCls : inactiveCls;
 }
 
-function openCollectPaymentModal(invoiceId, invoiceNo, patientName, dueAmount) {
+function openCollectPaymentModal(invoiceId, invoiceNo, patientName, dueAmount, clinicName = 'Main Clinic', qrUrl = '') {
     const form = document.getElementById('collectPaymentForm');
     form.action = "{{ url('invoices') }}/" + invoiceId + "/record-payment";
     document.getElementById('collectInvNo').textContent = invoiceNo;
     document.getElementById('collectPatientName').textContent = patientName;
+    document.getElementById('collectClinicName').textContent = clinicName || 'Main Clinic';
     document.getElementById('collectDueDisplay').textContent = dueAmount.toFixed(2);
     const amtInput = document.getElementById('collectAmountInput');
     amtInput.max = dueAmount;
     amtInput.value = dueAmount;
+
+    const qrBox = document.getElementById('collectModalQrBox');
+    const qrImg = document.getElementById('collectModalQrImg');
+    const qrLabel = document.getElementById('collectModalQrClinicLabel');
+    if (qrUrl && qrUrl.trim() !== '') {
+        qrImg.src = qrUrl;
+        qrLabel.textContent = clinicName || 'Clinic';
+        qrBox.classList.remove('hidden');
+    } else {
+        qrImg.src = '';
+        qrBox.classList.add('hidden');
+    }
+
     openModal('collectPaymentModal');
 }
 </script>

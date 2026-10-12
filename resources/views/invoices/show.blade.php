@@ -178,15 +178,37 @@
 <!-- MODAL: QUICK PAYMENT -->
 @if($invoice->due_amount > 0)
 <div id="quickPaymentModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <h3 class="font-bold text-slate-900 text-sm">Collect Due for Invoice #{{ $invoice->invoice_no }}</h3>
+            <div>
+                <h3 class="font-bold text-slate-900 text-sm">Collect Due for Invoice #{{ $invoice->invoice_no }}</h3>
+                @if($clinic && $clinic->name)
+                <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
+                    <i data-lucide="building-2" class="w-3 h-3"></i>
+                    <span>{{ $clinic->name }}</span>
+                </span>
+                @endif
+            </div>
             <button onclick="closeModal('quickPaymentModal')" class="text-slate-400 hover:text-slate-600">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
         <form action="{{ route('invoices.pay', $invoice->id) }}" method="POST" class="p-6 space-y-4 text-xs">
             @csrf
+
+            @if($clinic && $clinic->qr_code)
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-center space-y-2">
+                <div class="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-xs">
+                    <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Scan Clinic QR to Pay ({{ $clinic->name }})</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-xl border border-emerald-200 inline-block shadow-xs">
+                    <img src="{{ asset($clinic->qr_code) }}" alt="{{ $clinic->name }} QR" class="w-44 h-44 object-contain mx-auto">
+                </div>
+                <p class="text-[11px] text-emerald-700 font-semibold">Scan via GPay, PhonePe, Paytm or any UPI App</p>
+            </div>
+            @endif
+
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Collection Amount (₹) *</label>
                 <input type="number" step="0.01" min="1" max="{{ $invoice->due_amount }}" name="amount" value="{{ $invoice->due_amount }}" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 font-black text-slate-900 text-base outline-none">

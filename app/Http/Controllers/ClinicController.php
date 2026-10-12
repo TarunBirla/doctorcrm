@@ -8,9 +8,24 @@ use App\Models\Doctor;
 use App\Models\DoctorAvailability;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class ClinicController extends Controller
 {
+    private function ensureQrColumnExists(): void
+    {
+        try {
+            if (!Schema::hasColumn('clinics', 'qr_code')) {
+                Schema::table('clinics', function (Blueprint $table) {
+                    $table->string('qr_code')->nullable()->after('invoice_footer');
+                });
+            }
+        } catch (\Throwable $e) {
+            // Ignore if unable to alter schema dynamically
+        }
+    }
+
     /**
      * Display a listing of clinics.
      */
@@ -82,6 +97,8 @@ class ClinicController extends Controller
      */
     public function store(Request $request)
     {
+        $this->ensureQrColumnExists();
+
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
         $loggedInDoctor = null;
 
@@ -109,11 +126,24 @@ class ClinicController extends Controller
             'working_hours' => 'nullable|string|max:100',
             'break_hours' => 'nullable|string|max:100',
             'doctor_id' => 'nullable|exists:doctors,id',
+            'qr_code' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
         ]);
+
+        $qrCodePath = null;
+        if ($request->hasFile('qr_code')) {
+            $file = $request->file('qr_code');
+            $destDir = public_path('uploads/clinic-qr');
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            $filename = 'clinic_qr_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move($destDir, $filename);
+            $qrCodePath = 'uploads/clinic-qr/' . $filename;
+        }
 
         $doctorObj = $assignedDoctorId ? Doctor::find($assignedDoctorId) : null;
 
-        $clinic = DB::transaction(function () use ($validated, $assignedDoctorId, $doctorObj) {
+        $clinic = DB::transaction(function () use ($validated, $assignedDoctorId, $doctorObj, $qrCodePath) {
             $clinic = Clinic::create([
                 'doctor_id' => $assignedDoctorId,
                 'name' => $validated['name'],
@@ -133,6 +163,7 @@ class ClinicController extends Controller
                 'working_days' => $validated['working_days'] ?? 'Mon - Sat',
                 'working_hours' => $validated['working_hours'] ?? '09:00 AM - 05:00 PM',
                 'break_hours' => $validated['break_hours'] ?? '01:00 PM - 02:00 PM',
+                'qr_code' => $qrCodePath,
                 'is_active' => true,
             ]);
 
@@ -206,6 +237,8 @@ class ClinicController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->ensureQrColumnExists();
+
         $clinic = Clinic::findOrFail($id);
         $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
 
@@ -238,6 +271,8 @@ class ClinicController extends Controller
             'working_hours' => 'nullable|string|max:100',
             'break_hours' => 'nullable|string|max:100',
             'doctor_id' => 'nullable|exists:doctors,id',
+            'qr_code' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
+            'remove_qr_code' => 'nullable|boolean',
         ]);
 
         if ($currentRole !== 'doctor' && $request->filled('doctor_id')) {
@@ -249,7 +284,31 @@ class ClinicController extends Controller
             );
         }
 
+        unset($validated['qr_code'], $validated['remove_qr_code']);
         $clinic->fill($validated);
+
+        if ($request->boolean('remove_qr_code') && $clinic->qr_code) {
+            $oldPath = public_path($clinic->qr_code);
+            if (file_exists($oldPath)) {
+                @unlink($oldPath);
+            }
+            $clinic->qr_code = null;
+        }
+
+        if ($request->hasFile('qr_code')) {
+            if ($clinic->qr_code && file_exists(public_path($clinic->qr_code))) {
+                @unlink(public_path($clinic->qr_code));
+            }
+            $file = $request->file('qr_code');
+            $destDir = public_path('uploads/clinic-qr');
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            $filename = 'clinic_qr_' . $clinic->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move($destDir, $filename);
+            $clinic->qr_code = 'uploads/clinic-qr/' . $filename;
+        }
+
         $clinic->save();
 
         AuditLog::record('Clinic Updated', 'Clinic', (string) $clinic->id, "Clinic {$clinic->name} details updated.");

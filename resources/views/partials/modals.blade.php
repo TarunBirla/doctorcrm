@@ -108,7 +108,7 @@
                     <select name="clinic_id" id="modalClinicSelect" required onchange="handleModalClinicChange()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-semibold text-slate-800">
                         <option value="">-- Select Clinic --</option>
                         @foreach($modalClinics as $mc)
-                            <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}">{{ $mc->name }} ({{ $mc->city ?? 'Clinic' }})</option>
+                            <option value="{{ $mc->id }}" data-fee="{{ $mc->consultation_fee }}" data-clinic-name="{{ $mc->name }}" data-qr="{{ $mc->qr_code ? asset($mc->qr_code) : '' }}">{{ $mc->name }} ({{ $mc->city ?? 'Clinic' }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -211,6 +211,12 @@
                     </div>
 
                     <div id="modalPaymentFields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-200/60">
+                        <div id="modalBookingQrBox" class="hidden sm:col-span-2 p-3 rounded-xl bg-white border border-emerald-200 text-center space-y-1.5">
+                            <div class="text-[11px] font-bold text-emerald-800">
+                                Scan Clinic QR to Pay (<span id="modalBookingQrClinicName">Clinic</span>)
+                            </div>
+                            <img id="modalBookingQrImg" src="" alt="Clinic QR" class="w-36 h-36 object-contain mx-auto rounded-lg border border-slate-100 p-1">
+                        </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1 text-[11px]">Payment Method *</label>
                             <select name="payment_method" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white outline-none font-semibold text-slate-800 text-xs">
@@ -393,10 +399,26 @@ function handleModalPatientChange() {
 function handleModalClinicChange() {
     const clinicSelect = document.getElementById('modalClinicSelect');
     const dailyFeeInput = document.getElementById('modalDailyFee');
-    if (clinicSelect && dailyFeeInput) {
+    const qrBox = document.getElementById('modalBookingQrBox');
+    const qrImg = document.getElementById('modalBookingQrImg');
+    const qrClinicName = document.getElementById('modalBookingQrClinicName');
+
+    if (clinicSelect) {
         const opt = clinicSelect.options[clinicSelect.selectedIndex];
-        if (opt && opt.dataset.fee) {
+        if (opt && dailyFeeInput && opt.dataset.fee) {
             dailyFeeInput.value = parseFloat(opt.dataset.fee).toFixed(2);
+        }
+        if (qrBox && qrImg) {
+            const qrUrl = opt ? (opt.dataset.qr || '') : '';
+            const cName = opt ? (opt.dataset.clinicName || 'Clinic') : 'Clinic';
+            if (qrUrl) {
+                qrImg.src = qrUrl;
+                if (qrClinicName) qrClinicName.innerText = cName;
+                qrBox.classList.remove('hidden');
+            } else {
+                qrImg.src = '';
+                qrBox.classList.add('hidden');
+            }
         }
     }
     calculateModalTotalFee();

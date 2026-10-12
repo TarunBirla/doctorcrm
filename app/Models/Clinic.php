@@ -27,8 +27,14 @@ class Clinic extends Model
         'break_hours',
         'prescription_header',
         'invoice_footer',
+        'qr_code',
         'is_active',
     ];
+
+    public function getQrCodeUrlAttribute(): ?string
+    {
+        return $this->qr_code ? asset($this->qr_code) : null;
+    }
 
     protected $casts = [
         'is_active' => 'boolean',

@@ -102,8 +102,12 @@ class InvoiceController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access denied.');
         }
 
-        $invoice = Invoice::with(['patient', 'doctor', 'items', 'transactions', 'appointment'])->findOrFail($id);
-        $clinic = Clinic::first() ?? new Clinic();
+        $invoice = Invoice::with(['patient.clinic', 'doctor', 'items', 'transactions', 'appointment.clinic', 'appointments.clinic'])->findOrFail($id);
+        $clinic = $invoice->appointment?->clinic
+            ?? $invoice->appointments->first()?->clinic
+            ?? $invoice->patient?->clinic
+            ?? Clinic::first()
+            ?? new Clinic();
 
         return view('invoices.show', compact('invoice', 'clinic'));
     }
@@ -115,8 +119,12 @@ class InvoiceController extends Controller
             abort(403);
         }
 
-        $invoice = Invoice::with(['patient', 'doctor', 'items', 'transactions', 'appointment'])->findOrFail($id);
-        $clinic = Clinic::first() ?? new Clinic();
+        $invoice = Invoice::with(['patient.clinic', 'doctor', 'items', 'transactions', 'appointment.clinic', 'appointments.clinic'])->findOrFail($id);
+        $clinic = $invoice->appointment?->clinic
+            ?? $invoice->appointments->first()?->clinic
+            ?? $invoice->patient?->clinic
+            ?? Clinic::first()
+            ?? new Clinic();
 
         return view('invoices.print', compact('invoice', 'clinic'));
     }
@@ -266,7 +274,7 @@ class InvoiceController extends Controller
 
         $search = $request->get('search');
 
-        $query = Invoice::with(['patient', 'transactions', 'doctor'])
+        $query = Invoice::with(['patient.clinic', 'appointment.clinic', 'appointments.clinic', 'transactions', 'doctor'])
             ->whereIn('payment_status', ['unpaid', 'partially_paid', 'due'])
             ->where('due_amount', '>', 0);
 

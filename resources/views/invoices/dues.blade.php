@@ -49,6 +49,7 @@
                 <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     <tr class="border-b border-slate-100">
                         <th class="p-3.5 pl-5">Patient Details</th>
+                        <th class="p-3.5">Clinic</th>
                         <th class="p-3.5">Invoice No</th>
                         <th class="p-3.5">Invoice Date</th>
                         <th class="p-3.5">Days Overdue</th>
@@ -62,6 +63,11 @@
                     @forelse($dueInvoices as $inv)
                         @php
                             $daysOverdue = max(0, (int) now()->diffInDays($inv->invoice_date));
+                            $invClinic = $inv->appointment?->clinic
+                                ?? $inv->appointments->first()?->clinic
+                                ?? $inv->patient?->clinic;
+                            $clinicName = $invClinic?->name ?? 'Main Clinic';
+                            $clinicQrUrl = ($invClinic && $invClinic->qr_code) ? asset($invClinic->qr_code) : '';
                         @endphp
                         <tr class="hover:bg-slate-50/80 transition">
                             <td class="p-3.5 pl-5">
@@ -69,6 +75,17 @@
                                     {{ $inv->patient->full_name }}
                                 </a>
                                 <span class="text-[11px] text-slate-400 font-mono">{{ $inv->patient->patient_id }} • Ph: {{ $inv->patient->mobile }}</span>
+                            </td>
+                            <td class="p-3.5">
+                                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px] border border-slate-200">
+                                    <i data-lucide="building-2" class="w-3.5 h-3.5 text-blue-600 shrink-0"></i>
+                                    <span>{{ $clinicName }}</span>
+                                </div>
+                                @if($clinicQrUrl)
+                                    <div class="mt-1 flex items-center gap-1 text-[10px] text-emerald-700 font-semibold">
+                                        <i data-lucide="qr-code" class="w-3 h-3"></i> QR Available
+                                    </div>
+                                @endif
                             </td>
                             <td class="p-3.5 font-mono font-bold text-blue-700">
                                 {{ $inv->invoice_no }}
@@ -93,15 +110,16 @@
                                 </span>
                             </td>
                             <td class="p-3.5 pr-5 text-right">
-                                <button onclick="openCollectModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ $inv->patient->full_name }}', {{ $inv->due_amount }})" 
-                                        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                                <button onclick="openCollectModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ addslashes($inv->patient->full_name) }}', {{ (float)$inv->due_amount }}, '{{ addslashes($clinicName) }}', '{{ $clinicQrUrl }}')" 
+                                        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
                                     Collect Payment
                                 </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="p-12 text-center text-slate-400">
+                            <td colspan="9" class="p-12 text-center text-slate-400">
                                 <i data-lucide="check-circle" class="w-8 h-8 mx-auto text-emerald-400 mb-2"></i>
                                 Great! No overdue patient payments pending right now.
                             </td>
@@ -123,11 +141,15 @@
 
 <!-- MODAL: DUES COLLECTION -->
 <div id="collectModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div>
                 <h3 class="font-bold text-slate-900 text-sm">Collect Due Payment</h3>
                 <p class="text-xs text-slate-500" id="modalPatientText">Patient</p>
+                <span id="modalClinicBadge" class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
+                    <i data-lucide="building-2" class="w-3 h-3"></i>
+                    <span id="modalClinicNameText">Clinic</span>
+                </span>
             </div>
             <button onclick="closeModal('collectModal')" class="text-slate-400 hover:text-slate-600">
                 <i data-lucide="x" class="w-4 h-4"></i>
@@ -136,6 +158,19 @@
 
         <form id="collectForm" action="" method="POST" class="p-6 space-y-4 text-xs">
             @csrf
+
+            <!-- CLINIC QR CODE BOX -->
+            <div id="modalClinicQrBox" class="hidden p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-center space-y-2">
+                <div class="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-xs">
+                    <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Scan Clinic QR to Pay (<span id="modalQrClinicLabel">Clinic</span>)</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-xl border border-emerald-200 inline-block shadow-xs">
+                    <img id="modalClinicQrImg" src="" alt="Clinic Payment QR" class="w-44 h-44 object-contain mx-auto">
+                </div>
+                <p class="text-[11px] text-emerald-700 font-semibold">Scan via GPay, PhonePe, Paytm or any UPI App</p>
+            </div>
+
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Collection Amount (₹) *</label>
                 <input type="number" step="0.01" min="1" id="collectAmountInput" name="amount" required 
@@ -146,7 +181,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Payment Method *</label>
-                    <select name="payment_method" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                    <select name="payment_method" id="dueModalPaymentMethod" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
                         <option value="Cash">Cash</option>
                         <option value="UPI">UPI / QR Code</option>
                         <option value="Card">Card Swipe</option>
@@ -175,12 +210,26 @@
 </div>
 
 <script>
-    function openCollectModal(invId, invNo, patientName, dueAmount) {
+    function openCollectModal(invId, invNo, patientName, dueAmount, clinicName = 'Main Clinic', qrUrl = '') {
         document.getElementById('collectForm').action = `/invoices/${invId}/pay`;
         document.getElementById('modalPatientText').innerText = `${patientName} • Invoice #${invNo}`;
+        document.getElementById('modalClinicNameText').innerText = clinicName || 'Main Clinic';
         document.getElementById('collectAmountInput').value = dueAmount;
         document.getElementById('collectAmountInput').max = dueAmount;
         document.getElementById('modalMaxDueText').innerText = `Maximum outstanding due: ₹${dueAmount.toFixed(2)}. Partial payment supported.`;
+
+        const qrBox = document.getElementById('modalClinicQrBox');
+        const qrImg = document.getElementById('modalClinicQrImg');
+        const qrLabel = document.getElementById('modalQrClinicLabel');
+        if (qrUrl && qrUrl.trim() !== '') {
+            qrImg.src = qrUrl;
+            qrLabel.innerText = clinicName || 'Clinic';
+            qrBox.classList.remove('hidden');
+        } else {
+            qrImg.src = '';
+            qrBox.classList.add('hidden');
+        }
+
         openModal('collectModal');
     }
 </script>

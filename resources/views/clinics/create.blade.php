@@ -27,7 +27,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('clinics.store') }}" class="space-y-6">
+    <form method="POST" action="{{ route('clinics.store') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
 
         <!-- 1. Basic Details -->
@@ -158,6 +158,33 @@
             </div>
         </div>
 
+        <!-- 4. Payment QR Code -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+            <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+                <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i> Clinic Payment QR Code (UPI / Bank QR)
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div class="md:col-span-2 space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-600">Upload Clinic QR Code Image</label>
+                    <input type="file" name="qr_code" id="qr_code_input" accept="image/*"
+                           onchange="previewClinicQr(this)"
+                           class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                    <p class="text-[11px] text-slate-500">
+                        Upload UPI / GPay / PhonePe / Paytm QR code image for this clinic. This QR code will automatically appear inside the <strong>Collect Due Payment</strong> modal for patients of this clinic.
+                    </p>
+                </div>
+
+                <div class="flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 min-h-[130px]">
+                    <img id="qr_code_preview" src="" alt="QR Preview" class="hidden w-28 h-28 object-contain rounded-lg border border-slate-200 bg-white p-1 shadow-xs">
+                    <div id="qr_code_placeholder" class="text-center text-slate-400 text-xs flex flex-col items-center gap-1">
+                        <i data-lucide="qr-code" class="w-8 h-8 text-slate-300"></i>
+                        <span>No QR Selected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Submit Buttons -->
         <div class="flex items-center justify-end gap-3 pt-2">
             <a href="{{ route('clinics.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">
@@ -169,4 +196,24 @@
         </div>
     </form>
 </div>
+
+<script>
+function previewClinicQr(input) {
+    const preview = document.getElementById('qr_code_preview');
+    const placeholder = document.getElementById('qr_code_placeholder');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.src = '';
+        preview.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+    }
+}
+</script>
 @endsection

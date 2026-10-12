@@ -126,6 +126,27 @@
                         {{ $clinic->working_hours ?? '09:00 AM - 05:00 PM' }}
                     </span>
                 </div>
+
+                <!-- Payment QR Code Status / Preview -->
+                <div class="p-2.5 rounded-xl border {{ $clinic->qr_code ? 'bg-emerald-50/50 border-emerald-200/70' : 'bg-slate-50 border-slate-200/70' }} flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        @if($clinic->qr_code)
+                            <img src="{{ asset($clinic->qr_code) }}" alt="QR" class="w-10 h-10 object-contain rounded-lg border border-emerald-200 bg-white p-0.5 shrink-0 cursor-pointer" onclick="window.open('{{ asset($clinic->qr_code) }}', '_blank')" title="Click to view full QR Code">
+                            <div>
+                                <span class="text-[11px] font-bold text-emerald-800 block">Payment QR Uploaded</span>
+                                <span class="text-[10px] text-emerald-600">Shown in Due Payment Modal</span>
+                            </div>
+                        @else
+                            <div class="w-8 h-8 rounded-lg bg-slate-200/70 text-slate-500 flex items-center justify-center shrink-0">
+                                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-semibold text-slate-600 block">No Payment QR Code</span>
+                                <a href="{{ route('clinics.edit', $clinic->id) }}" class="text-[10px] font-bold text-blue-600 hover:underline">+ Upload QR in Edit</a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <!-- Card Actions -->

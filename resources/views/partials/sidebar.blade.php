@@ -169,13 +169,13 @@
                 Clinical Care & Therapy
             </div>
             <div class="space-y-1">
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'consultations'))
                 <a href="{{ route('consultations.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('consultations.*') || request()->routeIs('visits.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="stethoscope" class="w-4 h-4 {{ request()->routeIs('consultations.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Consultations & Visits</span>
                 </a>
-                @endif
+                @endif -->
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'exercises'))
                 <a href="{{ route('exercises.index') }}" 
@@ -207,13 +207,13 @@
                 </a>
                 @endif
 
-                @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions'))
+                <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'prescriptions'))
                 <a href="{{ route('prescriptions.index') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('prescriptions.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <i data-lucide="file-text" class="w-4 h-4 {{ request()->routeIs('prescriptions.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
                     <span>Prescriptions</span>
                 </a>
-                @endif
+                @endif -->
 
                 @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'medical_reports'))
                 <a href="{{ route('medical-reports.index') }}" 
