@@ -293,95 +293,37 @@ class PrescriptionController extends Controller
             ?? $request->input('assessment_data.chief_complaints')
             ?? 'Physiotherapy Assessment & Consultation';
 
-        // Check if patient already has an existing prescription so we update it instead of creating duplicates
-        $existingPrescription = Prescription::with('visit')
-            ->where('patient_id', $patient->id)
-            ->orderBy('prescription_date', 'desc')
-            ->orderBy('id', 'desc')
-            ->first();
+        $prescriptionNo = Prescription::generatePrescriptionNo();
 
-        if ($existingPrescription) {
-            $prescription = $existingPrescription;
-            $prescriptionNo = $prescription->prescription_no;
+        $visit = Visit::create([
+            'visit_no' => Visit::generateVisitNo(),
+            'patient_id' => $patient->id,
+            'doctor_id' => $validated['doctor_id'],
+            'appointment_id' => $validated['appointment_id'] ?? null,
+            'visit_date' => $validated['prescription_date'],
+            'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
+            'chief_complaint' => $chiefComplaint,
+            'diagnosis_summary' => $validated['diagnosis_summary'],
+            'treatment_plan' => $validated['advice'] ?? 'Physiotherapy protocol initialized',
+            'follow_up_date' => $validated['follow_up_date'] ?? null,
+        ]);
 
-            $visit = $prescription->visit;
-            if ($visit) {
-                $visit->update([
-                    'doctor_id' => $validated['doctor_id'],
-                    'appointment_id' => $validated['appointment_id'] ?? $visit->appointment_id,
-                    'visit_date' => $validated['prescription_date'],
-                    'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
-                    'chief_complaint' => $chiefComplaint,
-                    'diagnosis_summary' => $validated['diagnosis_summary'],
-                    'treatment_plan' => $validated['advice'] ?? 'Physiotherapy protocol updated',
-                    'follow_up_date' => $validated['follow_up_date'] ?? null,
-                ]);
-            } else {
-                $visit = Visit::create([
-                    'visit_no' => Visit::generateVisitNo(),
-                    'patient_id' => $patient->id,
-                    'doctor_id' => $validated['doctor_id'],
-                    'appointment_id' => $validated['appointment_id'] ?? null,
-                    'visit_date' => $validated['prescription_date'],
-                    'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
-                    'chief_complaint' => $chiefComplaint,
-                    'diagnosis_summary' => $validated['diagnosis_summary'],
-                    'treatment_plan' => $validated['advice'] ?? 'Physiotherapy protocol initialized',
-                    'follow_up_date' => $validated['follow_up_date'] ?? null,
-                ]);
-            }
-
-            $prescription->update([
-                'visit_id' => $visit->id,
-                'doctor_id' => $validated['doctor_id'],
-                'clinic_id' => $clinicId,
-                'prescription_date' => $validated['prescription_date'],
-                'assessment_type' => $validated['assessment_type'],
-                'assessment_data' => $request->input('assessment_data') ?? [],
-                'prescribed_exercises' => $prescribedExercises,
-                'modalities' => $validated['modalities'] ?? null,
-                'treatment_days' => $validated['treatment_days'] ?? 7,
-                'diagnosis_summary' => $validated['diagnosis_summary'],
-                'advice' => $validated['advice'] ?? null,
-                'follow_up_date' => $validated['follow_up_date'] ?? null,
-            ]);
-
-            $prescription->items()->delete();
-            $wasUpdated = true;
-        } else {
-            $prescriptionNo = Prescription::generatePrescriptionNo();
-
-            $visit = Visit::create([
-                'visit_no' => Visit::generateVisitNo(),
-                'patient_id' => $patient->id,
-                'doctor_id' => $validated['doctor_id'],
-                'appointment_id' => $validated['appointment_id'] ?? null,
-                'visit_date' => $validated['prescription_date'],
-                'visit_type' => ucfirst($validated['assessment_type']) . ' Assessment',
-                'chief_complaint' => $chiefComplaint,
-                'diagnosis_summary' => $validated['diagnosis_summary'],
-                'treatment_plan' => $validated['advice'] ?? 'Physiotherapy protocol initialized',
-                'follow_up_date' => $validated['follow_up_date'] ?? null,
-            ]);
-
-            $prescription = Prescription::create([
-                'prescription_no' => $prescriptionNo,
-                'visit_id' => $visit->id,
-                'patient_id' => $patient->id,
-                'doctor_id' => $validated['doctor_id'],
-                'clinic_id' => $clinicId,
-                'prescription_date' => $validated['prescription_date'],
-                'assessment_type' => $validated['assessment_type'],
-                'assessment_data' => $request->input('assessment_data') ?? [],
-                'prescribed_exercises' => $prescribedExercises,
-                'modalities' => $validated['modalities'] ?? null,
-                'treatment_days' => $validated['treatment_days'] ?? 7,
-                'diagnosis_summary' => $validated['diagnosis_summary'],
-                'advice' => $validated['advice'] ?? null,
-                'follow_up_date' => $validated['follow_up_date'] ?? null,
-            ]);
-            $wasUpdated = false;
-        }
+        $prescription = Prescription::create([
+            'prescription_no' => $prescriptionNo,
+            'visit_id' => $visit->id,
+            'patient_id' => $patient->id,
+            'doctor_id' => $validated['doctor_id'],
+            'clinic_id' => $clinicId,
+            'prescription_date' => $validated['prescription_date'],
+            'assessment_type' => $validated['assessment_type'],
+            'assessment_data' => $request->input('assessment_data') ?? [],
+            'prescribed_exercises' => $prescribedExercises,
+            'modalities' => $validated['modalities'] ?? null,
+            'treatment_days' => $validated['treatment_days'] ?? 7,
+            'diagnosis_summary' => $validated['diagnosis_summary'],
+            'advice' => $validated['advice'] ?? null,
+            'follow_up_date' => $validated['follow_up_date'] ?? null,
+        ]);
 
         // If medicines were added
         if (!empty($validated['items'])) {
@@ -430,15 +372,13 @@ class PrescriptionController extends Controller
         }
 
         AuditLog::record(
-            $wasUpdated ? 'Prescription Updated' : 'Prescription Created',
+            'Prescription Created',
             'Prescription',
             $prescriptionNo,
-            ($wasUpdated ? "Updated" : "Generated") . " {$validated['assessment_type']} clinical assessment & prescription #{$prescriptionNo} for {$patient->full_name}"
+            "Generated {$validated['assessment_type']} clinical assessment & prescription #{$prescriptionNo} for {$patient->full_name}"
         );
 
         return redirect()->route('prescriptions.show', $prescription->id)
-            ->with('success', $wasUpdated
-                ? "Prescription & Clinical Assessment #{$prescriptionNo} updated & session completed successfully!"
-                : "Prescription & Clinical Assessment #{$prescriptionNo} created successfully!");
+            ->with('success', "New Prescription & Clinical Assessment #{$prescriptionNo} created and recorded in patient visits!");
     }
 }

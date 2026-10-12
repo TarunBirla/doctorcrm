@@ -451,10 +451,10 @@
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                         <span>Print Rx</span>
                                     </a>
+                                    <a href="{{ route('prescriptions.show', $vst->prescriptions->first()->id) }}" class="px-3 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
+                                        Full Visit Details
+                                    </a>
                                 @endif
-                                <a href="{{ route('prescriptions.show', $vst->id) }}" class="px-3 py-1.5 bg-navy-900 text-white rounded-xl text-xs font-bold">
-                                    Full Visit Details
-                                </a>
                             </div>
                         </div>
 
