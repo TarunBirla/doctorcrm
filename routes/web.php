@@ -29,6 +29,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\DoctorVideoController;
 use App\Http\Controllers\PwaSetupController;
+use App\Http\Controllers\HolidayController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,8 +87,13 @@ Route::resource('appointments', AppointmentController::class)->except(['show']);
 Route::post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.status');
 Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
 Route::post('/appointments/{id}/extend', [AppointmentController::class, 'extendDays'])->name('appointments.extend');
+Route::post('/appointments/{id}/skip-to-end', [AppointmentController::class, 'skipToEnd'])->name('appointments.skip-to-end');
 Route::post('/appointments/{id}/recovery', [AppointmentController::class, 'updateRecovery'])->name('appointments.recovery');
 Route::get('/calendar', [AppointmentController::class, 'calendar'])->name('calendar.index');
+
+// Clinic Holidays & Doctor Emergency Off
+Route::resource('holidays', HolidayController::class)->only(['index', 'store', 'destroy']);
+Route::post('/holidays/emergency-off', [HolidayController::class, 'emergencyOff'])->name('holidays.emergency-off');
 
 // Multi-Clinic Practice Management
 Route::resource('clinics', ClinicController::class);
@@ -138,12 +144,16 @@ Route::resource('videos', DoctorVideoController::class);
 Route::post('/follow-ups/{id}/status', [FollowUpController::class, 'updateStatus'])->name('followups.status');
 
 // Billing, Invoices & Due Payments
-Route::resource('invoices', InvoiceController::class)->except(['edit', 'update', 'destroy']);
+Route::resource('invoices', InvoiceController::class);
 Route::get('/invoices/{id}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 Route::post('/invoices/{id}/pay', [InvoiceController::class, 'recordPayment'])->name('invoices.pay');
 Route::post('/invoices/{id}/record-payment', [InvoiceController::class, 'recordPayment'])->name('invoices.record-payment');
 Route::get('/due-payments', [InvoiceController::class, 'duePayments'])->name('due-payments.index');
 Route::get('/receipts/{id}/print', [InvoiceController::class, 'printReceipt'])->name('receipts.print');
+
+// Payment Transactions Edit & Delete (Doctor / Admin)
+Route::put('/payment-transactions/{id}', [InvoiceController::class, 'updateTransaction'])->name('payment-transactions.update');
+Route::delete('/payment-transactions/{id}', [InvoiceController::class, 'deleteTransaction'])->name('payment-transactions.destroy');
 
 // Payment Manage & Comprehensive Reports
 Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');

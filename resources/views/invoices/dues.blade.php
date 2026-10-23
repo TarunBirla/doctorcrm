@@ -109,12 +109,17 @@
                                     ₹{{ number_format($inv->due_amount, 2) }}
                                 </span>
                             </td>
-                            <td class="p-3.5 pr-5 text-right">
-                                <button onclick="openCollectModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ addslashes($inv->patient->full_name) }}', {{ (float)$inv->due_amount }}, '{{ addslashes($clinicName) }}', '{{ $clinicQrUrl }}')" 
-                                        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5">
-                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
-                                    Collect Payment
-                                </button>
+                            <td class="p-3.5 pr-5 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1.5 justify-end">
+                                    <button onclick="openCollectModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ addslashes($inv->patient->full_name) }}', {{ (float)$inv->due_amount }}, '{{ addslashes($clinicName) }}', '{{ $clinicQrUrl }}')" 
+                                            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5">
+                                        <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                                        <span>Collect</span>
+                                    </button>
+                                    <a href="{{ route('invoices.show', $inv->id) }}" class="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-blue-700 rounded-xl transition border border-slate-200 inline-flex items-center" title="View &amp; Edit Invoice / Payment Adjustments">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty

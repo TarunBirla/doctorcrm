@@ -486,6 +486,11 @@
                                             <span>Invoice</span>
                                         </a>
                                         <a href="{{ route('invoices.show', $inv->id) }}"
+                                           class="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-blue-700 transition"
+                                           title="Edit Bill, Dues or Payment Transactions">
+                                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                        </a>
+                                        <a href="{{ route('invoices.show', $inv->id) }}"
                                            class="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition"
                                            title="View Full Bill Details">
                                             <i data-lucide="eye" class="w-3.5 h-3.5"></i>

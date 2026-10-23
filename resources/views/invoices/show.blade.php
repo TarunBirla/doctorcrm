@@ -13,6 +13,10 @@
             <span>Back to Invoices</span>
         </a>
         <div class="flex items-center gap-2">
+            <button type="button" onclick="openModal('editInvoiceModal')" class="px-3.5 py-2 border border-slate-200 bg-white text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5 shadow-2xs">
+                <i data-lucide="edit" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span>Edit Bill / Dues</span>
+            </button>
             <a href="{{ route('invoices.print', $invoice->id) }}" target="_blank" class="px-4 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold hover:bg-navy-800 transition flex items-center gap-1.5 shadow-sm">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                 <span>Print Invoice</span>
@@ -136,7 +140,13 @@
 
         <!-- PAYMENT TRANSACTIONS LOG -->
         <div class="pt-6 border-t border-slate-100 space-y-3">
-            <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Payment Transactions</h4>
+            <div class="flex items-center justify-between">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Payment Transactions History</span>
+                </h4>
+                <span class="text-[11px] text-slate-400">Paid amount &amp; pending due will auto-recalculate upon editing</span>
+            </div>
             <div class="overflow-x-auto text-xs">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-bold uppercase text-slate-400">
@@ -146,25 +156,47 @@
                             <th class="p-2.5">Date</th>
                             <th class="p-2.5">Method</th>
                             <th class="p-2.5">Amount</th>
-                            <th class="p-2.5 text-right">Receipt</th>
+                            <th class="p-2.5">Reference / Notes</th>
+                            <th class="p-2.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($invoice->transactions as $txn)
-                            <tr>
+                            <tr class="hover:bg-slate-50/70 transition">
                                 <td class="p-2.5 font-mono font-bold text-blue-700">{{ $txn->receipt_no }}</td>
                                 <td class="p-2.5 font-mono text-slate-500">{{ $txn->transaction_no }}</td>
-                                <td class="p-2.5 text-slate-600">{{ $txn->payment_date->format('d M Y') }}</td>
-                                <td class="p-2.5 font-semibold text-slate-800">{{ $txn->payment_method }}</td>
-                                <td class="p-2.5 font-bold text-emerald-700">₹{{ number_format($txn->amount, 2) }}</td>
-                                <td class="p-2.5 text-right">
-                                    <a href="{{ route('receipts.print', $txn->id) }}" target="_blank" class="text-blue-700 font-bold hover:underline">
-                                        Print Receipt
-                                    </a>
+                                <td class="p-2.5 text-slate-600 font-semibold">{{ $txn->payment_date ? $txn->payment_date->format('d M Y') : '—' }}</td>
+                                <td class="p-2.5">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                        {{ $txn->payment_method }}
+                                    </span>
+                                </td>
+                                <td class="p-2.5 font-black text-emerald-700">₹{{ number_format($txn->amount, 2) }}</td>
+                                <td class="p-2.5 text-slate-500 text-[11px]">
+                                    {{ $txn->transaction_reference ?: ($txn->notes ?: '—') }}
+                                </td>
+                                <td class="p-2.5 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center gap-1.5 justify-end">
+                                        <a href="{{ route('receipts.print', $txn->id) }}" target="_blank" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition text-[11px]" title="Print Receipt">
+                                            Print
+                                        </a>
+                                        <button type="button" 
+                                                onclick="openEditTxnModal({{ $txn->id }}, '{{ $txn->receipt_no }}', {{ (float)$txn->amount }}, '{{ $txn->payment_method }}', '{{ $txn->payment_date ? $txn->payment_date->format('Y-m-d') : now()->toDateString() }}', '{{ addslashes($txn->transaction_reference ?? '') }}', '{{ addslashes($txn->notes ?? '') }}')"
+                                                class="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="Edit Payment Transaction">
+                                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <form action="{{ route('payment-transactions.destroy', $txn->id) }}" method="POST" class="inline" onsubmit="return confirm('Delete payment receipt #{{ $txn->receipt_no }} of ₹{{ number_format($txn->amount, 2) }}? Invoice balance will auto-recalculate.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Payment Transaction">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="p-4 text-center text-slate-400">No payment transactions recorded yet.</td></tr>
+                            <tr><td colspan="7" class="p-4 text-center text-slate-400">No payment transactions recorded yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -174,6 +206,123 @@
     </div>
 
 </div>
+
+<!-- MODAL: EDIT PAYMENT TRANSACTION -->
+<div id="editTxnModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+                <h3 class="font-bold text-slate-900 text-sm">Edit Payment Record</h3>
+                <span id="editTxnReceiptBadge" class="text-[11px] font-mono text-blue-700 font-bold"></span>
+            </div>
+            <button onclick="closeModal('editTxnModal')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="editTxnForm" method="POST" class="p-6 space-y-4 text-xs">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Correct Paid Amount (₹) *</label>
+                <input type="number" step="0.01" min="0.01" name="amount" id="editTxnAmount" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 font-black text-slate-900 text-base outline-none focus:border-blue-500">
+                <span class="text-[11px] text-slate-400 mt-1 block">Updating amount will automatically recalculate total paid &amp; balance due.</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Payment Method *</label>
+                    <select name="payment_method" id="editTxnMethod" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Payment Date *</label>
+                    <input type="date" name="payment_date" id="editTxnDate" required class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">UPI Ref / Transaction Reference</label>
+                <input type="text" name="transaction_reference" id="editTxnRef" placeholder="e.g. UTR / UPI / Cheque No" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Notes</label>
+                <input type="text" name="notes" id="editTxnNotes" placeholder="Reason for edit / note" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('editTxnModal')" class="px-4 py-2 border rounded-xl text-slate-600">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-xs">Save &amp; Recalculate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: EDIT INVOICE BILL & DUES -->
+<div id="editInvoiceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+                <h3 class="font-bold text-slate-900 text-sm">Edit Invoice Bill &amp; Dues (#{{ $invoice->invoice_no }})</h3>
+                <p class="text-[11px] text-slate-400 mt-0.5">Adjust discount, additional charges, or invoice date</p>
+            </div>
+            <button onclick="closeModal('editInvoiceModal')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{{ route('invoices.update', $invoice->id) }}" method="POST" class="p-6 space-y-4 text-xs">
+            @csrf
+            @method('PUT')
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Discount (₹)</label>
+                    <input type="number" step="0.01" min="0" name="discount" value="{{ $invoice->discount }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Additional Charges (₹)</label>
+                    <input type="number" step="0.01" min="0" name="additional_charges" value="{{ $invoice->additional_charges }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Invoice Date</label>
+                <input type="date" name="invoice_date" value="{{ $invoice->invoice_date->format('Y-m-d') }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Notes / Instructions</label>
+                <textarea name="notes" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:border-blue-500">{{ $invoice->notes }}</textarea>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('editInvoiceModal')" class="px-4 py-2 border rounded-xl text-slate-600">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-xl shadow-xs">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditTxnModal(txnId, receiptNo, amount, method, date, ref, notes) {
+    const form = document.getElementById('editTxnForm');
+    form.action = '/payment-transactions/' + txnId;
+    document.getElementById('editTxnReceiptBadge').innerText = 'Receipt: #' + receiptNo;
+    document.getElementById('editTxnAmount').value = amount;
+    document.getElementById('editTxnMethod').value = method;
+    document.getElementById('editTxnDate').value = date;
+    document.getElementById('editTxnRef').value = ref || '';
+    document.getElementById('editTxnNotes').value = notes || '';
+    openModal('editTxnModal');
+}
+</script>
 
 <!-- MODAL: QUICK PAYMENT -->
 @if($invoice->due_amount > 0)

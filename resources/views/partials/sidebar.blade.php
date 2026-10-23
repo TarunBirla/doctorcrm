@@ -141,6 +141,15 @@
                 </a>
                 @endif
 
+                <a href="{{ route('holidays.index') }}" 
+                   class="sidebar-nav-link flex items-center justify-between px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('holidays.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="calendar-x" class="w-4 h-4 {{ request()->routeIs('holidays.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
+                        <span>Holidays & Doctor Off</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">AUTO-SKIP</span>
+                </a>
+
                 <!-- @if(\App\Models\RoleMenuPermission::canAccess($currentRole, 'slots'))
                 <a href="{{ route('slots.manage') }}" 
                    class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition font-semibold {{ request()->routeIs('slots.*') ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">

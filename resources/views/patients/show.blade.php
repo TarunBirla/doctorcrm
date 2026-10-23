@@ -400,6 +400,13 @@
                                                         <span>Done ✔</span>
                                                     </button> -->
                                                 </form>
+                                                <form action="{{ route('appointments.skip-to-end', $apt->id) }}" method="POST" class="inline" onsubmit="return confirm('Patient attend karne nahi aaya? Ye appointment last package session ke baad next working day me shift ho jayega. Confirm skip?');">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-700 hover:text-white border border-amber-200 rounded-xl text-xs font-bold transition shadow-2xs" title="Absent / Skip & Move to End of Package">
+                                                        <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+                                                        <span>Skip &amp; Move to End</span>
+                                                    </button>
+                                                </form>
                                                 <a href="{{ route('prescriptions.create', ['appointment_id' => $apt->id]) }}" 
                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
                                                     <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>

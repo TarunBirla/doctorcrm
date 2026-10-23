@@ -238,7 +238,7 @@ class Patient extends Model
                 $reasonText = $this->description ?: ($lastApt?->reason ?: 'Physiotherapy Follow-up Session');
 
                 while (count($createdAppointments) < $addDays) {
-                    if (!$currentDate->isSunday()) {
+                    if (!$currentDate->isSunday() && !\App\Models\ClinicHoliday::isHolidayDate($currentDate, $clinicId, $doctorId)) {
                         $dateStr = $currentDate->format('Y-m-d');
                         $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
                         $tokenNumber = \App\Models\Appointment::nextTokenForDate($dateStr, $doctorId);

@@ -233,6 +233,15 @@
                                        class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-xl transition">
                                         <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                                     </a>
+                                    <form action="{{ route('patients.destroy', $patient->id) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('Are you sure you want to delete patient \'{{ addslashes($patient->full_name) }}\' ({{ $patient->patient_id }})? This will archive the patient safely.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" title="Delete / Archive Patient"
+                                                class="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl transition">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

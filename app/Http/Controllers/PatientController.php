@@ -229,7 +229,7 @@ class PatientController extends Controller
                 $sessionNum = 1;
 
                 while (count($createdAppointments) < $treatmentDays) {
-                    if (!$currentDate->isSunday()) {
+                    if (!$currentDate->isSunday() && !\App\Models\ClinicHoliday::isHolidayDate($currentDate, $clinicId, $assignedDoctorId)) {
                         $dateStr = $currentDate->format('Y-m-d');
                         $appointmentNo = \App\Models\Appointment::generateAppointmentNo();
                         $tokenNumber = \App\Models\Appointment::nextTokenForDate($dateStr, $assignedDoctorId);

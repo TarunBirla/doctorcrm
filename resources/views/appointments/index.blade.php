@@ -315,6 +315,16 @@
 
                                    
 
+                                    <!-- Skip to End if not completed -->
+                                    @if($apt->status !== 'completed')
+                                        <form action="{{ route('appointments.skip-to-end', $apt->id) }}" method="POST" class="inline" onsubmit="return confirm('Patient absent / attend nahi kiya? Ye appointment session last package date ke baad shift ho jayega. Confirm skip?');">
+                                            @csrf
+                                            <button type="submit" title="Absent / Skip & Move to End of Package" class="p-1.5 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border border-amber-200 rounded-xl transition">
+                                                <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     <!-- Edit Patient & Package Link -->
                                     @if($apt->patient_id)
                                         <a href="{{ route('patients.edit', $apt->patient_id) }}" title="Edit Patient / Package & Extend Days"

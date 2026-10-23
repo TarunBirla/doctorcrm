@@ -327,4 +327,113 @@ class InvoiceController extends Controller
 
         return view('invoices.receipt', compact('transaction', 'clinic'));
     }
+
+    /**
+     * Update Invoice Details (Discount, Charges, Date, Notes)
+     */
+    public function update(Request $request, $id)
+    {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            abort(403);
+        }
+
+        $invoice = Invoice::findOrFail($id);
+
+        $validated = $request->validate([
+            'discount' => 'nullable|numeric|min:0',
+            'additional_charges' => 'nullable|numeric|min:0',
+            'subtotal' => 'nullable|numeric|min:0',
+            'invoice_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        if (isset($validated['discount'])) {
+            $invoice->discount = $validated['discount'];
+        }
+        if (isset($validated['additional_charges'])) {
+            $invoice->additional_charges = $validated['additional_charges'];
+        }
+        if (isset($validated['subtotal']) && $invoice->items()->count() === 0) {
+            $invoice->subtotal = $validated['subtotal'];
+        }
+        if (!empty($validated['invoice_date'])) {
+            $invoice->invoice_date = $validated['invoice_date'];
+        }
+        if (isset($validated['notes'])) {
+            $invoice->notes = $validated['notes'];
+        }
+
+        $invoice->recalculate();
+
+        AuditLog::record('Invoice Updated', 'Invoice', $invoice->invoice_no, "Updated invoice #{$invoice->invoice_no} (Discount: {$invoice->discount}, Charges: {$invoice->additional_charges}, Total: ₹" . number_format($invoice->total_amount, 2) . ")");
+
+        return back()->with('success', "Invoice #{$invoice->invoice_no} updated successfully!");
+    }
+
+    /**
+     * Edit Payment Transaction (Amount, Date, Method, Reference, Notes)
+     */
+    public function updateTransaction(Request $request, $id)
+    {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            abort(403);
+        }
+
+        $transaction = PaymentTransaction::with('invoice')->findOrFail($id);
+        $invoice = $transaction->invoice;
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:Cash,UPI,Card,Bank Transfer,Online Payment,Other',
+            'payment_date' => 'required|date',
+            'transaction_reference' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Check if new amount would exceed total allowed (invoice total - other payments)
+        $otherPaid = $invoice->transactions()->where('id', '!=', $transaction->id)->sum('amount');
+        if (($otherPaid + $validated['amount']) > ($invoice->total_amount + 0.01)) {
+            return back()->withErrors(['amount' => "Updated amount cannot make total paid exceed the invoice total of ₹" . number_format($invoice->total_amount, 2)]);
+        }
+
+        $oldAmount = $transaction->amount;
+        $transaction->update([
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['payment_method'],
+            'payment_date' => $validated['payment_date'],
+            'transaction_reference' => $validated['transaction_reference'] ?? null,
+            'notes' => $validated['notes'] ?? $transaction->notes,
+        ]);
+
+        $invoice->recalculate();
+
+        AuditLog::record('Payment Transaction Edited', 'Invoice', $invoice->invoice_no, "Edited transaction #{$transaction->receipt_no} from ₹" . number_format($oldAmount, 2) . " to ₹" . number_format($transaction->amount, 2) . " ({$transaction->payment_method})");
+
+        return back()->with('success', "Payment receipt #{$transaction->receipt_no} updated successfully! Invoice balances recalculated.");
+    }
+
+    /**
+     * Delete Mistaken Payment Transaction
+     */
+    public function deleteTransaction($id)
+    {
+        $currentRole = session('current_role', auth()->user()->role ?? 'super_admin');
+        if (\App\Models\User::isStaffRole($currentRole)) {
+            abort(403);
+        }
+
+        $transaction = PaymentTransaction::with('invoice')->findOrFail($id);
+        $invoice = $transaction->invoice;
+        $recNo = $transaction->receipt_no;
+        $amount = $transaction->amount;
+
+        $transaction->delete();
+        $invoice->recalculate();
+
+        AuditLog::record('Payment Transaction Deleted', 'Invoice', $invoice->invoice_no, "Deleted transaction #{$recNo} of ₹" . number_format($amount, 2));
+
+        return back()->with('success', "Payment transaction #{$recNo} removed! Invoice balances recalculated.");
+    }
 }

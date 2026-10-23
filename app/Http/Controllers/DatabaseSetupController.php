@@ -86,15 +86,27 @@ class DatabaseSetupController extends Controller
             DB::connection()->getPdo();
             $output[] = "✓ Connected to {$driver} database successfully.";
 
-            // 3. Run Migrations
+            // 3. Run Migrations Safely
             Artisan::call('migrate', ['--force' => true]);
             $output[] = "--- MIGRATIONS OUTPUT ---";
             $output[] = trim(Artisan::output());
 
-            // 4. Run Seeders
-            Artisan::call('db:seed', ['--force' => true]);
-            $output[] = "--- SEEDERS OUTPUT ---";
-            $output[] = trim(Artisan::output());
+            // 3b. Ensure Clinic Holiday & New Feature Schemas
+            try {
+                \App\Models\ClinicHoliday::ensureTableExists();
+                $output[] = "✓ Verified and ensured 'clinic_holidays' table and columns exist.";
+            } catch (Exception $ex) {
+                $output[] = "Notice on holidays schema: " . $ex->getMessage();
+            }
+
+            // 4. Run Seeders (safely, won't break if records already exist)
+            try {
+                Artisan::call('db:seed', ['--force' => true]);
+                $output[] = "--- SEEDERS OUTPUT ---";
+                $output[] = trim(Artisan::output());
+            } catch (Exception $seedEx) {
+                $output[] = "Seeders skipped or already populated: " . $seedEx->getMessage();
+            }
 
             // 5. Create storage symlink
             try {

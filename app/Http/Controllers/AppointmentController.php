@@ -270,7 +270,7 @@ class AppointmentController extends Controller
         $initialPaymentStatus = $isPaidUpfront ? 'paid' : 'unpaid';
 
         while (count($createdAppointments) < $treatmentDays) {
-            if (!$currentDate->isSunday()) {
+            if (!$currentDate->isSunday() && !\App\Models\ClinicHoliday::isHolidayDate($currentDate, $validated['clinic_id'], $validated['doctor_id'])) {
                 $dateStr = $currentDate->format('Y-m-d');
                 $appointmentNo = Appointment::generateAppointmentNo();
                 $tokenNumber = Appointment::nextTokenForDate($dateStr, $validated['doctor_id']);
@@ -745,9 +745,18 @@ class AppointmentController extends Controller
 
         $isAvailable = $availability ? (bool) $availability->is_available : ($dayOfWeek !== 'Sunday');
 
+        $isHoliday = \App\Models\ClinicHoliday::isHolidayDate($dateFormatted, $clinic?->id, $doctor->id);
+        if ($isHoliday) {
+            $isAvailable = false;
+        }
+
         $effectiveFee = $clinic ? $clinic->consultation_fee : $doctor->consultation_fee;
 
         if (!$isAvailable) {
+            $msg = $isHoliday 
+                ? "Clinic / Dr. {$doctor->name} is off on {$dateFormatted} due to scheduled holiday."
+                : "Dr. {$doctor->name} is unavailable at " . ($clinic ? $clinic->name : 'this clinic') . " on {$dayOfWeek}s.";
+
             return response()->json([
                 'success' => true,
                 'doctor' => ['id' => $doctor->id, 'name' => $doctor->name, 'fee' => $effectiveFee],
@@ -755,7 +764,7 @@ class AppointmentController extends Controller
                 'date' => $dateFormatted,
                 'day' => $dayOfWeek,
                 'is_available' => false,
-                'message' => "Dr. {$doctor->name} is unavailable at " . ($clinic ? $clinic->name : 'this clinic') . " on {$dayOfWeek}s.",
+                'message' => $msg,
                 'slots' => [],
                 'available_count' => 0,
                 'booked_count' => 0,
@@ -890,6 +899,57 @@ class AppointmentController extends Controller
             'booked_count' => $bookedCount,
             'blocked_count' => $blockedCount,
         ]);
+    }
+
+    /**
+     * Skip today's/selected appointment (when patient is absent/not attending)
+     * and push this session after the patient's last scheduled package appointment.
+     */
+    public function skipToEnd(Request $request, $id)
+    {
+        $appointment = Appointment::with('patient')->findOrFail($id);
+
+        if ($appointment->status === 'completed') {
+            return back()->with('error', 'Cannot skip an appointment that is already marked as completed.');
+        }
+
+        $oldDate = $appointment->appointment_date;
+        $oldDateFormatted = $oldDate ? $oldDate->format('d M Y') : 'today';
+
+        // Find the patient's last scheduled appointment date among non-cancelled appointments
+        $lastApt = Appointment::where('patient_id', $appointment->patient_id)
+            ->where('id', '!=', $appointment->id)
+            ->whereNotIn('status', ['cancelled'])
+            ->orderBy('appointment_date', 'desc')
+            ->first();
+
+        $baseDate = ($lastApt && $lastApt->appointment_date)
+            ? Carbon::parse($lastApt->appointment_date)
+            : ($oldDate ? Carbon::parse($oldDate) : Carbon::today());
+
+        if ($oldDate && $baseDate->lt(Carbon::parse($oldDate))) {
+            $baseDate = Carbon::parse($oldDate);
+        }
+
+        // Calculate next working day after baseDate, skipping Sundays and Holidays
+        $newDate = \App\Models\ClinicHoliday::nextWorkingDay($baseDate, $appointment->clinic_id, $appointment->doctor_id);
+        $newDateStr = $newDate->format('Y-m-d');
+        $newToken = Appointment::nextTokenForDate($newDateStr, $appointment->doctor_id);
+
+        $appointment->appointment_date = $newDateStr;
+        $appointment->token_number = $newToken;
+        $appointment->status = 'rescheduled';
+        $appointment->notes = trim(($appointment->notes ? $appointment->notes . " | " : "") . "Session skipped on {$oldDateFormatted} (Patient Absent) - moved to end of package.");
+        $appointment->save();
+
+        AuditLog::record(
+            'Appointment Skipped To End',
+            'Appointment',
+            $appointment->appointment_no,
+            "Patient absent on {$oldDateFormatted}. Appointment #{$appointment->appointment_no} moved to end on {$newDate->format('d M Y')} (Token #{$newToken})"
+        );
+
+        return back()->with('success', "Session skipped! Appointment #{$appointment->appointment_no} has been moved to {$newDate->format('d M Y (D)')} (Token #{$newToken}) after the patient's last session.");
     }
 
     public function destroy($id)
