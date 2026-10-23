@@ -48,7 +48,7 @@
                 <span>Today's Status</span>
                 <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
             </div>
-            @if($isTodayHoliday)
+            @if(!empty($isTodayHoliday))
                 <div class="text-xl font-black text-rose-600 flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
                     <span>CLINIC OFF TODAY</span>

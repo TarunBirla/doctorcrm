@@ -65,9 +65,21 @@ class HolidayController extends Controller
 
         $upcomingHolidaysCount = ClinicHoliday::whereDate('holiday_date', '>=', $todayStr)->count();
 
+        $todayHoliday = ClinicHoliday::whereDate('holiday_date', $todayStr)
+            ->when($loggedInDoctor, function($q) use ($loggedInDoctor) {
+                $q->where(function($sub) use ($loggedInDoctor) {
+                    $sub->whereNull('doctor_id')->orWhere('doctor_id', $loggedInDoctor->id);
+                });
+            })
+            ->first();
+
+        $isTodayHoliday = $todayHoliday !== null;
+        $todayHolidayTitle = $todayHoliday?->title;
+
         return view('holidays.index', compact(
             'holidays', 'clinics', 'doctors', 'loggedInDoctor', 'currentRole',
-            'todayAppointmentsCount', 'upcomingHolidaysCount', 'todayStr'
+            'todayAppointmentsCount', 'upcomingHolidaysCount', 'todayStr',
+            'isTodayHoliday', 'todayHolidayTitle'
         ));
     }
 
