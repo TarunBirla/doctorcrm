@@ -233,15 +233,12 @@
                                        class="p-1.5 bg-slate-50 text-blue-700 hover:bg-blue-100 rounded-xl transition">
                                         <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                                     </a>
-                                    <form action="{{ route('patients.destroy', $patient->id) }}" method="POST" class="inline"
-                                          onsubmit="return confirm('Are you sure you want to delete patient \'{{ addslashes($patient->full_name) }}\' ({{ $patient->patient_id }})? This will archive the patient safely.');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" title="Delete / Archive Patient"
-                                                class="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl transition">
-                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" 
+                                            onclick="openDeletePatientModal('{{ route('patients.destroy', $patient->id) }}', '{{ addslashes($patient->full_name) }}', '{{ $patient->patient_id }}')"
+                                            title="Delete Patient Record"
+                                            class="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl transition">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -265,4 +262,62 @@
     </div>
 
 </div>
+
+<!-- MODAL: DELETE PATIENT CONFIRMATION -->
+<div id="deletePatientModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-rose-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+        <div class="p-6 text-center">
+            <!-- Icon -->
+            <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-sm shadow-rose-500/10">
+                <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+            </div>
+
+            <!-- Title -->
+            <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">Delete Patient Record?</h3>
+            <p class="text-xs text-slate-500 mt-1">This action will delete the patient and their associated data.</p>
+
+            <!-- Warning Box -->
+            <div class="p-4 rounded-xl bg-rose-50/70 border border-rose-200 text-xs text-rose-900 space-y-2 my-4 text-left">
+                <div class="flex items-center gap-2 font-bold text-rose-800 text-[11px] uppercase tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
+                    <span>Warning: Data Cannot Be Recovered</span>
+                </div>
+                <p class="text-slate-700 leading-relaxed text-xs">
+                    Are you sure you want to delete patient <strong class="text-slate-900 font-bold" id="delPatientName"></strong> (<span id="delPatientId" class="font-mono font-bold text-slate-800"></span>)?
+                </p>
+                <p class="text-[11px] text-rose-700 font-medium">
+                    Once deleted, this patient profile, appointments history, and linked records cannot be recovered.
+                </p>
+            </div>
+
+            <!-- Form & Actions -->
+            <form id="deletePatientForm" method="POST" class="flex items-center justify-end gap-2.5 pt-2">
+                @csrf
+                @method('DELETE')
+                <button type="button" onclick="closeModal('deletePatientModal')" 
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm shadow-rose-600/30 flex items-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Yes, Delete Patient</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeletePatientModal(deleteUrl, patientName, patientId) {
+    const form = document.getElementById('deletePatientForm');
+    form.action = deleteUrl;
+    document.getElementById('delPatientName').innerText = patientName;
+    document.getElementById('delPatientId').innerText = patientId;
+    openModal('deletePatientModal');
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+</script>
 @endsection

@@ -412,13 +412,12 @@
                                                     <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
                                                     <span>Consult</span>
                                                 </a>
-                                                <form action="{{ route('appointments.destroy', $apt->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this appointment session ({{ $apt->appointment_date->format('d M Y') }})? ₹{{ number_format($apt->daily_fee > 0 ? $apt->daily_fee : $apt->consultation_fee, 0) }} will be deducted from invoice and due bill.');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 transition" title="Delete Appointment Session">
-                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                                    </button>
-                                                </form>
+                                                <button type="button" 
+                                                        onclick="openDeleteAppointmentModal('{{ route('appointments.destroy', $apt->id) }}', '{{ $apt->appointment_no }}', '{{ $apt->appointment_date->format('d M Y') }}', '{{ number_format($apt->daily_fee > 0 ? $apt->daily_fee : $apt->consultation_fee, 0) }}')"
+                                                        class="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 transition" 
+                                                        title="Delete Appointment Session">
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                </button>
                                             @else
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
                                                     <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
@@ -1189,6 +1188,69 @@
     </div>
 </div>
 @endif
+
+<!-- MODAL: DELETE APPOINTMENT SESSION CONFIRMATION -->
+<div id="deleteAppointmentModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-rose-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+        <div class="p-6 text-center">
+            <!-- Icon -->
+            <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-sm shadow-rose-500/10">
+                <i data-lucide="calendar-x" class="w-7 h-7"></i>
+            </div>
+
+            <!-- Title -->
+            <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">Delete Appointment Session?</h3>
+            <p class="text-xs text-slate-500 mt-1">This appointment session will be permanently removed.</p>
+
+            <!-- Warning Box -->
+            <div class="p-4 rounded-xl bg-rose-50/70 border border-rose-200 text-xs text-rose-900 space-y-2.5 my-4 text-left">
+                <div class="flex items-center gap-2 font-bold text-rose-800 text-[11px] uppercase tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
+                    <span>Warning: Data Cannot Be Recovered</span>
+                </div>
+                <p class="text-slate-700 leading-relaxed text-xs">
+                    Are you sure you want to delete session <strong class="text-slate-900 font-bold" id="delAptNo"></strong> scheduled on <strong class="text-slate-900 font-bold" id="delAptDate"></strong>?
+                </p>
+                <div class="p-2.5 rounded-xl bg-white border border-rose-200 flex items-center justify-between">
+                    <span class="text-[11px] text-slate-600 font-semibold">Fee deducted from invoice &amp; due:</span>
+                    <span class="font-black text-rose-600 text-xs" id="delAptFee">₹0</span>
+                </div>
+                <p class="text-[11px] text-rose-700 font-medium leading-relaxed">
+                    Once deleted, this session cannot be restored, and patient due balance will be automatically recalculated.
+                </p>
+            </div>
+
+            <!-- Form & Actions -->
+            <form id="deleteAppointmentForm" method="POST" class="flex items-center justify-end gap-2.5 pt-2">
+                @csrf
+                @method('DELETE')
+                <button type="button" onclick="closeModal('deleteAppointmentModal')" 
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm shadow-rose-600/30 flex items-center gap-1.5">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Yes, Delete Session</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeleteAppointmentModal(deleteUrl, aptNo, aptDate, aptFee) {
+    const form = document.getElementById('deleteAppointmentForm');
+    form.action = deleteUrl;
+    document.getElementById('delAptNo').innerText = '#' + aptNo;
+    document.getElementById('delAptDate').innerText = aptDate;
+    document.getElementById('delAptFee').innerText = '₹' + aptFee;
+    openModal('deleteAppointmentModal');
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+</script>
 
 @endsection
 
