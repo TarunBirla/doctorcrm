@@ -337,16 +337,16 @@
                                         </a>
                                     @endif
 
-                                    <!-- Delete / Cancel -->
-                                    <!-- @if($apt->status !== 'completed')
-                                        <form action="{{ route('appointments.destroy', $apt->id) }}" method="POST" onsubmit="return confirm('Cancel this appointment session?')" class="inline">
+                                    <!-- Delete / Cancel (Only if not completed) -->
+                                    @if($apt->status !== 'completed')
+                                        <form action="{{ route('appointments.destroy', $apt->id) }}" method="POST" onsubmit="return confirm('Delete appointment session ({{ $apt->appointment_date->format('d M Y') }})? Is session ki fee invoice se minus ho jayegi.');" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" title="Cancel Session" class="p-1.5 bg-slate-50 text-rose-600 hover:bg-rose-100 rounded-xl transition">
+                                            <button type="submit" title="Delete Session & Deduct Fee" class="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-xl transition">
                                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                             </button>
                                         </form>
-                                    @endif -->
+                                    @endif
                                 </div>
                             </td>
                         </tr>

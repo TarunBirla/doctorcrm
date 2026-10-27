@@ -412,6 +412,13 @@
                                                     <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
                                                     <span>Consult</span>
                                                 </a>
+                                                <form action="{{ route('appointments.destroy', $apt->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this appointment session ({{ $apt->appointment_date->format('d M Y') }})? ₹{{ number_format($apt->daily_fee > 0 ? $apt->daily_fee : $apt->consultation_fee, 0) }} will be deducted from invoice and due bill.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 transition" title="Delete Appointment Session">
+                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </form>
                                             @else
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
                                                     <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>

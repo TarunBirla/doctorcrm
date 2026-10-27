@@ -954,12 +954,97 @@ class AppointmentController extends Controller
 
     public function destroy($id)
     {
-        $appointment = Appointment::with('patient')->findOrFail($id);
+        $appointment = Appointment::with(['patient', 'invoice.items', 'primaryInvoice.items'])->findOrFail($id);
+
+        // Disallow deletion of completed appointments
+        if ($appointment->status === 'completed') {
+            return back()->with('error', 'Completed appointments cannot be deleted as treatment has already been delivered.');
+        }
+
         $no = $appointment->appointment_no;
+        $dateStr = $appointment->appointment_date ? $appointment->appointment_date->format('d M Y') : '';
+        $feeToDeduct = (float) ($appointment->daily_fee > 0 ? $appointment->daily_fee : $appointment->consultation_fee);
+
+        $invoice = $appointment->resolved_invoice;
+        $deductedAmount = 0;
+
+        if ($invoice) {
+            // If this appointment was the primary reference on the invoice, re-link to another session in package
+            if ($invoice->appointment_id == $appointment->id) {
+                $nextApt = Appointment::where(function ($q) use ($invoice) {
+                    $q->where('invoice_id', $invoice->id);
+                })->where('id', '!=', $appointment->id)->first();
+
+                $invoice->appointment_id = $nextApt ? $nextApt->id : null;
+                $invoice->save();
+            }
+
+            if ($feeToDeduct > 0) {
+                $items = $invoice->items;
+                $itemUpdated = false;
+
+                foreach ($items as $item) {
+                    if ($item->quantity > 1) {
+                        $newQty = $item->quantity - 1;
+                        $unitPrice = (float) $item->unit_price;
+                        $item->update([
+                            'quantity' => $newQty,
+                            'total' => max(0, $newQty * $unitPrice),
+                            'item_description' => preg_replace('/\(\d+\s*Days Treatment Package\)/i', "({$newQty} Days Treatment Package)", $item->item_description),
+                        ]);
+                        $deductedAmount = $unitPrice;
+                        $itemUpdated = true;
+                        break;
+                    } elseif ($item->quantity == 1 && $items->count() > 1) {
+                        $deductedAmount = (float) $item->total;
+                        $item->delete();
+                        $itemUpdated = true;
+                        break;
+                    }
+                }
+
+                if (!$itemUpdated) {
+                    $deductedAmount = min((float) $invoice->subtotal, $feeToDeduct);
+                    if ($items->count() === 1) {
+                        $singleItem = $items->first();
+                        $newSub = max(0, (float) $singleItem->total - $deductedAmount);
+                        if ($newSub <= 0) {
+                            $singleItem->delete();
+                        } else {
+                            $singleItem->update(['total' => $newSub]);
+                        }
+                    } else {
+                        $invoice->subtotal = max(0, (float) $invoice->subtotal - $deductedAmount);
+                    }
+                }
+
+                // Update package note text if it mentions total days
+                if (!empty($invoice->notes)) {
+                    $remainingCount = Appointment::where('invoice_id', $invoice->id)->where('id', '!=', $appointment->id)->count();
+                    $invoice->notes = preg_replace('/Total \d+ Days/i', "Total {$remainingCount} Days", $invoice->notes);
+                    $invoice->notes = preg_replace('/for \d+ days/i', "for {$remainingCount} days", $invoice->notes);
+                }
+
+                // Recalculate invoice totals and payment status
+                $invoice->recalculate();
+            }
+        }
+
+        // Delete the appointment
         $appointment->delete();
 
-        AuditLog::record('Appointment Cancelled/Deleted', 'Appointment', $no, "Appointment {$no} removed");
+        AuditLog::record(
+            'Appointment Deleted',
+            'Appointment',
+            $no,
+            "Appointment {$no} ({$dateStr}) deleted. Fee deducted: ₹" . number_format($deductedAmount, 2) . " from invoice " . ($invoice ? "#{$invoice->invoice_no}" : 'N/A')
+        );
 
-        return back()->with('success', "Appointment #{$no} deleted successfully.");
+        $msg = "Appointment #{$no} deleted successfully.";
+        if ($deductedAmount > 0) {
+            $msg .= " ₹" . number_format($deductedAmount, 2) . " has been deducted from invoice and due payment recalculated.";
+        }
+
+        return back()->with('success', $msg);
     }
 }
