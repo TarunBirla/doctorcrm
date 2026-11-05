@@ -64,8 +64,10 @@
                         🎯 Next Patient Ready
                     </div>
                     <h3 class="text-lg font-bold text-white">
-                        {{ $nextPatient->patient->full_name }}
-                        <span class="text-xs font-normal text-blue-100">({{ $nextPatient->patient->age }}y / {{ $nextPatient->patient->gender }} • {{ $nextPatient->patient->patient_id }})</span>
+                        {{ $nextPatient->patient?->full_name ?? 'Walk-in / Unlinked Patient' }}
+                        @if($nextPatient->patient)
+                            <span class="text-xs font-normal text-blue-100">({{ $nextPatient->patient->age }}y / {{ $nextPatient->patient->gender }} • {{ $nextPatient->patient->patient_id }})</span>
+                        @endif
                     </h3>
                     <p class="text-xs text-blue-100 mt-0.5">
                         Chief complaint: <strong>{{ $nextPatient->reason ?? 'General Consultation' }}</strong> • Waiting: {{ $nextPatient->waiting_since ? $nextPatient->waiting_since->diffForHumans(null, true) : '5m' }}
@@ -81,7 +83,7 @@
                         <span>Start Consultation</span>
                     </button>
                 </form>
-                <button onclick="playChime('{{ $nextPatient->patient->full_name }}', {{ $nextPatient->token_number }})" 
+                <button onclick="playChime('{{ addslashes($nextPatient->patient?->full_name ?? 'Patient') }}', {{ $nextPatient->token_number }})" 
                         class="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20">
                     <i data-lucide="volume-2" class="w-4 h-4"></i>
                     <span>Call In</span>
@@ -172,10 +174,15 @@
                                 </div>
                             </td>
                             <td class="p-3.5">
-                                <a href="{{ route('patients.show', $apt->patient_id) }}" class="font-bold text-slate-900 hover:text-blue-700 block">
-                                    {{ $apt->patient->full_name }}
-                                </a>
-                                <span class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->age }}y / {{ $apt->patient->gender }} • Ph: {{ $apt->patient->mobile }}</span>
+                                @if($apt->patient)
+                                    <a href="{{ route('patients.show', $apt->patient_id) }}" class="font-bold text-slate-900 hover:text-blue-700 block">
+                                        {{ $apt->patient->full_name }}
+                                    </a>
+                                    <span class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->age }}y / {{ $apt->patient->gender }} • Ph: {{ $apt->patient->mobile }}</span>
+                                @else
+                                    <span class="font-bold text-slate-700 block">Walk-in / Unlinked</span>
+                                    <span class="text-[11px] text-slate-400">ID: {{ $apt->patient_id ?? 'N/A' }}</span>
+                                @endif
                             </td>
                             <td class="p-3.5 font-semibold text-slate-700">
                                 {{ $apt->appointment_time }}
@@ -231,7 +238,7 @@
                             <td class="p-3.5 pr-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <!-- Call In button -->
-                                    <button onclick="playChime('{{ $apt->patient->full_name }}', {{ $apt->token_number }})" 
+                                    <button onclick="playChime('{{ addslashes($apt->patient?->full_name ?? 'Patient') }}', {{ $apt->token_number }})" 
                                             title="Call Token" class="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-200 rounded-lg transition">
                                         <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
                                     </button>

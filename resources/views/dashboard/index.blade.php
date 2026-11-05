@@ -215,8 +215,10 @@
                         <span class="text-xs text-slate-500">Waiting since {{ $nextPatientAppointment->waiting_since ? $nextPatientAppointment->waiting_since->diffForHumans() : 'just now' }}</span>
                     </div>
                     <h4 class="text-sm font-bold text-slate-900 mt-0.5">
-                        {{ $nextPatientAppointment->patient->full_name }} 
-                        <span class="text-xs font-normal text-slate-500">({{ $nextPatientAppointment->patient->patient_id }} • {{ $nextPatientAppointment->patient->age }}y / {{ $nextPatientAppointment->patient->gender }})</span>
+                        {{ $nextPatientAppointment->patient?->full_name ?? 'Walk-in / Unlinked Patient' }} 
+                        @if($nextPatientAppointment->patient)
+                            <span class="text-xs font-normal text-slate-500">({{ $nextPatientAppointment->patient->patient_id }} • {{ $nextPatientAppointment->patient->age }}y / {{ $nextPatientAppointment->patient->gender }})</span>
+                        @endif
                     </h4>
                 </div>
             </div>
@@ -277,10 +279,15 @@
                                         </span>
                                     </td>
                                     <td class="p-3">
-                                        <a href="{{ route('patients.show', $apt->patient_id) }}" class="font-bold text-slate-900 hover:text-blue-700">
-                                            {{ $apt->patient->full_name }}
-                                        </a>
-                                        <div class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->mobile }}</div>
+                                        @if($apt->patient)
+                                            <a href="{{ route('patients.show', $apt->patient_id) }}" class="font-bold text-slate-900 hover:text-blue-700">
+                                                {{ $apt->patient->full_name }}
+                                            </a>
+                                            <div class="text-[11px] text-slate-400">{{ $apt->patient->patient_id }} • {{ $apt->patient->mobile }}</div>
+                                        @else
+                                            <span class="font-bold text-slate-700">Walk-in / Unlinked</span>
+                                            <div class="text-[11px] text-slate-400">ID: {{ $apt->patient_id ?? 'N/A' }}</div>
+                                        @endif
                                     </td>
                                     <td class="p-3">
                                         <div class="font-semibold text-slate-700">{{ $apt->appointment_time }}</div>
