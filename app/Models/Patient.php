@@ -37,12 +37,14 @@ class Patient extends Model
         'referral_source',
         'notes',
         'description',
+        'registration_fee',
     ];
 
     protected $casts = [
         'dob' => 'date',
         'age' => 'integer',
         'recovery_percentage' => 'integer',
+        'registration_fee' => 'decimal:2',
     ];
 
     public static function generatePatientId(): string

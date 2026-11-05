@@ -118,7 +118,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Marital Status</label>
                         <select name="marital_status" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
@@ -131,6 +131,42 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Occupation</label>
                         <input type="text" name="occupation" placeholder="e.g. IT Professional, Homemaker..." value="{{ old('occupation') }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Register Fees (₹)</span>
+                            <span class="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Registration Fee</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" name="registration_fee" id="patient_registration_fee" oninput="toggleRegPaymentOptions()" placeholder="0.00" value="{{ old('registration_fee', '0') }}" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none font-bold text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Registration Fee Payment Collection Options (Shows when fee > 0) -->
+                <div id="regFeePaymentOptions" class="p-3.5 bg-purple-50/50 rounded-xl border border-purple-200/80 space-y-2 {{ (float)old('registration_fee', 0) > 0 ? '' : 'hidden' }}">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                            <i data-lucide="receipt" class="w-3.5 h-3.5 text-purple-600"></i> Registration Fee Payment Collection
+                        </span>
+                        <span class="text-[10px] font-semibold text-purple-600">Separate from appointment package fee</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Payment Status</label>
+                            <select name="registration_payment_status" class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-semibold">
+                                <option value="paid" {{ old('registration_payment_status', 'paid') === 'paid' ? 'selected' : '' }}>Paid (Collected Now)</option>
+                                <option value="unpaid" {{ old('registration_payment_status') === 'unpaid' ? 'selected' : '' }}>Unpaid / Due Balance</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Payment Method</label>
+                            <select name="registration_payment_method" class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-semibold">
+                                <option value="Cash" {{ old('registration_payment_method') === 'Cash' ? 'selected' : '' }}>Cash</option>
+                                <option value="UPI" {{ old('registration_payment_method') === 'UPI' ? 'selected' : '' }}>UPI / GPay / PhonePe</option>
+                                <option value="Card" {{ old('registration_payment_method') === 'Card' ? 'selected' : '' }}>Card Swipe</option>
+                                <option value="Bank Transfer" {{ old('registration_payment_method') === 'Bank Transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                <option value="Other" {{ old('registration_payment_method') === 'Other' ? 'selected' : '' }}>Other</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -322,9 +358,23 @@
         document.getElementById('preview_total_fee').innerText = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
+    function toggleRegPaymentOptions() {
+        const feeInput = document.getElementById('patient_registration_fee');
+        const opts = document.getElementById('regFeePaymentOptions');
+        if (feeInput && opts) {
+            const val = parseFloat(feeInput.value) || 0;
+            if (val > 0) {
+                opts.classList.remove('hidden');
+            } else {
+                opts.classList.add('hidden');
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         updateClinicFee();
         calculateTotalFee();
+        toggleRegPaymentOptions();
     });
 </script>
 @endsection

@@ -1234,7 +1234,10 @@
                         $modalityList = [
                             'IFT (Interferential)', 'TENS Therapy', 'Ultrasound (US)', 'Spinal Traction', 
                             'SWD (Shortwave)', 'Moist Heat Pack', 'Cryo / Ice Pack', 'Cupping Therapy', 
-                            'Dry Needling', 'Joint Mobilization', 'Chiropractic Adjustment', 'Laser Therapy'
+                            'Dry Needling', 'Joint Mobilization', 'Chiropractic Adjustment', 'Laser Therapy',
+                            'PEMF', 'Class 4 laser', 'Class 3 laser', 'CBP',
+                            'Matrix Rhythm Therapy (MRT)', 'Knee distraction (KD)', 'Flexion distraction (FD)',
+                            'Neurotrac', 'Magnetron', 'Shockwave', 'Muscle stimulator (MST)'
                         ];
                     @endphp
                     @foreach($modalityList as $mod)

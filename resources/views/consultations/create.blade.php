@@ -276,7 +276,13 @@
                         <label class="block text-xs font-bold text-slate-700 mb-2">Prescribed Modalities / Electrotherapy</label>
                         <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs">
                             @php
-                                $cModalities = ['IFT', 'TENS', 'Ultrasound (US)', 'Spinal Traction', 'Moist Heat', 'Cryo Pack', 'Cupping', 'Dry Needling', 'Mobilization', 'Chiropractic', 'SWD', 'Laser'];
+                                $cModalities = [
+                                    'IFT', 'TENS', 'Ultrasound (US)', 'Spinal Traction', 'Moist Heat', 'Cryo Pack', 
+                                    'Cupping', 'Dry Needling', 'Mobilization', 'Chiropractic', 'SWD', 'Laser',
+                                    'PEMF', 'Class 4 laser', 'Class 3 laser', 'CBP',
+                                    'Matrix Rhythm Therapy (MRT)', 'Knee distraction (KD)', 'Flexion distraction (FD)',
+                                    'Neurotrac', 'Magnetron', 'Shockwave', 'Muscle stimulator (MST)'
+                                ];
                             @endphp
                             @foreach($cModalities as $cMod)
                                 <label class="p-2 rounded-xl border border-slate-200 hover:border-emerald-500 cursor-pointer flex items-center gap-1.5 bg-slate-50/50 hover:bg-emerald-50/40 transition">

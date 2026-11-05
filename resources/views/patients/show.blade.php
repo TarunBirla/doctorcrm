@@ -60,6 +60,12 @@
                                 <span>Clinic: {{ $patient->clinic->name }}</span>
                             </span>
                         @endif
+                        @if($patient->registration_fee > 0)
+                            <span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 inline-flex items-center gap-1.5">
+                                <i data-lucide="id-card" class="w-3.5 h-3.5 text-purple-600"></i>
+                                <span>Register Fee: ₹{{ number_format($patient->registration_fee, 0) }}</span>
+                            </span>
+                        @endif
                     </div>
 
                     @if($patient->description)
@@ -842,7 +848,14 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse($patient->invoices as $inv)
                                     <tr class="hover:bg-slate-50">
-                                        <td class="p-3 pl-5 font-bold text-slate-900">{{ $inv->invoice_no }}</td>
+                                        <td class="p-3 pl-5 font-bold text-slate-900">
+                                            <div class="flex items-center gap-1.5">
+                                                <span>{{ $inv->invoice_no }}</span>
+                                                @if($inv->isRegistrationFee())
+                                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-200">Register Fee</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="p-3 text-slate-600">{{ $inv->invoice_date->format('d M Y') }}</td>
                                         <td class="p-3 font-semibold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
                                         <td class="p-3 font-semibold text-emerald-700">₹{{ number_format($inv->paid_amount, 2) }}</td>

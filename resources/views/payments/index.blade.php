@@ -414,9 +414,14 @@
                             @endphp
                             <tr class="hover:bg-slate-50/80 transition">
                                 <td class="p-3.5 pl-5">
-                                    <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-blue-700 hover:underline font-mono block">
-                                        {{ $inv->invoice_no }}
-                                    </a>
+                                    <div class="flex items-center gap-1.5">
+                                        <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-blue-700 hover:underline font-mono">
+                                            {{ $inv->invoice_no }}
+                                        </a>
+                                        @if($inv->isRegistrationFee())
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-200">Register Fee</span>
+                                        @endif
+                                    </div>
                                     <span class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                                         <i data-lucide="calendar" class="w-3 h-3"></i>
                                         {{ $inv->invoice_date ? $inv->invoice_date->format('d M Y') : 'N/A' }}
@@ -436,9 +441,15 @@
                                 </td>
                                 <td class="p-3.5">
                                     <div class="font-semibold text-slate-800">{{ $clinicObj?->name ?? 'Main Clinic' }}</div>
-                                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-100 inline-block mt-0.5">
-                                        {{ $catObj?->name ?? 'Physiotherapy' }}
-                                    </span>
+                                    @if($inv->isRegistrationFee())
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-extrabold border border-purple-200 inline-flex items-center gap-1 mt-0.5">
+                                            <i data-lucide="id-card" class="w-3 h-3"></i> Register Fees
+                                        </span>
+                                    @else
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-100 inline-block mt-0.5">
+                                            {{ $catObj?->name ?? 'Physiotherapy' }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="p-3.5 font-extrabold text-slate-900">
                                     ₹{{ number_format((float)$inv->total_amount, 2) }}

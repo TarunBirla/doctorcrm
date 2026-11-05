@@ -160,6 +160,9 @@ class PatientController extends Controller
             'emergency_phone' => 'nullable|string|max:20',
             'referral_source' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            'registration_fee' => 'nullable|numeric|min:0',
+            'registration_payment_status' => 'nullable|in:paid,unpaid',
+            'registration_payment_method' => 'nullable|string|max:50',
             // Optional instant booking validation (days based)
             'book_appointment' => 'nullable|boolean',
             'appointment_date' => 'required_if:book_appointment,1|nullable|date',
@@ -204,9 +207,57 @@ class PatientController extends Controller
                 'emergency_phone' => $validated['emergency_phone'] ?? null,
                 'referral_source' => $validated['referral_source'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'registration_fee' => (float) ($request->input('registration_fee') ?? 0),
             ]);
 
             AuditLog::record('Patient Registered', 'Patient', $patient->patient_id, "Registered patient {$patient->full_name} ({$patient->patient_id}) under Doctor #{$assignedDoctorId}");
+
+            // REGISTRATION FEE INVOICE GENERATION (Separate from Appointment Fee)
+            $regFee = (float) ($request->input('registration_fee') ?? 0);
+            $isRegPaid = ($request->input('registration_payment_status') === 'paid');
+            $regMethod = $request->input('registration_payment_method') ?: 'Cash';
+
+            if ($regFee > 0) {
+                $regInvoiceNo = \App\Models\Invoice::generateInvoiceNo();
+
+                $regInvoice = \App\Models\Invoice::create([
+                    'invoice_no' => $regInvoiceNo,
+                    'patient_id' => $patient->id,
+                    'appointment_id' => null, // Registration fee is completely separate from appointment
+                    'doctor_id' => $assignedDoctorId,
+                    'invoice_date' => now()->toDateString(),
+                    'subtotal' => $regFee,
+                    'discount' => 0.00,
+                    'additional_charges' => 0.00,
+                    'total_amount' => $regFee,
+                    'paid_amount' => $isRegPaid ? $regFee : 0.00,
+                    'due_amount' => $isRegPaid ? 0.00 : $regFee,
+                    'payment_status' => $isRegPaid ? 'paid' : 'unpaid',
+                    'payment_method' => $isRegPaid ? $regMethod : null,
+                    'notes' => 'Registration Fee',
+                ]);
+
+                \App\Models\InvoiceItem::create([
+                    'invoice_id' => $regInvoice->id,
+                    'item_description' => 'Patient Registration Fee',
+                    'quantity' => 1,
+                    'unit_price' => $regFee,
+                    'total' => $regFee,
+                ]);
+
+                if ($isRegPaid) {
+                    \App\Models\PaymentTransaction::create([
+                        'invoice_id' => $regInvoice->id,
+                        'patient_id' => $patient->id,
+                        'transaction_no' => \App\Models\PaymentTransaction::generateTransactionNo(),
+                        'receipt_no' => \App\Models\PaymentTransaction::generateReceiptNo(),
+                        'amount' => $regFee,
+                        'payment_method' => $regMethod,
+                        'payment_date' => now()->toDateString(),
+                        'notes' => 'Patient Registration Fee collected at registration',
+                    ]);
+                }
+            }
 
             // OPTIONAL: Instant Appointment Booking Flow (Session & Days Package based, No hourly slot needed)
             // OPTIONAL: Instant Appointment Booking Flow (Session & Days Package based, skipping Sundays)
@@ -293,13 +344,13 @@ class PatientController extends Controller
 
                 return [
                     'patient' => $patient,
-                    'message' => "Patient {$patient->full_name} registered and {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Fee: ₹" . number_format($totalFee, 2)
+                    'message' => "Patient {$patient->full_name} registered successfully!" . ($regFee > 0 ? " [Register Fee: ₹" . number_format($regFee, 2) . ($isRegPaid ? " Paid" : " Due") . "]" : "") . " {$treatmentDays}-day physiotherapy appointment package confirmed at {$clinicObj?->name}! Total Package Fee: ₹" . number_format($totalFee, 2)
                 ];
             }
 
             return [
                 'patient' => $patient,
-                'message' => "Patient {$patient->full_name} ({$patient->patient_id}) registered successfully!"
+                'message' => "Patient {$patient->full_name} ({$patient->patient_id}) registered successfully!" . ($regFee > 0 ? " [Register Fee: ₹" . number_format($regFee, 2) . ($isRegPaid ? " Paid" : " Due") . "]" : "")
             ];
         });
 

@@ -338,7 +338,7 @@ class PaymentController extends Controller
 
         // 5. Clinic-Wise Breakdown
         $clinicWiseSummary = $allFilteredInvoices->groupBy(function ($inv) {
-            $clinic = $inv->appointment?->clinic ?? $inv->appointments->first()?->clinic;
+            $clinic = $inv->appointment?->clinic ?? $inv->appointments->first()?->clinic ?? $inv->patient?->clinic;
             return $clinic ? $clinic->name : 'Main / General Clinic';
         })->map(function ($group, $clinicName) {
             return [
@@ -352,7 +352,10 @@ class PaymentController extends Controller
 
         // 6. Category-Wise Breakdown
         $categoryWiseSummary = $allFilteredInvoices->groupBy(function ($inv) {
-            $cat = $inv->appointment?->category ?? $inv->appointments->first()?->category;
+            if ($inv->isRegistrationFee()) {
+                return 'Register Fees';
+            }
+            $cat = $inv->appointment?->category ?? $inv->appointments->first()?->category ?? $inv->patient?->category;
             return $cat ? $cat->name : 'General Consultation / Physiotherapy';
         })->map(function ($group, $catName) {
             return [
@@ -469,7 +472,7 @@ class PaymentController extends Controller
         })->sortByDesc('total_billed')->values();
 
         $clinicWiseSummary = $invoices->groupBy(function ($inv) {
-            $clinic = $inv->appointment?->clinic ?? $inv->appointments->first()?->clinic;
+            $clinic = $inv->appointment?->clinic ?? $inv->appointments->first()?->clinic ?? $inv->patient?->clinic;
             return $clinic ? $clinic->name : 'Main / General Clinic';
         })->map(function ($group, $clinicName) {
             return [
@@ -482,7 +485,10 @@ class PaymentController extends Controller
         })->sortByDesc('total_billed')->values();
 
         $categoryWiseSummary = $invoices->groupBy(function ($inv) {
-            $cat = $inv->appointment?->category ?? $inv->appointments->first()?->category;
+            if ($inv->isRegistrationFee()) {
+                return 'Register Fees';
+            }
+            $cat = $inv->appointment?->category ?? $inv->appointments->first()?->category ?? $inv->patient?->category;
             return $cat ? $cat->name : 'General Consultation / Physiotherapy';
         })->map(function ($group, $catName) {
             return [

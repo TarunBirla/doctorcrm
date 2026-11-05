@@ -58,6 +58,21 @@ class Invoice extends Model
         return $invoiceNo;
     }
 
+    public function isRegistrationFee(): bool
+    {
+        if ($this->notes && stripos($this->notes, 'registration') !== false) {
+            return true;
+        }
+        if ($this->relationLoaded('items')) {
+            foreach ($this->items as $item) {
+                if (stripos($item->item_description ?? '', 'registration') !== false) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public function patient()
     {
         return $this->belongsTo(Patient::class)->withTrashed();
